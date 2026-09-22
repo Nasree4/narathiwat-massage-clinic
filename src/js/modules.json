@@ -1,0 +1,66 @@
+{
+  "version": "5.3.0",
+  "generatedAt": "2026-09-22T16:51:11.099Z",
+  "modules": [
+    {
+      "file": "01_constants_and_state.js",
+      "desc": "Constants, LocalStorage keys, App State defaults"
+    },
+    {
+      "file": "02_notifications_and_alerts.js",
+      "desc": "Notifications, Toasts, Realtime Alerts & Sounds"
+    },
+    {
+      "file": "03_time_tracking_and_lifecycle.js",
+      "desc": "Patient Treatment Timer & Lifecycle Engine"
+    },
+    {
+      "file": "04_settings_theme_and_shifts.js",
+      "desc": "System Settings, 3D Theme, Shift Config, Rate Limiting"
+    },
+    {
+      "file": "05_supabase_and_sync.js",
+      "desc": "Supabase Integration, Cloud Sync & Slot Configs"
+    },
+    {
+      "file": "06_auth_and_rbac.js",
+      "desc": "Authentication, Login/Logout, Roles & RBAC"
+    },
+    {
+      "file": "07_ui_components_and_reviews.js",
+      "desc": "Hero Clock, Booking Toggle, Audit Logs, Patient Reviews"
+    },
+    {
+      "file": "08_staff_selection_and_schemes.js",
+      "desc": "Staff Quick Chips, Availability & Treatment Schemes"
+    },
+    {
+      "file": "09_appointment_desk_and_queue.js",
+      "desc": "Desk Queue, Calling Voice, Edit Gender/Time/Services"
+    },
+    {
+      "file": "10_canvas_slip_generator.js",
+      "desc": "Fast Canvas Slip Generator & Printing"
+    },
+    {
+      "file": "11_patients_directory.js",
+      "desc": "Patients Directory, Search & Treatment History"
+    },
+    {
+      "file": "12_assistant_shifts_and_roster.js",
+      "desc": "Assistant Shifts, Duty Roster, Modal & Monthly History"
+    },
+    {
+      "file": "13_services_crud.js",
+      "desc": "Main & Extra Treatment Services Management"
+    },
+    {
+      "file": "14_pwa_and_lifecycle.js",
+      "desc": "PWA Service Worker, Auto-Update & Online Status"
+    },
+    {
+      "file": "15_booking_wizard_and_app_init.js",
+      "desc": "5-Step Booking Wizard Logic & App Init"
+    }
+  ]
+}

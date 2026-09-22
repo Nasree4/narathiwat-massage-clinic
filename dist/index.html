@@ -771,9 +771,9 @@
           <h1 class="text-sm sm:text-base md:text-lg font-bold leading-tight tracking-wide flex items-center gap-1 sm:gap-1.5 flex-wrap">
             <span data-i18n="app_title">คลินิกการแพทย์แผนไทย</span>
             <span class="text-[10px] sm:text-[11px] font-normal px-2 py-0.5 bg-herbal-800/80 text-herbal-200 rounded-full border border-herbal-600 hidden sm:inline-block" data-i18n="service_status">เปิดบริการปกติ</span>
-            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.3.0 (คลิกเพื่อตรวจสอบการอัปเดต)">
+            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.4.0 (คลิกเพื่อตรวจสอบการอัปเดต)">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span id="app-header-version-tag">v5.3.0</span>
+              <span id="app-header-version-tag">v5.4.0</span>
             </button>
           </h1>
           <p class="text-[11px] sm:text-xs text-herbal-200 font-light" data-i18n="app_hospital">
@@ -2852,10 +2852,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                   <span>เวอร์ชันระบบ (System Version)</span>
                   <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">Official</span>
                 </div>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">16 ก.ย. 2569</span></p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">23 ก.ย. 2569</span></p>
               </div>
             </div>
-            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.3.0</span>
+            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.4.0</span>
           </div>
 
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/70 text-xs">
@@ -2874,7 +2874,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       
       <!-- Modal Footer -->
       <div class="bg-slate-50 dark:bg-slate-800/80 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between flex-shrink-0">
-        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.3.0</span></span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.4.0</span></span>
         <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold transition" data-i18n="btn_close">
           ปิดหน้าต่าง
         </button>
@@ -5798,11 +5798,18 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     </div>
   </div>
 
-  <script>
+
+    <script>
+/**
+ * Module 1: 01_constants_and_state.js
+ * Description: Constants, LocalStorage keys, App State defaults
+ * Generated from lines 5802 to 6048 of original index.html
+ */
+
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.3.0";
+    const APP_VERSION = "v5.4.0";
     const APP_BUILD_DATE = "15 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
@@ -6045,6 +6052,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       assistantDutyRosters = {};
     }
     let currentRosterDate = "";
+
+
+
+/**
+ * Module 2: 02_notifications_and_alerts.js
+ * Description: Notifications, Toasts, Realtime Alerts & Sounds
+ * Generated from lines 6049 to 6538 of original index.html
+ */
 
     /* =========================================================================
        NOTIFICATION CENTER & REALTIME ALERT ENGINE (🔔 ระบบการแจ้งเตือน)
@@ -6535,6 +6550,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         osc.stop(ctx.currentTime + 0.35);
       } catch(e) {}
     }
+
+
+
+/**
+ * Module 3: 03_time_tracking_and_lifecycle.js
+ * Description: Patient Treatment Timer & Lifecycle Engine
+ * Generated from lines 6539 to 7265 of original index.html
+ */
 
     /* =========================================================================
        PATIENT LIFECYCLE & TIME TRACKING ENGINE (⏱️ ระบบจับเวลาและบันทึกสถานะ)
@@ -7262,6 +7285,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         avgTotalStayMin: count > 0 ? Math.round(totalStay / count) : 0
       };
     }
+
+
+
+/**
+ * Module 4: 04_settings_theme_and_shifts.js
+ * Description: System Settings, 3D Theme, Shift Config, Rate Limiting
+ * Generated from lines 7266 to 8144 of original index.html
+ */
 
     /* =========================================================================
        SYSTEM SETTINGS, THEME (3D TOGGLE) & BILINGUAL LANGUAGE (TH/ENG)
@@ -8141,6 +8172,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
     // Trigger IP lookup immediately in background
     initClientIp();
+
+
+
+/**
+ * Module 5: 05_supabase_and_sync.js
+ * Description: Supabase Integration, Cloud Sync & Slot Configs
+ * Generated from lines 8145 to 9850 of original index.html
+ */
 
     /* =========================================================================
        SUPABASE DATABASE & REALTIME CLIENT INTEGRATION
@@ -9848,6 +9887,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       showToast(`📢 กำลังเรียกคิว: คุณ ${patientName} (${formatTimeLabel(timeSlot)})`, "success");
     }
 
+
+
+/**
+ * Module 6: 06_auth_and_rbac.js
+ * Description: Authentication, Login/Logout, Roles & RBAC
+ * Generated from lines 9851 to 10939 of original index.html
+ */
+
     /* =========================================================================
        AUTHENTICATION & ROLE-BASED ACCESS CONTROL (RBAC)
        ========================================================================= */
@@ -10936,6 +10983,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       renderNotificationDrawer();
       lucide.createIcons();
     }
+
+
+
+/**
+ * Module 7: 07_ui_components_and_reviews.js
+ * Description: Hero Clock, Booking Toggle, Audit Logs, Patient Reviews
+ * Generated from lines 10940 to 12146 of original index.html
+ */
 
     /* =========================================================================
        HERO CLOCK & BOOKING FORM TOGGLE
@@ -12143,6 +12198,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         container.appendChild(label);
       });
     }
+
+
+
+/**
+ * Module 8: 08_staff_selection_and_schemes.js
+ * Description: Staff Quick Chips, Availability & Treatment Schemes
+ * Generated from lines 12147 to 13553 of original index.html
+ */
 
     /* =========================================================================
        STAFF SELECTION COMPONENT (QUICK CHIPS & AVAILABILITY FILTERING)
@@ -13550,6 +13613,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       });
     }
 
+
+
+
+/**
+ * Module 9: 09_appointment_desk_and_queue.js
+ * Description: Desk Queue, Calling Voice, Edit Gender/Time/Services
+ * Generated from lines 13554 to 16385 of original index.html
+ */
 
     // ==========================================
     // APPOINTMENT GENDER & TIME EDIT CONTROLLERS (v5.3.0)
@@ -16383,6 +16454,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       resetBookingForm('new');
     }
 
+
+
+/**
+ * Module 10: 10_canvas_slip_generator.js
+ * Description: Fast Canvas Slip Generator & Printing
+ * Generated from lines 16386 to 17038 of original index.html
+ */
+
     /* =========================================================================
        ULTRA-FAST DIRECT CANVAS SLIP GENERATOR (0.02s Execution, ZERO Phone Freeze)
        ========================================================================= */
@@ -17035,6 +17114,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         container.appendChild(badge);
       });
     }
+
+
+
+/**
+ * Module 11: 11_patients_directory.js
+ * Description: Patients Directory, Search & Treatment History
+ * Generated from lines 17039 to 18778 of original index.html
+ */
 
     /* =========================================================================
        PATIENTS DIRECTORY & TREATMENT HISTORY FUNCTIONS (ประวัติคนไข้)
@@ -18775,6 +18862,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       if (roleSelect) roleSelect.value = "all";
       renderManageShifts();
     }
+
+
+
+/**
+ * Module 12: 12_assistant_shifts_and_roster.js
+ * Description: Assistant Shifts, Duty Roster, Modal & Monthly History
+ * Generated from lines 18779 to 22338 of original index.html
+ */
 
     // ==================== ASSISTANT SHIFTS & WORKING HOURS LOGIC ====================
 
@@ -22336,6 +22431,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       lucide.createIcons();
     }
 
+
+
+/**
+ * Module 13: 13_services_crud.js
+ * Description: Main & Extra Treatment Services Management
+ * Generated from lines 22339 to 23207 of original index.html
+ */
+
     // =========================================================================
     // MAIN SERVICES CRUD HANDLERS (ประเภทหัตถการหลัก)
     // =========================================================================
@@ -23205,6 +23308,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     }
 
     
+
+
+/**
+ * Module 14: 14_pwa_and_lifecycle.js
+ * Description: PWA Service Worker, Auto-Update & Online Status
+ * Generated from lines 23208 to 23488 of original index.html
+ */
+
     /* =========================================================================
        INSTANT SERVICE WORKER & MULTI-DEVICE AUTO-UPDATE ENGINE (v5.3.0)
        ========================================================================= */
@@ -23485,6 +23596,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       }
     }
   
+
+
+
+/**
+ * Module 15: 15_booking_wizard_and_app_init.js
+ * Description: 5-Step Booking Wizard Logic & App Init
+ * Generated from lines 23489 to 24969 of original index.html
+ */
 
     /* =========================================================================
        5-STEP BOOKING POPUP WIZARD LOGIC (v3.9.5)
@@ -24967,6 +25086,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       });
     }
 
+
   </script>
+
 </body>
 </html>

@@ -35,6 +35,9 @@
   <!-- html2canvas for PDF / Image Slip Export -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
+  <!-- SheetJS for Professional Excel (.xlsx) Export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -768,9 +771,9 @@
           <h1 class="text-sm sm:text-base md:text-lg font-bold leading-tight tracking-wide flex items-center gap-1 sm:gap-1.5 flex-wrap">
             <span data-i18n="app_title">คลินิกการแพทย์แผนไทย</span>
             <span class="text-[10px] sm:text-[11px] font-normal px-2 py-0.5 bg-herbal-800/80 text-herbal-200 rounded-full border border-herbal-600 hidden sm:inline-block" data-i18n="service_status">เปิดบริการปกติ</span>
-            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.2.6 (คลิกเพื่อตรวจสอบการอัปเดต)">
+            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.4.0 (คลิกเพื่อตรวจสอบการอัปเดต)">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span id="app-header-version-tag">v5.2.6</span>
+              <span id="app-header-version-tag">v5.4.0</span>
             </button>
           </h1>
           <p class="text-[11px] sm:text-xs text-herbal-200 font-light" data-i18n="app_hospital">
@@ -1225,6 +1228,10 @@
                 </div>
               </div>
               <div class="flex items-center space-x-1.5 text-xs">
+                <button type="button" onclick="exportDeskAppointmentsToExcel()" class="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-bold transition flex items-center space-x-1 shadow-2xs cursor-pointer" title="ส่งออกรายงานคิวนวดเป็นไฟล์ Excel (.xlsx / CSV)">
+                  <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-200"></i>
+                  <span>Export Excel คิวนวด</span>
+                </button>
                 <button type="button" id="btn-desk-refresh" onclick="refreshDeskFromCloud()" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg font-medium transition flex items-center space-x-1 shadow-2xs cursor-pointer" title="ดึงข้อมูลล่าสุดจาก Supabase Cloud">
                   <i data-lucide="refresh-cw" id="icon-desk-refresh" class="w-3.5 h-3.5 text-slate-500"></i>
                   <span class="hidden sm:inline">ดึงข้อมูล Cloud</span>
@@ -1899,6 +1906,10 @@
                 <button type="button" onclick="openAssistantRosterModal()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition flex items-center space-x-1 shadow-2xs cursor-pointer" title="เปิดตารางจัดคิวและเช็คชื่อ Matrix รายรอบ">
                   <i data-lucide="calendar-check" class="w-3.5 h-3.5 text-emerald-400"></i>
                   <span>ตารางจัดคิว</span>
+                </button>
+                <button type="button" onclick="exportDutyRosterToExcel()" class="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl font-bold transition flex items-center space-x-1 shadow-2xs cursor-pointer" title="ส่งออกตารางเวรผู้ช่วยฯ เป็นไฟล์ Excel (.xlsx / CSV)">
+                  <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-200"></i>
+                  <span>Export Excel ตารางเวร</span>
                 </button>
               </div>
             </div>
@@ -2841,10 +2852,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                   <span>เวอร์ชันระบบ (System Version)</span>
                   <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">Official</span>
                 </div>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">16 ก.ย. 2569</span></p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">23 ก.ย. 2569</span></p>
               </div>
             </div>
-            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.2.6</span>
+            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.4.0</span>
           </div>
 
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/70 text-xs">
@@ -2863,7 +2874,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       
       <!-- Modal Footer -->
       <div class="bg-slate-50 dark:bg-slate-800/80 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between flex-shrink-0">
-        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.2.6</span></span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.4.0</span></span>
         <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold transition" data-i18n="btn_close">
           ปิดหน้าต่าง
         </button>
@@ -3757,13 +3768,28 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
             </div>
           </div>
 
-          <!-- History Filter Pills -->
-          <div class="flex items-center justify-between gap-2 flex-wrap pt-1">
-            <span class="text-xs font-bold text-slate-700 dark:text-slate-300">รายการประวัติการให้บริการ:</span>
-            <div class="inline-flex rounded-xl p-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold">
-              <button type="button" id="history-filter-btn-all" onclick="filterAssistantHistory('all')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-2xs cursor-pointer">ทั้งหมด</button>
-              <button type="button" id="history-filter-btn-today" onclick="filterAssistantHistory('today')" class="px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 cursor-pointer">วันนี้</button>
-              <button type="button" id="history-filter-btn-month" onclick="filterAssistantHistory('month')" class="px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 cursor-pointer">เดือนนี้</button>
+          <!-- History Filter & Monthly Partition Selector -->
+          <div class="bg-slate-50 dark:bg-slate-850 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2 flex-wrap text-xs">
+            <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
+              <span class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                <i data-lucide="calendar" class="w-3.5 h-3.5 text-herbal-700 dark:text-emerald-400"></i>
+                <span>เลือกช่วงเดือน:</span>
+              </span>
+              <select id="asst-history-month-select" onchange="onAssistantHistoryMonthSelect(this.value)" class="px-2 py-1 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-herbal-500 cursor-pointer">
+                <option value="all">📅 ทุกช่วงเวลา (ทั้งหมด)</option>
+              </select>
+            </div>
+
+            <div class="flex items-center space-x-1.5">
+              <div class="inline-flex rounded-xl p-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold shadow-2xs">
+                <button type="button" id="history-filter-btn-all" onclick="filterAssistantHistory('all')" class="px-2.5 py-1 rounded-lg bg-herbal-50 dark:bg-slate-700 text-herbal-900 dark:text-white font-bold cursor-pointer">ทั้งหมด</button>
+                <button type="button" id="history-filter-btn-today" onclick="filterAssistantHistory('today')" class="px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 cursor-pointer">วันนี้</button>
+                <button type="button" id="history-filter-btn-month" onclick="filterAssistantHistory('month')" class="px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 cursor-pointer">เดือนนี้</button>
+              </div>
+              <button type="button" onclick="exportCurrentAssistantHistoryToExcel()" class="px-2.5 py-1 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold transition flex items-center space-x-1 shadow-2xs cursor-pointer" title="ส่งออกประวัตินวดของผู้ช่วยท่านนี้เป็น Excel">
+                <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-200"></i>
+                <span class="hidden sm:inline">Export Excel</span>
+              </button>
             </div>
           </div>
 
@@ -5158,7 +5184,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
   </div>
 
 
-  <!-- 6.2 Modal Edit Appointment Time & Date (แก้ไขรอบเวลา / เลื่อนนัดหมาย v5.2.6) -->
+  <!-- 6.2 Modal Edit Appointment Time & Date (แก้ไขรอบเวลา / เลื่อนนัดหมาย v5.3.0) -->
   <div id="modal-edit-apt-time" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 dark:bg-black/80 backdrop-blur-xs hidden p-3 sm:p-4 overflow-y-auto animate-fade-in">
     <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto">
       <!-- Header -->
@@ -5751,7 +5777,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           <span class="flex items-center gap-1"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i> ติ๊กเลือกช่องเพื่อกำหนดรอบนวดของผู้ช่วยแต่ละท่าน</span>
         </div>
         <div class="flex items-center space-x-2">
-          <button type="button" onclick="exportAssistantRosterCSV()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer" title="ส่งออกข้อมูลเป็น CSV">
+          <button type="button" onclick="exportAssistantRosterExcel()" class="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer" title="ส่งออกข้อมูลตารางเวรเป็นไฟล์ Excel">
             <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-600"></i>
             <span>ส่งออก CSV</span>
           </button>
@@ -5772,11 +5798,18 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     </div>
   </div>
 
-  <script>
+
+    <script>
+/**
+ * Module 1: 01_constants_and_state.js
+ * Description: Constants, LocalStorage keys, App State defaults
+ * Generated from lines 5802 to 6048 of original index.html
+ */
+
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.2.6";
+    const APP_VERSION = "v5.4.0";
     const APP_BUILD_DATE = "15 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
@@ -5893,7 +5926,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     // Load persistent authentication session (preserves login across days/reloads)
     let currentUser = loadAuthSession();
 
-    // Assistant Name Normalization & Deduplication Engine (v5.2.6)
+    // Assistant Name Normalization & Deduplication Engine (v5.3.0)
     function normalizeAssistantName(str) {
       if (!str) return "";
       return String(str)
@@ -6019,6 +6052,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       assistantDutyRosters = {};
     }
     let currentRosterDate = "";
+
+
+
+/**
+ * Module 2: 02_notifications_and_alerts.js
+ * Description: Notifications, Toasts, Realtime Alerts & Sounds
+ * Generated from lines 6049 to 6538 of original index.html
+ */
 
     /* =========================================================================
        NOTIFICATION CENTER & REALTIME ALERT ENGINE (🔔 ระบบการแจ้งเตือน)
@@ -6509,6 +6550,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         osc.stop(ctx.currentTime + 0.35);
       } catch(e) {}
     }
+
+
+
+/**
+ * Module 3: 03_time_tracking_and_lifecycle.js
+ * Description: Patient Treatment Timer & Lifecycle Engine
+ * Generated from lines 6539 to 7265 of original index.html
+ */
 
     /* =========================================================================
        PATIENT LIFECYCLE & TIME TRACKING ENGINE (⏱️ ระบบจับเวลาและบันทึกสถานะ)
@@ -7236,6 +7285,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         avgTotalStayMin: count > 0 ? Math.round(totalStay / count) : 0
       };
     }
+
+
+
+/**
+ * Module 4: 04_settings_theme_and_shifts.js
+ * Description: System Settings, 3D Theme, Shift Config, Rate Limiting
+ * Generated from lines 7266 to 8144 of original index.html
+ */
 
     /* =========================================================================
        SYSTEM SETTINGS, THEME (3D TOGGLE) & BILINGUAL LANGUAGE (TH/ENG)
@@ -8115,6 +8172,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
     // Trigger IP lookup immediately in background
     initClientIp();
+
+
+
+/**
+ * Module 5: 05_supabase_and_sync.js
+ * Description: Supabase Integration, Cloud Sync & Slot Configs
+ * Generated from lines 8145 to 9850 of original index.html
+ */
 
     /* =========================================================================
        SUPABASE DATABASE & REALTIME CLIENT INTEGRATION
@@ -9822,6 +9887,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       showToast(`📢 กำลังเรียกคิว: คุณ ${patientName} (${formatTimeLabel(timeSlot)})`, "success");
     }
 
+
+
+/**
+ * Module 6: 06_auth_and_rbac.js
+ * Description: Authentication, Login/Logout, Roles & RBAC
+ * Generated from lines 9851 to 10939 of original index.html
+ */
+
     /* =========================================================================
        AUTHENTICATION & ROLE-BASED ACCESS CONTROL (RBAC)
        ========================================================================= */
@@ -10910,6 +10983,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       renderNotificationDrawer();
       lucide.createIcons();
     }
+
+
+
+/**
+ * Module 7: 07_ui_components_and_reviews.js
+ * Description: Hero Clock, Booking Toggle, Audit Logs, Patient Reviews
+ * Generated from lines 10940 to 12146 of original index.html
+ */
 
     /* =========================================================================
        HERO CLOCK & BOOKING FORM TOGGLE
@@ -12117,6 +12198,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         container.appendChild(label);
       });
     }
+
+
+
+/**
+ * Module 8: 08_staff_selection_and_schemes.js
+ * Description: Staff Quick Chips, Availability & Treatment Schemes
+ * Generated from lines 12147 to 13553 of original index.html
+ */
 
     /* =========================================================================
        STAFF SELECTION COMPONENT (QUICK CHIPS & AVAILABILITY FILTERING)
@@ -13525,8 +13614,16 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     }
 
 
+
+
+/**
+ * Module 9: 09_appointment_desk_and_queue.js
+ * Description: Desk Queue, Calling Voice, Edit Gender/Time/Services
+ * Generated from lines 13554 to 16385 of original index.html
+ */
+
     // ==========================================
-    // APPOINTMENT GENDER & TIME EDIT CONTROLLERS (v5.2.6)
+    // APPOINTMENT GENDER & TIME EDIT CONTROLLERS (v5.3.0)
     // ==========================================
     function getAppointmentGender(apt) {
       if (!apt) return 'unknown';
@@ -15499,7 +15596,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
     
     /* =========================================================================
-       NEXT APPOINTMENT CONTROLLER FOR EXISTING PATIENTS (นัดหมายครั้งถัดไป v5.2.6)
+       NEXT APPOINTMENT CONTROLLER FOR EXISTING PATIENTS (นัดหมายครั้งถัดไป v5.3.0)
        ========================================================================= */
 
     let nextAptCurrentData = null;
@@ -16357,6 +16454,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       resetBookingForm('new');
     }
 
+
+
+/**
+ * Module 10: 10_canvas_slip_generator.js
+ * Description: Fast Canvas Slip Generator & Printing
+ * Generated from lines 16386 to 17038 of original index.html
+ */
+
     /* =========================================================================
        ULTRA-FAST DIRECT CANVAS SLIP GENERATOR (0.02s Execution, ZERO Phone Freeze)
        ========================================================================= */
@@ -17009,6 +17114,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         container.appendChild(badge);
       });
     }
+
+
+
+/**
+ * Module 11: 11_patients_directory.js
+ * Description: Patients Directory, Search & Treatment History
+ * Generated from lines 17039 to 18778 of original index.html
+ */
 
     /* =========================================================================
        PATIENTS DIRECTORY & TREATMENT HISTORY FUNCTIONS (ประวัติคนไข้)
@@ -18750,6 +18863,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       renderManageShifts();
     }
 
+
+
+/**
+ * Module 12: 12_assistant_shifts_and_roster.js
+ * Description: Assistant Shifts, Duty Roster, Modal & Monthly History
+ * Generated from lines 18779 to 22338 of original index.html
+ */
+
     // ==================== ASSISTANT SHIFTS & WORKING HOURS LOGIC ====================
 
     async function setAssistantShiftType(asstId, shiftType) {
@@ -19113,7 +19234,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       }
     }
 
-    // Assistant Avatar & Visual Identifier Helper (v5.2.6)
+    // Assistant Avatar & Visual Identifier Helper (v5.3.0)
     function getAssistantAvatarHTML(asst, size = 'w-10 h-10', textSize = 'text-xs') {
       if (!asst) return `<div class="${size} rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-400">?</div>`;
       const isMale = asst.gender === 'male';
@@ -19155,6 +19276,219 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     // ==========================================
     let currentDetailAssistantId = null;
     let currentDetailHistoryPeriod = 'all';
+    let currentDetailHistoryMonth = 'all';
+    const THAI_FULL_MONTHS = [
+      "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+      "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+    ];
+
+    // Universal Excel (.xlsx) / UTF-8 BOM CSV Exporter
+    function exportDataToExcel(filename, sheetName, headers, rows) {
+      const cleanFilename = (filename || "export").replace(/[\\/:*?"<>|]+/g, "_");
+
+      // 1. SheetJS Native XLSX
+      if (typeof XLSX !== "undefined" && XLSX.utils && XLSX.writeFile) {
+        try {
+          const aoa = [headers, ...rows];
+          const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+          // Auto-calculate column widths
+          const colWidths = headers.map((h, colIdx) => {
+            let maxLen = (h ? String(h).length : 6);
+            rows.forEach(r => {
+              const val = r[colIdx];
+              if (val !== undefined && val !== null) {
+                const len = String(val).length;
+                if (len > maxLen) maxLen = len;
+              }
+            });
+            return { wch: Math.min(Math.max(maxLen + 3, 10), 45) };
+          });
+          ws['!cols'] = colWidths;
+
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, (sheetName || "Sheet1").slice(0, 31));
+          XLSX.writeFile(wb, `${cleanFilename}.xlsx`);
+          showToast(`ส่งออกไฟล์ Excel "${cleanFilename}.xlsx" สำเร็จแล้ว`, "success");
+          return;
+        } catch(err) {
+          console.warn("SheetJS export error, falling back to CSV:", err);
+        }
+      }
+
+      // 2. Fallback to UTF-8 BOM CSV (Opens cleanly in Excel)
+      const csvRows = [headers, ...rows].map(row => 
+        row.map(val => {
+          if (val === null || val === undefined) return '""';
+          const s = String(val).replace(/"/g, '""');
+          return `"${s}"`;
+        }).join(",")
+      );
+      const csvContent = "\uFEFF" + csvRows.join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `${cleanFilename}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast(`ส่งออกไฟล์ "${cleanFilename}.csv" สำเร็จแล้ว`, "success");
+    }
+
+    function exportDutyRosterToExcel(targetDate) {
+      const dateStr = targetDate || (document.getElementById("manage-selected-date")?.value) || (typeof currentRosterDate !== "undefined" && currentRosterDate) || (typeof getTodayDateString === "function" ? getTodayDateString() : "");
+      const effectiveSlots = (typeof getEffectiveSlotsForRoster === "function") ? getEffectiveSlotsForRoster(dateStr) : [...ALL_WORKING_SLOTS];
+      const rosterObj = (typeof assistantDutyRosters !== "undefined" && assistantDutyRosters[dateStr]) ? assistantDutyRosters[dateStr] : {};
+
+      const list = (assistants || []).slice();
+      if (list.length === 0) {
+        showToast("ไม่มีข้อมูลผู้ช่วยฯ สำหรับส่งออก", "warning");
+        return;
+      }
+
+      const headers = [
+        "ลำดับ",
+        "ชื่อ-นามสกุล ผู้ช่วยแพทย์แผนไทย",
+        "ชื่อเล่น",
+        "เพศ",
+        "เบอร์โทรศัพท์",
+        "สิทธิ์การใช้งาน",
+        "สถานะเวร",
+        "เวลาเช็คชื่อเข้างาน",
+        ...effectiveSlots.map(s => `รอบ ${s} น.`),
+        "รวมจำนวนรอบที่เข้าเวร"
+      ];
+
+      const rows = list.map((asst, idx) => {
+        const dutyStatus = getAssistantDutyStatusForDate(asst, dateStr);
+        const rEntry = rosterObj[asst.id] ? (typeof normalizeAssistantRosterEntry === "function" ? normalizeAssistantRosterEntry(rosterObj[asst.id]) : rosterObj[asst.id]) : null;
+        const workingSlots = dutyStatus.slots || [];
+        const slotCols = effectiveSlots.map(s => workingSlots.includes(s) ? "✓" : "-");
+        const checkinTime = (rEntry && rEntry.checkInTime) ? rEntry.checkInTime : (dutyStatus.checkInTime || "-");
+
+        return [
+          idx + 1,
+          asst.name || "-",
+          asst.nickname || "-",
+          asst.gender === "male" ? "ชาย" : "หญิง",
+          asst.phone || "-",
+          asst.role === "admin" ? "Admin" : (asst.role === "user" ? "User" : "Staff"),
+          dutyStatus.isOff ? "⚪ ลาเวร / พัก (Off Duty)" : dutyStatus.label,
+          checkinTime,
+          ...slotCols,
+          dutyStatus.isOff ? 0 : workingSlots.length
+        ];
+      });
+
+      exportDataToExcel(`ตารางเวรผู้ช่วยแพทย์แผนไทย_${dateStr}`, "ตารางเวร", headers, rows);
+    }
+
+    function exportAssistantRosterExcel() {
+      const dateStr = (typeof currentRosterDate !== "undefined" && currentRosterDate) || (typeof getTodayDateString === "function" ? getTodayDateString() : "");
+      exportDutyRosterToExcel(dateStr);
+    }
+
+    function exportDeskAppointmentsToExcel() {
+      const startInput = document.getElementById("desk-filter-date-start")?.value;
+      const endInput = document.getElementById("desk-filter-date-end")?.value;
+      const statusFilter = document.getElementById("desk-filter-status")?.value || "all";
+      const slotFilter = document.getElementById("desk-filter-slot")?.value || "all";
+      const searchFilter = (document.getElementById("desk-filter-search")?.value || "").trim().toLowerCase();
+
+      let apts = Array.isArray(appointments) ? appointments.slice() : [];
+
+      if (startInput && endInput) {
+        apts = apts.filter(a => {
+          const d = a.bookDate || a.book_date;
+          return d && d >= startInput && d <= endInput;
+        });
+      } else if (startInput) {
+        apts = apts.filter(a => (a.bookDate || a.book_date) === startInput);
+      }
+
+      if (statusFilter && statusFilter !== "all") {
+        if (statusFilter === "room") {
+          apts = apts.filter(a => a.room && a.room !== "-" && a.room !== "");
+        } else if (statusFilter.startsWith("ห้อง")) {
+          apts = apts.filter(a => a.room === statusFilter);
+        } else {
+          apts = apts.filter(a => a.status === statusFilter || (a.statusDesc && a.statusDesc.includes(statusFilter)));
+        }
+      }
+
+      if (slotFilter && slotFilter !== "all") {
+        apts = apts.filter(a => (a.timeSlot || a.time_slot) === slotFilter);
+      }
+
+      if (searchFilter) {
+        apts = apts.filter(a => {
+          const name = (a.patientName || a.name || "").toLowerCase();
+          const phone = (a.phone || "").toLowerCase();
+          const hn = (a.citizenOrHn || a.hn || "").toLowerCase();
+          const asstNick = (a.assistantNick || a.assistant_nick || "").toLowerCase();
+          return name.includes(searchFilter) || phone.includes(searchFilter) || hn.includes(searchFilter) || asstNick.includes(searchFilter);
+        });
+      }
+
+      if (apts.length === 0) {
+        showToast("ไม่พบคิวนัดหมายในช่วงเวลาหรือเงื่อนไขที่เลือก", "warning");
+        return;
+      }
+
+      apts.sort((a, b) => {
+        const dCmp = (a.bookDate || a.book_date || "").localeCompare(b.bookDate || b.book_date || "");
+        if (dCmp !== 0) return dCmp;
+        return (a.timeSlot || a.time_slot || "").localeCompare(b.timeSlot || b.time_slot || "");
+      });
+
+      const headers = [
+        "ลำดับ",
+        "รหัสคิว (ID)",
+        "วันที่นัดหมาย",
+        "รอบเวลา (น.)",
+        "ชื่อ-นามสกุล ผู้รับบริการ",
+        "เบอร์โทรศัพท์",
+        "สิทธิ์การรักษา",
+        "เลขประจำตัว (HN / บัตรประชาชน)",
+        "หัตถการ / บริการหลัก",
+        "บริการเสริม",
+        "ห้องหัตถการ",
+        "ผู้ช่วยแพทย์แผนไทยที่ดูแล",
+        "สถานะคิวการบริการ",
+        "เวลาเริ่มนวด",
+        "เวลาเสร็จสิ้น",
+        "หมายเหตุ / อาการ"
+      ];
+
+      const rows = apts.map((a, idx) => {
+        const dateStr = a.bookDate || a.book_date || "-";
+        const dateThai = (typeof formatThaiDisplayDate === "function") ? formatThaiDisplayDate(dateStr) : dateStr;
+        const extraServ = Array.isArray(a.extraServices) ? a.extraServices.join(", ") : (a.extra_services || "-");
+
+        return [
+          idx + 1,
+          a.id || "-",
+          dateThai,
+          a.timeSlot || a.time_slot || "-",
+          a.patientName || a.name || "-",
+          a.phone || "-",
+          a.medicalScheme || a.medical_scheme || "บัตรทอง (UC)",
+          a.citizenOrHn || a.citizen_id || a.hn || "-",
+          a.mainService || a.service || a.serviceName || "นวดแผนไทยเพื่อการรักษา",
+          extraServ || "-",
+          a.room || "-",
+          a.assistantNick || a.assistant_nick || "-",
+          a.status || "รอรับบริการ",
+          a.startTime || a.start_time || "-",
+          a.finishTime || a.finish_time || "-",
+          a.symptom || a.notes || "-"
+        ];
+      });
+
+      const datePart = (startInput && endInput) ? `${startInput}_ถึง_${endInput}` : (startInput || "all");
+      exportDataToExcel(`รายงานคิวนวดแพทย์แผนไทย_${datePart}`, "รายงานคิวนวด", headers, rows);
+    }
     let successAlertTimer = null;
 
     function showSuccessAlertModal({ title, desc, assistantName, dateText, shiftText, autoCloseMs = 0 }) {
@@ -19204,7 +19538,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     }
 
     
-    // Unified Assistant Duty Status for Date Helper (v5.2.6)
+    // Unified Assistant Duty Status for Date Helper (v5.3.0)
     function getAssistantDutyStatusForDate(asst, dateStr) {
       if (!asst) return { isOff: true, type: 'off', label: '⚪ ลาเวร / พัก (Off Duty)', shortLabel: '⚪ ลาเวร / พัก', badgeClass: 'bg-slate-100 text-slate-500 border-slate-200' };
 
@@ -19437,8 +19771,12 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       return list;
     }
 
-    function renderAssistantMassageHistory(asstId, period = 'all') {
+    function renderAssistantMassageHistory(asstId, period = 'all', specificMonth = null) {
       currentDetailHistoryPeriod = period;
+      if (specificMonth !== null) {
+        currentDetailHistoryMonth = specificMonth;
+      }
+
       const asst = (assistants || []).find(a => a.id === asstId);
       if (!asst) return;
 
@@ -19460,24 +19798,67 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       const casesCountBadge = document.getElementById("asst-detail-cases-count");
       if (casesCountBadge) casesCountBadge.textContent = totalCases;
 
+      // 1. Populate Available Months Dropdown for this Assistant
+      const monthsSet = new Set();
+      monthsSet.add(currentYearMonth);
+      apts.forEach(a => {
+        const d = a.bookDate || a.book_date;
+        if (d && d.length >= 7) {
+          monthsSet.add(d.slice(0, 7));
+        }
+      });
+      const sortedMonths = Array.from(monthsSet).sort().reverse();
+
+      const monthSelect = document.getElementById("asst-history-month-select");
+      if (monthSelect) {
+        const currentSelected = currentDetailHistoryMonth || 'all';
+        monthSelect.innerHTML = `<option value="all">📅 ทุกช่วงเวลา (ทั้งหมด ${totalCases} เคส)</option>` +
+          sortedMonths.map(ym => {
+            const [y, m] = ym.split('-');
+            const mIdx = parseInt(m, 10) - 1;
+            const monthThai = THAI_FULL_MONTHS[mIdx] || ym;
+            const yearThai = parseInt(y, 10) + 543;
+            const count = apts.filter(a => (a.bookDate || a.book_date || '').startsWith(ym)).length;
+            const isCur = ym === currentYearMonth ? " (เดือนปัจจุบัน)" : "";
+            return `<option value="${ym}">${monthThai} ${yearThai}${isCur} - ${count} เคส</option>`;
+          }).join("");
+
+        if (currentSelected && (currentSelected === 'all' || sortedMonths.includes(currentSelected))) {
+          monthSelect.value = currentSelected;
+        } else {
+          monthSelect.value = 'all';
+        }
+      }
+
       // Update active filter pill button
       ['all', 'today', 'month'].forEach(p => {
         const btn = document.getElementById("history-filter-btn-" + p);
         if (btn) {
           if (p === period) {
-            btn.className = "px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-2xs font-bold cursor-pointer";
+            btn.className = "px-2.5 py-1 rounded-lg bg-herbal-700 text-white font-bold shadow-xs cursor-pointer";
           } else {
             btn.className = "px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 cursor-pointer";
           }
         }
       });
 
-      // Filter list by period
+      // Filter list by period and selected month
       let filtered = apts;
+      let filterHeaderLabel = "";
+
       if (period === 'today') {
         filtered = apts.filter(a => (a.bookDate || a.book_date) === todayStr);
+        filterHeaderLabel = `ประจำวันนี้ (${(typeof formatThaiDisplayDate === "function") ? formatThaiDisplayDate(todayStr) : todayStr})`;
       } else if (period === 'month') {
         filtered = apts.filter(a => (a.bookDate || a.book_date || '').startsWith(currentYearMonth));
+        const [y, m] = currentYearMonth.split('-');
+        filterHeaderLabel = `เดือนนี้ (${THAI_FULL_MONTHS[parseInt(m, 10) - 1]} ${parseInt(y, 10) + 543})`;
+      } else if (currentDetailHistoryMonth && currentDetailHistoryMonth !== 'all') {
+        filtered = apts.filter(a => (a.bookDate || a.book_date || '').startsWith(currentDetailHistoryMonth));
+        const [y, m] = currentDetailHistoryMonth.split('-');
+        filterHeaderLabel = `เดือน ${THAI_FULL_MONTHS[parseInt(m, 10) - 1]} ${parseInt(y, 10) + 543}`;
+      } else {
+        filterHeaderLabel = "ทั้งหมดทุกช่วงเวลา";
       }
 
       const container = document.getElementById("asst-history-items-container");
@@ -19489,7 +19870,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
             <div class="w-10 h-10 mx-auto rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 flex items-center justify-center">
               <i data-lucide="calendar-x" class="w-5 h-5"></i>
             </div>
-            <div class="text-xs font-bold text-slate-600 dark:text-slate-300">ยังไม่มีประวัติการนวดในช่วงเวลาที่เลือก</div>
+            <div class="text-xs font-bold text-slate-600 dark:text-slate-300">ไม่พบประวัติการนวดในช่วง${escapeHtml(filterHeaderLabel)}</div>
             <p class="text-[11px] text-slate-400">เมื่อมีการจองหรือเริ่มหัตถการกับผู้ช่วยท่านนี้ รายการจะบันทึกเข้ามาโดยอัตโนมัติ</p>
           </div>
         `;
@@ -19497,7 +19878,15 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         return;
       }
 
-      container.innerHTML = filtered.map((apt, idx) => {
+      // Render summary banner above list
+      const summaryBanner = `
+        <div class="flex items-center justify-between px-3 py-2 bg-emerald-50/60 dark:bg-emerald-950/40 rounded-xl border border-emerald-200/70 dark:border-emerald-800/50 text-[11.5px] font-bold text-emerald-900 dark:text-emerald-200 mb-2">
+          <span>📋 แสดง ${filtered.length} เคส (${escapeHtml(filterHeaderLabel)})</span>
+          <span class="text-emerald-600 dark:text-emerald-400 text-[10.5px] font-medium">เรียงจากล่าสุด</span>
+        </div>
+      `;
+
+      container.innerHTML = summaryBanner + filtered.map((apt, idx) => {
         const dateStr = apt.bookDate || apt.book_date || "-";
         const timeSlot = apt.timeSlot || apt.time_slot || "-";
         const patient = apt.name || apt.patientName || apt.patient_name || "ไม่ระบุชื่อ";
@@ -19517,7 +19906,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         const dateDisplay = (typeof formatThaiDisplayDate === "function") ? formatThaiDisplayDate(dateStr) : dateStr;
 
         return `
-          <div class="p-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-2xs hover:border-herbal-300 transition flex items-center justify-between gap-3 text-xs">
+          <div class="p-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700 shadow-2xs hover:border-herbal-300 transition flex items-center justify-between gap-3 text-xs mb-2">
             <div class="min-w-0 flex items-center space-x-3">
               <div class="w-8 h-8 rounded-xl bg-herbal-50 dark:bg-emerald-950/60 text-herbal-700 dark:text-emerald-400 font-bold flex items-center justify-center shrink-0 text-xs">
                 ${idx + 1}
@@ -19549,7 +19938,70 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
     function filterAssistantHistory(period) {
       if (!currentDetailAssistantId) return;
-      renderAssistantMassageHistory(currentDetailAssistantId, period);
+      if (period === 'all') currentDetailHistoryMonth = 'all';
+      if (period === 'month') {
+        const todayStr = (typeof getTodayDateString === "function") ? getTodayDateString() : new Date().toISOString().slice(0, 10);
+        currentDetailHistoryMonth = todayStr.slice(0, 7);
+      }
+      renderAssistantMassageHistory(currentDetailAssistantId, period, currentDetailHistoryMonth);
+    }
+
+    function onAssistantHistoryMonthSelect(selectedMonth) {
+      if (!currentDetailAssistantId) return;
+      currentDetailHistoryMonth = selectedMonth;
+      const period = selectedMonth === 'all' ? 'all' : 'month_selected';
+      renderAssistantMassageHistory(currentDetailAssistantId, period, selectedMonth);
+    }
+
+    function exportCurrentAssistantHistoryToExcel() {
+      if (!currentDetailAssistantId) return;
+      const asst = (assistants || []).find(a => a.id === currentDetailAssistantId);
+      if (!asst) return;
+
+      const apts = getAssistantAppointmentsList(currentDetailAssistantId);
+      let filtered = apts;
+      let monthLabel = "ทั้งหมด";
+
+      if (currentDetailHistoryPeriod === 'today') {
+        const todayStr = (typeof getTodayDateString === "function") ? getTodayDateString() : new Date().toISOString().slice(0, 10);
+        filtered = apts.filter(a => (a.bookDate || a.book_date) === todayStr);
+        monthLabel = todayStr;
+      } else if (currentDetailHistoryMonth && currentDetailHistoryMonth !== 'all') {
+        filtered = apts.filter(a => (a.bookDate || a.book_date || '').startsWith(currentDetailHistoryMonth));
+        monthLabel = currentDetailHistoryMonth;
+      }
+
+      if (filtered.length === 0) {
+        showToast("ไม่มีข้อมูลประวัตินวดสำหรับส่งออก", "warning");
+        return;
+      }
+
+      const headers = [
+        "ลำดับ",
+        "รหัสคิว (ID)",
+        "วันที่นัดหมาย",
+        "รอบเวลา (น.)",
+        "ชื่อคนไข้",
+        "เบอร์โทรศัพท์",
+        "หัตถการ/บริการ",
+        "ผู้ช่วยที่ดูแล",
+        "สถานะ"
+      ];
+
+      const rows = filtered.map((a, idx) => [
+        idx + 1,
+        a.id || "-",
+        (typeof formatThaiDisplayDate === "function") ? formatThaiDisplayDate(a.bookDate || a.book_date) : (a.bookDate || a.book_date),
+        a.timeSlot || a.time_slot || "-",
+        a.name || a.patientName || a.patient_name || "-",
+        a.phone || "-",
+        a.service || a.serviceName || a.main_service || "นวดแผนไทย",
+        asst.nickname ? `[${asst.nickname}] ${asst.name}` : asst.name,
+        a.status || "รอรับบริการ"
+      ]);
+
+      const nickPart = (asst.nickname || asst.name || "ผู้ช่วย").replace(/\s+/g, '_');
+      exportDataToExcel(`ประวัตินวด_${nickPart}_${monthLabel}`, "ประวัตินวด", headers, rows);
     }
 
     function populateModalAsstSlots(asst, targetDate) {
@@ -21979,6 +22431,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       lucide.createIcons();
     }
 
+
+
+/**
+ * Module 13: 13_services_crud.js
+ * Description: Main & Extra Treatment Services Management
+ * Generated from lines 22339 to 23207 of original index.html
+ */
+
     // =========================================================================
     // MAIN SERVICES CRUD HANDLERS (ประเภทหัตถการหลัก)
     // =========================================================================
@@ -22848,8 +23308,16 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     }
 
     
+
+
+/**
+ * Module 14: 14_pwa_and_lifecycle.js
+ * Description: PWA Service Worker, Auto-Update & Online Status
+ * Generated from lines 23208 to 23488 of original index.html
+ */
+
     /* =========================================================================
-       INSTANT SERVICE WORKER & MULTI-DEVICE AUTO-UPDATE ENGINE (v5.2.6)
+       INSTANT SERVICE WORKER & MULTI-DEVICE AUTO-UPDATE ENGINE (v5.3.0)
        ========================================================================= */
     function initServiceWorker() {
       if (!('serviceWorker' in navigator)) return;
@@ -23128,6 +23596,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       }
     }
   
+
+
+
+/**
+ * Module 15: 15_booking_wizard_and_app_init.js
+ * Description: 5-Step Booking Wizard Logic & App Init
+ * Generated from lines 23489 to 24969 of original index.html
+ */
 
     /* =========================================================================
        5-STEP BOOKING POPUP WIZARD LOGIC (v3.9.5)
@@ -24610,6 +25086,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       });
     }
 
+
   </script>
+
 </body>
 </html>

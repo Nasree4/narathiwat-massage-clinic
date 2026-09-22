@@ -1,7 +1,7 @@
 # 📋 เอกสารสรุปขั้นตอนการพัฒนาและคู่มือส่งต่องาน (Handover & Development Log)
 **ระบบนัดและบริหารคลินิกการแพทย์แผนไทย โรงพยาบาลนราธิวาสราชนครินทร์ (TTM Booking System)**  
-*สร้างและอัปเดตล่าสุด: 22 กันยายน 2569 (2026-09-22)*  
-*เวอร์ชันปัจจุบัน:* **`v5.2.6`** | *Service Worker Cache:* **`ttm-clinic-cache-v133`**  
+*สร้างและอัปเดตล่าสุด: 23 กันยายน 2569 (2026-09-23)*  
+*เวอร์ชันปัจจุบัน:* **`v5.4.0 (Modular Architecture)`** | *Service Worker Cache:* **`ttm-clinic-cache-v135`**  
 *Production URL:* **[https://narathiwat-massage-clinic.vercel.app](https://narathiwat-massage-clinic.vercel.app)**  
 *GitHub Repository:* **[https://github.com/Nasree4/narathiwat-massage-clinic](https://github.com/Nasree4/narathiwat-massage-clinic)**
 
@@ -127,28 +127,33 @@ flowchart TD
     D --> E["5. Deploy ขึ้น Vercel Production"]
 ```
 
-### ขั้นตอนที่ 1: แก้ไขโค้ดใน `index.html`
-- ทำการแก้ไขฟังก์ชันหรือ UI ภายในไฟล์ `index.html` เป็นหลัก
+### ขั้นตอนที่ 1: แก้ไขโค้ดในโมดูลย่อย `src/js/` หรือโครงหน้าเว็บ `src/template.html`
+- ระบบถูกแยกโมดูลแล้วใน `src/js/` จำนวน 15 ไฟล์ตามหน้าที่ความรับผิดชอบ (ดูรายละเอียดใน `MODULARIZATION.md`):
+  - ตารางเวร / หมอนวด / ประวัตินวด / Export Excel -> `src/js/12_assistant_shifts_and_roster.js`
+  - คิวโต๊ะบริการ / แก้ไขรอบเวลา / บริการ -> `src/js/09_appointment_desk_and_queue.js`
+  - Wizard การจองคิว 5 ขั้นตอน -> `src/js/15_booking_wizard_and_app_init.js`
+  - การเชื่อมต่อ Supabase & Realtime -> `src/js/05_supabase_and_sync.js`
+  - ค่าคงที่และคอนฟิก -> `src/js/01_constants_and_state.js`
 
-### ขั้นตอนที่ 2: ตรวจสอบ Syntax Error ก่อนเสมอ (ป้องกันเว็บพัง)
-- รันคำสั่งตรวจสอบสคริปต์ใน Terminal / PowerShell:
-```bash
-node -e "const fs=require('fs'),vm=require('vm'); const c=fs.readFileSync('index.html','utf8'); const regex=/<script\b[^>]*>([\s\S]*?)<\/script>/gi; let m, cnt=0; while((m=regex.exec(c))!==null){ cnt++; if(m[1].trim()){ new vm.Script(m[1]); } } console.log('✅ Syntax Check Passed: All ' + cnt + ' scripts compiled successfully!');"
-```
-
-### ขั้นตอนที่ 3: อัปเดตเลขเวอร์ชันและแคช Service Worker
-- ใน `index.html`: อัปเดตข้อความเวอร์ชัน เช่น `v5.2.7`
-- ใน `sw.js`: เปลี่ยนชื่อ `CACHE_NAME` ให้เป็นเวอร์ชันใหม่เสมอ (เช่น `ttm-clinic-cache-v134`) เพื่อบังคับให้เบราว์เซอร์ผู้ใช้ดาวน์โหลดโค้ดใหม่:
-  ```javascript
-  const CACHE_NAME = 'ttm-clinic-cache-v134';
-  ```
-
-### ขั้นตอนที่ 4: ซิงค์ไฟล์ไปยัง `dist/` และ `TTM Booking System.html`
+### ขั้นตอนที่ 2: รันคำสั่ง Build เพื่อรวมไฟล์และตรวจสอบความถูกต้องแบบอัตโนมัติ
 - รันคำสั่ง:
 ```bash
-npm run build
+npm.cmd run build
 ```
-*(คำสั่งนี้จะคัดลอก `index.html` และ `sw.js` ไปยังโฟลเดอร์ `dist/` และอัปเดต `TTM Booking System.html` ให้ตรงกัน)*
+*(ระบบจะตรวจสอบไวยากรณ์ Syntax ทุกโมดูลด้วย `node:vm` พร้อมสแกนฟังก์ชันใน HTML กว่า 160 ฟังก์ชันว่ามีอยู่ครบ 100% แล้วจึงประกอบไฟล์เป็น `index.html` และ `dist/index.html` โดยอัตโนมัติในเวลาเพียง 0.25 วินาที)*
+
+### ขั้นตอนที่ 3: ตรวจสอบความสมบูรณ์ (Integrity Check)
+- หากต้องการตรวจสอบความถูกต้องของฟังก์ชันโดยเฉพาะ สามารถรัน:
+```bash
+npm.cmd run check
+```
+
+### ขั้นตอนที่ 4: การเปิดโหมดแก้ไขแบบเรียลไทม์ (Live Watch Mode)
+- รันคำสั่ง:
+```bash
+npm.cmd run watch
+```
+*(เมื่อแก้ไขไฟล์ใดๆ ใน `src/` ระบบจะ Rebuild ให้ทันทีใน 0.2 วินาที)*
 
 ### ขั้นตอนที่ 5: Deploy ขึ้น Vercel Production
 - รันคำสั่ง:
@@ -174,14 +179,13 @@ npx vercel --prod --yes
 
 ---
 
-## 7. สถานะปัจจุบันและสิ่งที่สามารถทำต่อได้ทันที
+## 7. สถานะปัจจุบันและสิ่งที่ทำสำเร็จแล้ว (Current Status)
 
-- ✅ **สถานะระบบปัจจุบัน:** เสถียร 100%, ตรวจสอบ Syntax แล้วไม่มี Error, Deploy ขึ้น Production บน Vercel พร้อมใช้งาน
-- 🚀 **ฟังก์ชันที่พร้อมพัฒนาต่อยอด (Backlog Ideas):**
-  1. การพิมพ์/Export รายงานตารางเวรรายสัปดาห์หรือรายเดือนเป็น PDF / Excel
-  2. การตั้งระบบสลับเวร (Shift Swap Request) ระหว่างผู้ช่วยด้วยกัน
-  3. ระบบสถิติสรุปชั่วโมงการทำงานและการนวดรายเดือนของผู้ช่วยแต่ละคนเพื่อคิดค่าตอบแทน
-  4. ระบบแจ้งเตือนคิวผ่าน LINE Notify หรือ SMS เพิ่มเติม
+- ✅ **Modularization Architecture (v5.4.0):** แยกโค้ดออกเป็น 15 โมดูลใน `src/js/` มี Build script + Integrity Checker ตรวจสอบฟังก์ชันครบ 100%
+- ✅ **Excel Export for Duty Roster & Queue:** เพิ่มปุ่มดาวน์โหลดรายงานตารางเวรและคิวนัดหมายเป็น Excel (.xlsx) ด้วย SheetJS พร้อม UTF-8 BOM
+- ✅ **Monthly Partitioned Massage History:** แบ่งโหลดประวัติการนวดของผู้ช่วยแพทย์แผนไทยแบบเลือกช่วงเดือนเพื่อความเร็วและเป็นระเบียบ
+- ✅ **Git & GitHub Integration:** ผูก Repository กับ `https://github.com/Nasree4/narathiwat-massage-clinic` เรียบร้อย
+- ✅ **สถานะระบบปัจจุบัน:** เสถียร 100%, ตรวจสอบ Syntax และ HTML Event Handlers แล้ว 160/160 ฟังก์ชัน, พร้อม Deploy สู่ Production บน Vercel
 
 ---
 > 📞 **หากเปิดบนเครื่องใหม่แล้วพบปัญหาเรื่องสิทธิ์การ Deploy:**  
