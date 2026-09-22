@@ -1,0 +1,9 @@
+.vercel
+Password.txt
+*.log
+.env
+.env.local
+.DS_Store
+Thumbs.db
+node_modules/
+*.bak

@@ -1,0 +1,8 @@
+{
+  "name": "ttm-booking-system",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node -e \"const fs=require('fs'); fs.mkdirSync('dist', {recursive: true}); ['index.html', 'TTM Booking System.html', 'logo.png', 'favicon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'manifest.json', 'sw.js'].forEach(f => { if (fs.existsSync(f)) fs.copyFileSync(f, 'dist/' + f); }); console.log('Build complete');\""
+  }
+}
