@@ -2,7 +2,8 @@
 **ระบบนัดและบริหารคลินิกการแพทย์แผนไทย โรงพยาบาลนราธิวาสราชนครินทร์ (TTM Booking System)**  
 *สร้างและอัปเดตล่าสุด: 22 กันยายน 2569 (2026-09-22)*  
 *เวอร์ชันปัจจุบัน:* **`v5.2.6`** | *Service Worker Cache:* **`ttm-clinic-cache-v133`**  
-*Production URL:* **[https://narathiwat-massage-clinic.vercel.app](https://narathiwat-massage-clinic.vercel.app)**
+*Production URL:* **[https://narathiwat-massage-clinic.vercel.app](https://narathiwat-massage-clinic.vercel.app)**  
+*GitHub Repository:* **[https://github.com/Nasree4/narathiwat-massage-clinic](https://github.com/Nasree4/narathiwat-massage-clinic)**
 
 ---
 
