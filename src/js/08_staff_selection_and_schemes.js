@@ -59,7 +59,7 @@
     }
 
     function getGenderAvailability(dateStr, timeSlot, checkTwoSlots = false) {
-      const activeStaff = (assistants || []).filter(a => a.active !== false && a.shiftType !== 'off');
+      const activeStaff = (assistants || []).filter(a => a.active !== false);
       const activeFemales = activeStaff.filter(isFemaleAssistant);
       const activeMales = activeStaff.filter(isMaleAssistant);
 
@@ -103,7 +103,7 @@
         }
       }
 
-      // 1. Individual free staff on duty for this slot (checked-in & not busy with specific bookings)
+      // 1. Individual free staff on duty for this slot (checked-in / scheduled & not busy with specific bookings)
       const availableStaff = getAvailableAssistantsForSlot(dateStr, timeSlot, checkTwoSlots);
       const freeFemales = availableStaff.filter(isFemaleAssistant);
       const freeMales = availableStaff.filter(isMaleAssistant);
@@ -125,9 +125,38 @@
         return (apt.assistantId === "male" || (apt.assistantNick && apt.assistantNick.includes("ขอผู้ชาย")));
       }).length;
 
-      // ปรับคิวตรงกับผู้ช่วยที่เช็คชื่อจริง โดยไม่นับคิวของการจองแบบ "ไม่ระบุทั่วไป (Auto)"
-      const finalFemaleSlots = Math.max(0, freeFemales.length - unassignedFemaleBookings);
-      const finalMaleSlots = Math.max(0, freeMales.length - unassignedMaleBookings);
+      // 3. Count unassigned general / auto bookings in this slot (จัดสรรตามเหมาะสม)
+      const unassignedAutoBookings = (appointments || []).filter(apt => {
+        if (apt.bookDate !== dateStr || apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
+        const aptSlots = (apt.slotsOccupied && apt.slotsOccupied.length > 0) ? apt.slotsOccupied : [apt.timeSlot];
+        const overlaps = aptSlots.some(s => requiredSlots.includes(s));
+        if (!overlaps) return false;
+        const id = apt.assistantId || "";
+        const nick = apt.assistantNick || "";
+        const isGenderSpecific = (id === "female" || id === "male" || nick.includes("ขอผู้หญิง") || nick.includes("ขอผู้ชาย"));
+        const isAssignedToSpecificStaff = (id && id !== "auto" && id !== "female" && id !== "male");
+        return (!isGenderSpecific && !isAssignedToSpecificStaff);
+      }).length;
+
+      // 4. Calculate accurate remaining free capacities:
+      const availFemales = Math.max(0, freeFemales.length - unassignedFemaleBookings);
+      const availMales = Math.max(0, freeMales.length - unassignedMaleBookings);
+      const totalRemainingStaff = availFemales + availMales;
+      const netTotalFreeStaff = Math.max(0, totalRemainingStaff - unassignedAutoBookings);
+
+      let finalFemaleSlots = Math.min(availFemales, netTotalFreeStaff);
+      let finalMaleSlots = Math.min(availMales, netTotalFreeStaff);
+
+      if (slotConf && typeof slotConf.max === "number" && slotConf.max > 0) {
+        const totalAppointmentsInSlot = (appointments || []).filter(apt => {
+          if (apt.bookDate !== dateStr || apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
+          const aptSlots = (apt.slotsOccupied && apt.slotsOccupied.length > 0) ? apt.slotsOccupied : [apt.timeSlot];
+          return aptSlots.some(s => requiredSlots.includes(s));
+        }).length;
+        const remainingSlotCapacity = Math.max(0, slotConf.max - totalAppointmentsInSlot);
+        finalFemaleSlots = Math.min(finalFemaleSlots, remainingSlotCapacity);
+        finalMaleSlots = Math.min(finalMaleSlots, remainingSlotCapacity);
+      }
 
       return {
         femaleFreeCount: finalFemaleSlots,
@@ -151,21 +180,30 @@
       }
 
       return (assistants || []).filter(asst => {
-        // 1. Must be on duty (active)
-        if (asst.active === false || asst.shiftType === 'off') return false;
+        // 1. Must be active clinic staff
+        if (!asst || asst.active === false) return false;
 
-        // 2. Must be on duty for the specific required timeSlot(s)
+        // 2. Must not be on leave for this specific date
+        const dutyStatus = (typeof getAssistantDutyStatusForDate === "function")
+          ? getAssistantDutyStatusForDate(asst, dateStr)
+          : { isOff: asst.shiftType === 'off' };
+        if (dutyStatus.isOff) return false;
+
+        // 3. Must be on duty for the specific required timeSlot(s)
         if (requiredSlots.length > 0) {
           const worksAllRequired = requiredSlots.every(slot => isAssistantOnDutyForSlot(asst, slot, dateStr));
           if (!worksAllRequired) return false;
         }
 
-        // 3. Check if busy in any appointment
+        // 4. Check if busy in any appointment
         const isOccupied = (appointments || []).some(apt => {
           if (apt.bookDate === dateStr && apt.assistantId === asst.id) {
             if (apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
             const aptSlots = apt.slotsOccupied || [apt.timeSlot];
-            return aptSlots.some(s => requiredSlots.includes(s));
+            if (requiredSlots.length > 0) {
+              return aptSlots.some(s => requiredSlots.includes(s));
+            }
+            return true;
           }
           return false;
         });

@@ -7,8 +7,8 @@
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.4.0";
-    const APP_BUILD_DATE = "15 กันยายน 2569";
+    const APP_VERSION = "v5.4.1";
+    const APP_BUILD_DATE = "23 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
     const IN_HOURS_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
@@ -207,8 +207,8 @@
           phone: asst.phone || "",
           email: asst.email || "",
           active: asst.active !== false,
-          shiftType: asst.shiftType || (asst.active !== false ? 'full' : 'off'),
-          slots: Array.isArray(asst.slots) ? asst.slots : (asst.active !== false ? [...(typeof ALL_WORKING_SLOTS !== 'undefined' ? ALL_WORKING_SLOTS : ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"])] : []),
+          shiftType: (asst.shiftType && asst.shiftType !== 'off') ? asst.shiftType : 'full',
+          slots: Array.isArray(asst.slots) && asst.slots.length > 0 ? asst.slots : [...(typeof ALL_WORKING_SLOTS !== 'undefined' ? ALL_WORKING_SLOTS : ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"])],
           created_at: asst.created_at || new Date().toISOString()
         };
 
@@ -216,6 +216,12 @@
         if (nameKey) seenNames.set(nameKey, cleaned);
         result.push(cleaned);
       }
+
+      // Self-heal: Ensure all non-archived clinic staff remain active (leave is stored per-date in duty roster)
+      result.forEach(a => {
+        if (a.shiftType === 'off') a.shiftType = 'full';
+        if (a.active === false && !a.isArchived) a.active = true;
+      });
 
       return result;
     }

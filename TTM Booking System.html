@@ -5809,8 +5809,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.4.0";
-    const APP_BUILD_DATE = "15 กันยายน 2569";
+    const APP_VERSION = "v5.4.1";
+    const APP_BUILD_DATE = "23 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
     const IN_HOURS_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
@@ -6009,8 +6009,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           phone: asst.phone || "",
           email: asst.email || "",
           active: asst.active !== false,
-          shiftType: asst.shiftType || (asst.active !== false ? 'full' : 'off'),
-          slots: Array.isArray(asst.slots) ? asst.slots : (asst.active !== false ? [...(typeof ALL_WORKING_SLOTS !== 'undefined' ? ALL_WORKING_SLOTS : ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"])] : []),
+          shiftType: (asst.shiftType && asst.shiftType !== 'off') ? asst.shiftType : 'full',
+          slots: Array.isArray(asst.slots) && asst.slots.length > 0 ? asst.slots : [...(typeof ALL_WORKING_SLOTS !== 'undefined' ? ALL_WORKING_SLOTS : ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"])],
           created_at: asst.created_at || new Date().toISOString()
         };
 
@@ -6018,6 +6018,12 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         if (nameKey) seenNames.set(nameKey, cleaned);
         result.push(cleaned);
       }
+
+      // Self-heal: Ensure all non-archived clinic staff remain active (leave is stored per-date in duty roster)
+      result.forEach(a => {
+        if (a.shiftType === 'off') a.shiftType = 'full';
+        if (a.active === false && !a.isArchived) a.active = true;
+      });
 
       return result;
     }
@@ -7692,24 +7698,35 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       if (!asst || asst.active === false) return false;
       if (!timeSlot) return true;
       
-      // 1. If date-specific matrix roster exists for this date, check-in is required
+      // 1. If date-specific matrix roster exists for this date, check date-specific entry
       if (dateStr && typeof assistantDutyRosters !== "undefined" && assistantDutyRosters[dateStr]) {
         const dateRoster = assistantDutyRosters[dateStr];
         const hasRosterEntries = Object.keys(dateRoster).length > 0;
         if (hasRosterEntries) {
           if (dateRoster[asst.id] !== undefined) {
             const entry = normalizeAssistantRosterEntry(dateRoster[asst.id]);
+            if (entry.isExplicitlyEmpty || entry.shiftType === 'off') return false;
             const slots = Array.isArray(entry.slots) ? entry.slots : [];
             return slots.includes(timeSlot);
           } else {
-            // Roster exists for this date, but assistant has NOT checked in -> "ไม่มา"
-            return false;
+            // Check if dateStr is TODAY
+            const isToday = (typeof getTodayDateString === "function" && dateStr === getTodayDateString());
+            const hasActiveCheckInsToday = isToday && Object.values(dateRoster).some(e => {
+              const norm = normalizeAssistantRosterEntry(e);
+              return !norm.isExplicitlyEmpty && norm.shiftType !== 'off' && Array.isArray(norm.slots) && norm.slots.length > 0;
+            });
+            if (hasActiveCheckInsToday) {
+              // Live roster is actively ongoing today, but this assistant has not checked in yet
+              return false;
+            }
+            // For future or other dates: assistant did not take leave on this date, so available on default shift
+            const slots = getAssistantWorkSlots(asst);
+            return slots.includes(timeSlot);
           }
         }
       }
 
-      // 2. Fallback to assistant's default shift configuration only if no roster has been entered for this date
-      if (asst.shiftType === 'off') return false;
+      // 2. Fallback to assistant's default shift configuration
       const slots = getAssistantWorkSlots(asst);
       return slots.includes(timeSlot);
     }
@@ -12262,7 +12279,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     }
 
     function getGenderAvailability(dateStr, timeSlot, checkTwoSlots = false) {
-      const activeStaff = (assistants || []).filter(a => a.active !== false && a.shiftType !== 'off');
+      const activeStaff = (assistants || []).filter(a => a.active !== false);
       const activeFemales = activeStaff.filter(isFemaleAssistant);
       const activeMales = activeStaff.filter(isMaleAssistant);
 
@@ -12306,7 +12323,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         }
       }
 
-      // 1. Individual free staff on duty for this slot (checked-in & not busy with specific bookings)
+      // 1. Individual free staff on duty for this slot (checked-in / scheduled & not busy with specific bookings)
       const availableStaff = getAvailableAssistantsForSlot(dateStr, timeSlot, checkTwoSlots);
       const freeFemales = availableStaff.filter(isFemaleAssistant);
       const freeMales = availableStaff.filter(isMaleAssistant);
@@ -12328,9 +12345,38 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         return (apt.assistantId === "male" || (apt.assistantNick && apt.assistantNick.includes("ขอผู้ชาย")));
       }).length;
 
-      // ปรับคิวตรงกับผู้ช่วยที่เช็คชื่อจริง โดยไม่นับคิวของการจองแบบ "ไม่ระบุทั่วไป (Auto)"
-      const finalFemaleSlots = Math.max(0, freeFemales.length - unassignedFemaleBookings);
-      const finalMaleSlots = Math.max(0, freeMales.length - unassignedMaleBookings);
+      // 3. Count unassigned general / auto bookings in this slot (จัดสรรตามเหมาะสม)
+      const unassignedAutoBookings = (appointments || []).filter(apt => {
+        if (apt.bookDate !== dateStr || apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
+        const aptSlots = (apt.slotsOccupied && apt.slotsOccupied.length > 0) ? apt.slotsOccupied : [apt.timeSlot];
+        const overlaps = aptSlots.some(s => requiredSlots.includes(s));
+        if (!overlaps) return false;
+        const id = apt.assistantId || "";
+        const nick = apt.assistantNick || "";
+        const isGenderSpecific = (id === "female" || id === "male" || nick.includes("ขอผู้หญิง") || nick.includes("ขอผู้ชาย"));
+        const isAssignedToSpecificStaff = (id && id !== "auto" && id !== "female" && id !== "male");
+        return (!isGenderSpecific && !isAssignedToSpecificStaff);
+      }).length;
+
+      // 4. Calculate accurate remaining free capacities:
+      const availFemales = Math.max(0, freeFemales.length - unassignedFemaleBookings);
+      const availMales = Math.max(0, freeMales.length - unassignedMaleBookings);
+      const totalRemainingStaff = availFemales + availMales;
+      const netTotalFreeStaff = Math.max(0, totalRemainingStaff - unassignedAutoBookings);
+
+      let finalFemaleSlots = Math.min(availFemales, netTotalFreeStaff);
+      let finalMaleSlots = Math.min(availMales, netTotalFreeStaff);
+
+      if (slotConf && typeof slotConf.max === "number" && slotConf.max > 0) {
+        const totalAppointmentsInSlot = (appointments || []).filter(apt => {
+          if (apt.bookDate !== dateStr || apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
+          const aptSlots = (apt.slotsOccupied && apt.slotsOccupied.length > 0) ? apt.slotsOccupied : [apt.timeSlot];
+          return aptSlots.some(s => requiredSlots.includes(s));
+        }).length;
+        const remainingSlotCapacity = Math.max(0, slotConf.max - totalAppointmentsInSlot);
+        finalFemaleSlots = Math.min(finalFemaleSlots, remainingSlotCapacity);
+        finalMaleSlots = Math.min(finalMaleSlots, remainingSlotCapacity);
+      }
 
       return {
         femaleFreeCount: finalFemaleSlots,
@@ -12354,21 +12400,30 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       }
 
       return (assistants || []).filter(asst => {
-        // 1. Must be on duty (active)
-        if (asst.active === false || asst.shiftType === 'off') return false;
+        // 1. Must be active clinic staff
+        if (!asst || asst.active === false) return false;
 
-        // 2. Must be on duty for the specific required timeSlot(s)
+        // 2. Must not be on leave for this specific date
+        const dutyStatus = (typeof getAssistantDutyStatusForDate === "function")
+          ? getAssistantDutyStatusForDate(asst, dateStr)
+          : { isOff: asst.shiftType === 'off' };
+        if (dutyStatus.isOff) return false;
+
+        // 3. Must be on duty for the specific required timeSlot(s)
         if (requiredSlots.length > 0) {
           const worksAllRequired = requiredSlots.every(slot => isAssistantOnDutyForSlot(asst, slot, dateStr));
           if (!worksAllRequired) return false;
         }
 
-        // 3. Check if busy in any appointment
+        // 4. Check if busy in any appointment
         const isOccupied = (appointments || []).some(apt => {
           if (apt.bookDate === dateStr && apt.assistantId === asst.id) {
             if (apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
             const aptSlots = apt.slotsOccupied || [apt.timeSlot];
-            return aptSlots.some(s => requiredSlots.includes(s));
+            if (requiredSlots.length > 0) {
+              return aptSlots.some(s => requiredSlots.includes(s));
+            }
+            return true;
           }
           return false;
         });
@@ -18877,51 +18932,46 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       const asst = assistants.find(a => a.id === asstId);
       if (!asst) return;
 
-      const oldType = asst.shiftType || (asst.active ? 'full' : 'off');
-      asst.shiftType = shiftType;
+      if (shiftType !== 'off') {
+        asst.shiftType = shiftType;
+      }
+      asst.active = true;
 
-      if (shiftType === 'off') {
-        asst.active = false;
-        asst.slots = [];
-      } else if (shiftType === 'official') {
-        asst.active = true;
-        asst.slots = [...IN_HOURS_SLOTS];
+      const targetDate = (typeof currentRosterDate !== "undefined" && currentRosterDate) ? currentRosterDate : (typeof getTodayDateString === "function" ? getTodayDateString() : "");
+      const isToday = (typeof getTodayDateString === "function" && targetDate === getTodayDateString());
+      const isLeave = (shiftType === 'off');
+
+      let slots = [];
+      if (shiftType === 'official') {
+        slots = [...IN_HOURS_SLOTS];
       } else if (shiftType === 'ot') {
-        asst.active = true;
-        asst.slots = [...OUT_OF_HOURS_SLOTS];
+        slots = [...OUT_OF_HOURS_SLOTS];
       } else if (shiftType === 'full') {
-        asst.active = true;
-        asst.slots = [...ALL_WORKING_SLOTS];
+        slots = [...ALL_WORKING_SLOTS];
       } else if (shiftType === 'custom') {
-        asst.active = true;
-        if (!Array.isArray(asst.slots) || asst.slots.length === 0) {
-          asst.slots = [...ALL_WORKING_SLOTS];
-        }
+        slots = (Array.isArray(asst.slots) && asst.slots.length > 0) ? [...asst.slots] : [...ALL_WORKING_SLOTS];
+      }
+
+      if (isToday) {
+        asst.slots = isLeave ? [] : slots;
       }
 
       // Synchronize active date roster if assistant is in the roster matrix
-      const targetDate = (typeof currentRosterDate !== "undefined" && currentRosterDate) ? currentRosterDate : getTodayDateString();
-      if (typeof assistantDutyRosters !== "undefined" && assistantDutyRosters[targetDate] && assistantDutyRosters[targetDate][asstId]) {
-        const rEntry = normalizeAssistantRosterEntry(assistantDutyRosters[targetDate][asstId]);
-        rEntry.slots = getAssistantWorkSlots(asst);
-        assistantDutyRosters[targetDate][asstId] = rEntry;
+      if (typeof assistantDutyRosters !== "undefined" && targetDate) {
+        if (!assistantDutyRosters[targetDate]) assistantDutyRosters[targetDate] = {};
+        assistantDutyRosters[targetDate][asstId] = {
+          slots: isLeave ? [] : slots,
+          checkInTime: isLeave ? "" : "08:00 น.",
+          shiftType: shiftType,
+          isExplicitlyEmpty: isLeave
+        };
         if (typeof saveAssistantRoster === "function") {
           saveAssistantRoster(targetDate, false);
         }
       }
 
       persistAssistants();
-
-      if (supabaseClient) {
-        try {
-          supabaseClient.from("assistants").update({
-            active: asst.active
-          }).eq("id", asst.id).then(() => {}).catch(err => {
-            console.warn("Supabase assistant active status sync warning:", err);
-          });
-        } catch(e) {}
-      }
-      renderManageShifts();
+      renderManageShifts(targetDate);
       if (typeof renderAssistantRosterMatrix === "function") {
         renderAssistantRosterMatrix();
       }
@@ -18942,7 +18992,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       if (supabaseClient) {
         try {
           await supabaseClient.from("assistants").update({
-            active: asst.active
+            active: true
           }).eq("id", asstId);
         } catch(e) { console.error("Error syncing shift type to Supabase:", e); }
       }
@@ -18954,64 +19004,80 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         return;
       }
 
+      const targetDate = document.getElementById("manage-selected-date")?.value || (typeof currentRosterDate !== "undefined" && currentRosterDate) || (typeof getTodayDateString === "function" ? getTodayDateString() : "");
+      const targetDateDisplay = (typeof formatThaiDisplayDate === "function") ? formatThaiDisplayDate(targetDate) : targetDate;
+
       let presetName = "ทั้งวัน";
       let shiftType = "full";
-      let isActive = true;
       let slots = [...ALL_WORKING_SLOTS];
+      let isLeave = false;
 
       if (preset === 'official') {
         presetName = "☀️ ในเวลาราชการ (08:00 - 16:00 น.)";
         shiftType = "official";
-        isActive = true;
         slots = [...IN_HOURS_SLOTS];
       } else if (preset === 'ot') {
         presetName = "🌙 นอกเวลาราชการ / OT (17:00 - 19:00 น.)";
         shiftType = "ot";
-        isActive = true;
         slots = [...OUT_OF_HOURS_SLOTS];
       } else if (preset === 'full') {
         presetName = "⭐ เข้าเวรทั้งวัน (08:00 - 19:00 น.)";
         shiftType = "full";
-        isActive = true;
         slots = [...ALL_WORKING_SLOTS];
       } else if (preset === 'off') {
         presetName = "⚪ ลาเวร / พัก (Off Duty)";
         shiftType = "off";
-        isActive = false;
         slots = [];
+        isLeave = true;
       }
 
-      if (!confirm(`คุณต้องการปรับเวรผู้ช่วยฯ ทุกคน (${assistants.length} คน) เป็น "${presetName}" หรือไม่?`)) {
+      if (!confirm(`คุณต้องการปรับเวรผู้ช่วยฯ ทุกคน (${assistants.length} คน) ประจำวันที่ ${targetDateDisplay} เป็น "${presetName}" หรือไม่?`)) {
         return;
       }
 
-      assistants.forEach(a => {
-        a.shiftType = shiftType;
-        a.active = isActive;
-        a.slots = [...slots];
-      });
+      // Apply to assistantDutyRosters for targetDate specifically
+      if (typeof assistantDutyRosters !== "undefined") {
+        if (!assistantDutyRosters[targetDate]) assistantDutyRosters[targetDate] = {};
+        assistants.forEach(a => {
+          assistantDutyRosters[targetDate][a.id] = {
+            slots: [...slots],
+            checkInTime: isLeave ? "" : "08:00 น.",
+            shiftType: shiftType,
+            isExplicitlyEmpty: isLeave
+          };
+        });
 
-      persistAssistants();
-      renderManageShifts();
+        try {
+          localStorage.setItem("ttm_assistant_duty_rosters", JSON.stringify(assistantDutyRosters));
+        } catch(e) {}
+
+        if (supabaseClient) {
+          try {
+            await supabaseClient.from("slot_configs").upsert({
+              config_key: targetDate,
+              scope: "roster",
+              slots_json: assistantDutyRosters[targetDate],
+              updated_at: new Date().toISOString()
+            });
+          } catch(err) {
+            console.warn("Supabase bulk roster save error:", err);
+          }
+        }
+      }
+
+      renderManageShifts(targetDate);
+      if (typeof renderAssistantRosterMatrix === "function") {
+        renderAssistantRosterMatrix();
+      }
       populateAssistantsDropdown("new-assistant-select");
-      showToast(`ปรับเวรผู้ช่วยฯ ทุกคนเป็น "${presetName}" เรียบร้อยแล้ว`, "success");
+      showToast(`ปรับเวรทุกคนประจำวันที่ ${targetDateDisplay} เป็น "${presetName}" เรียบร้อยแล้ว`, "success");
 
-      await logActivity("CONFIG_SYSTEM", `ปรับเวรผู้ช่วยฯ ทุกคนเป็น ${presetName} (${assistants.length} คน)`, {
+      await logActivity("CONFIG_SYSTEM", `ปรับเวรผู้ช่วยฯ ทุกคนประจำวันที่ ${targetDate} เป็น ${presetName} (${assistants.length} คน)`, {
         preset: preset,
         shiftType: shiftType,
-        active: isActive,
+        targetDate: targetDate,
         total: assistants.length
       });
-
-      if (supabaseClient) {
-        try {
-          for (const a of assistants) {
-            await supabaseClient.from("assistants").update({
-              active: a.active
-            }).eq("id", a.id);
-          }
-        } catch(e) { console.error("Error syncing bulk shift preset to Supabase:", e); }
-      }
     }
 
     // Backwards compatible bulk shift toggle
@@ -19538,7 +19604,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     }
 
     
-    // Unified Assistant Duty Status for Date Helper (v5.3.0)
+    // Unified Assistant Duty Status for Date Helper (v5.4.0)
     function getAssistantDutyStatusForDate(asst, dateStr) {
       if (!asst) return { isOff: true, type: 'off', label: '⚪ ลาเวร / พัก (Off Duty)', shortLabel: '⚪ ลาเวร / พัก', badgeClass: 'bg-slate-100 text-slate-500 border-slate-200' };
 
@@ -19546,9 +19612,9 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       const rosterObj = (typeof assistantDutyRosters !== "undefined" && assistantDutyRosters[targetDate]) ? assistantDutyRosters[targetDate] : null;
       const rEntry = rosterObj && rosterObj[asst.id] ? (typeof normalizeAssistantRosterEntry === "function" ? normalizeAssistantRosterEntry(rosterObj[asst.id]) : rosterObj[asst.id]) : null;
 
-      // 1. If explicit roster entry exists for this date
+      // 1. If explicit roster entry exists for this specific date
       if (rEntry) {
-        if (rEntry.isExplicitlyEmpty || !rEntry.slots || rEntry.slots.length === 0) {
+        if (rEntry.isExplicitlyEmpty || rEntry.shiftType === 'off' || !rEntry.slots || rEntry.slots.length === 0) {
           return {
             isOff: true,
             type: 'off',
@@ -19606,7 +19672,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       }
 
       // 2. Fallback to assistant object's own default properties
-      if (asst.active === false || asst.shiftType === 'off') {
+      if (asst.active === false) {
         return {
           isOff: true,
           type: 'off',
@@ -19618,14 +19684,37 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         };
       }
 
-      const shiftInfo = getShiftBadgeInfo(asst);
+      // Check if targetDate is TODAY and live check-in has actively started
+      const isToday = (typeof getTodayDateString === "function" && targetDate === getTodayDateString());
+      if (isToday && rosterObj) {
+        const hasActiveCheckInsToday = Object.values(rosterObj).some(e => {
+          const norm = normalizeAssistantRosterEntry(e);
+          return !norm.isExplicitlyEmpty && norm.shiftType !== 'off' && Array.isArray(norm.slots) && norm.slots.length > 0;
+        });
+        if (hasActiveCheckInsToday) {
+          return {
+            isOff: false,
+            isNotCheckedIn: true,
+            type: 'not_checked_in',
+            label: '⚪ ยังไม่ได้เช็คชื่อ (ไม่มา)',
+            shortLabel: '⚪ ไม่มา',
+            badgeClass: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700',
+            slots: [],
+            checkInTime: ''
+          };
+        }
+      }
+
+      const defaultShift = (asst.shiftType && asst.shiftType !== 'off') ? asst.shiftType : 'full';
+      const defaultSlots = getAssistantWorkSlots(asst);
+      const shiftInfo = getShiftBadgeInfo({ ...asst, shiftType: defaultShift, slots: defaultSlots });
       return {
         isOff: false,
         type: shiftInfo.type,
         label: shiftInfo.label,
         shortLabel: shiftInfo.shortLabel,
         badgeClass: shiftInfo.badgeClass,
-        slots: asst.slots || [],
+        slots: defaultSlots,
         checkInTime: ''
       };
     }
@@ -20216,9 +20305,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         checkedSlots.push(cb.value);
       });
 
-      asst.shiftType = shiftType;
-      asst.active = shiftType !== "off";
-      asst.slots = shiftType === "off" ? [] : checkedSlots;
+      const isLeave = (shiftType === "off" || checkedSlots.length === 0);
+      const appliedSlots = isLeave ? [] : [...checkedSlots];
 
       let targetDates = [];
       if (currentModalDutyDateMode === "range") {
@@ -20232,14 +20320,27 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         targetDates = [singleDate];
       }
 
+      const todayDate = (typeof getTodayDateString === "function") ? getTodayDateString() : new Date().toISOString().slice(0, 10);
+
+      // Only update today's live slots if today is in the targeted dates
+      if (targetDates.includes(todayDate)) {
+        asst.slots = [...appliedSlots];
+        if (!isLeave) {
+          asst.shiftType = shiftType;
+        }
+      }
+      // Master employee record remains active
+      asst.active = true;
+
       // Save to assistantDutyRosters for each target date
       if (typeof assistantDutyRosters !== "undefined") {
         for (const d of targetDates) {
           if (!assistantDutyRosters[d]) assistantDutyRosters[d] = {};
           assistantDutyRosters[d][asst.id] = {
-            slots: [...asst.slots],
-            checkInTime: checkinVal ? (checkinVal + " น.") : "",
-            isExplicitlyEmpty: asst.slots.length === 0 || shiftType === "off"
+            slots: [...appliedSlots],
+            checkInTime: isLeave ? "" : (checkinVal ? (checkinVal + " น.") : "08:00 น."),
+            shiftType: isLeave ? "off" : shiftType,
+            isExplicitlyEmpty: isLeave
           };
 
           if (supabaseClient) {
@@ -20263,10 +20364,11 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
       persistAssistants();
 
+      // Ensure assistant master record is active in Supabase
       if (supabaseClient) {
         try {
           await supabaseClient.from("assistants").update({
-            active: asst.active
+            active: true
           }).eq("id", asst.id);
         } catch(err) {
           console.warn("Supabase assistant active update error:", err);
@@ -20277,7 +20379,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       closeAssistantDetailModal();
 
       // Refresh background manage shifts cards/list
-      renderManageShifts();
+      renderManageShifts(targetDates[0]);
 
       let dateText = "";
       if (currentModalDutyDateMode === "range") {
@@ -20469,7 +20571,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
         // Filter by Specific Slot
         if (filterSlot !== "all") {
-          if (!isAssistantOnDutyForSlot(asst, filterSlot)) return false;
+          if (!isAssistantOnDutyForSlot(asst, filterSlot, targetRosterDate)) return false;
         }
 
         // Filter by Gender
@@ -24020,10 +24122,17 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
       function sortAssistantsByCheckIn(list) {
         return [...list].sort((a, b) => {
+          const aStatus = (typeof getAssistantDutyStatusForDate === "function") ? getAssistantDutyStatusForDate(a, dateVal) : { isOff: false };
+          const bStatus = (typeof getAssistantDutyStatusForDate === "function") ? getAssistantDutyStatusForDate(b, dateVal) : { isOff: false };
+
+          // On-duty first, off-duty last
+          if (!aStatus.isOff && bStatus.isOff) return -1;
+          if (aStatus.isOff && !bStatus.isOff) return 1;
+
           const aEntry = rosterForDate[a.id];
           const bEntry = rosterForDate[b.id];
-          const aChecked = Boolean(aEntry);
-          const bChecked = Boolean(bEntry);
+          const aChecked = Boolean(aEntry && !aEntry.isExplicitlyEmpty && aEntry.shiftType !== 'off');
+          const bChecked = Boolean(bEntry && !bEntry.isExplicitlyEmpty && bEntry.shiftType !== 'off');
 
           if (aChecked && bChecked) {
             const aNorm = typeof normalizeAssistantRosterEntry === "function" ? normalizeAssistantRosterEntry(aEntry) : aEntry;
@@ -24051,6 +24160,11 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
       // Helper to count available slots for an assistant
       function getAssistantFreeSlotCount(asst) {
+        const dutyStatus = (typeof getAssistantDutyStatusForDate === "function")
+          ? getAssistantDutyStatusForDate(asst, dateVal)
+          : { isOff: false, isNotCheckedIn: false };
+        if (dutyStatus.isOff || dutyStatus.isNotCheckedIn) return 0;
+
         let freeCount = 0;
         slots.forEach(slot => {
           const slotConf = getSlotConfigForDate(dateVal, slot);
@@ -24188,8 +24302,12 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
       // Female Assistant Quick Chips
       const femaleChips = femaleAssts.map(asst => {
-        const isCheckedIn = Boolean(rosterForDate[asst.id]);
-        const freeCount = isCheckedIn ? getAssistantFreeSlotCount(asst) : 0;
+        const dutyStatus = (typeof getAssistantDutyStatusForDate === "function")
+          ? getAssistantDutyStatusForDate(asst, dateVal)
+          : { isOff: false };
+        const isOff = dutyStatus.isOff;
+        const isNotChecked = dutyStatus.isNotCheckedIn;
+        const freeCount = (isOff || isNotChecked) ? 0 : getAssistantFreeSlotCount(asst);
         const hasFree = freeCount > 0;
         const isCurrent = wizardBookingData.assistantId === asst.id;
         const nick = escapeHtml(asst.nickname || asst.name);
@@ -24198,22 +24316,32 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         let statusBadgeClass = 'bg-slate-200 dark:bg-slate-700 text-slate-500 font-bold';
         let btnBgClass = 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-60';
 
-        if (isCheckedIn) {
-          if (hasFree) {
-            statusBadgeText = `ว่าง ${freeCount}`;
-            statusBadgeClass = isCurrent ? 'bg-white text-rose-700 font-black' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold';
-            btnBgClass = isCurrent ? 'bg-rose-600 text-white border-rose-700 shadow-xs ring-2 ring-rose-400' : 'bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-900 dark:text-rose-200 border-rose-200 dark:border-rose-800';
-          } else {
-            statusBadgeText = 'เต็ม';
-            statusBadgeClass = 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold';
-            btnBgClass = isCurrent ? 'bg-rose-600 text-white border-rose-700 shadow-xs ring-2 ring-rose-400' : 'bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700';
-          }
-        } else if (asst.active === false || asst.shiftType === 'off') {
+        if (isOff) {
           statusBadgeText = 'ลาเวร';
+          statusBadgeClass = 'bg-slate-200 dark:bg-slate-700 text-slate-500 font-bold';
+          btnBgClass = 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-60';
+        } else if (isNotChecked) {
+          statusBadgeText = 'ยังไม่เช็คชื่อ';
+          statusBadgeClass = 'bg-slate-200 dark:bg-slate-700 text-slate-500 font-bold';
+          btnBgClass = 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-60';
+        } else if (hasFree) {
+          statusBadgeText = `ว่าง ${freeCount}`;
+          statusBadgeClass = isCurrent ? 'bg-white text-rose-700 font-black' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold';
+          btnBgClass = isCurrent ? 'bg-rose-600 text-white border-rose-700 shadow-xs ring-2 ring-rose-400' : 'bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-900 dark:text-rose-200 border-rose-200 dark:border-rose-800';
+        } else {
+          statusBadgeText = 'เต็ม';
+          statusBadgeClass = 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold';
+          btnBgClass = isCurrent ? 'bg-rose-600 text-white border-rose-700 shadow-xs ring-2 ring-rose-400' : 'bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700';
         }
 
+        const chipTitle = isOff
+          ? `${nick} (ลาเวร / พัก ในวันที่เลือก)`
+          : isNotChecked
+            ? `${nick} (ยังไม่ได้เช็คชื่อเข้างาน)`
+            : `${nick} (พร้อมให้บริการ - ${hasFree ? `ว่าง ${freeCount} รอบ` : 'เต็มทุกรอบ'})`;
+
         return `
-          <button type="button" onclick="jumpToAssistantSlot('${asst.id}', '${nick}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition cursor-pointer active:scale-95 ${btnBgClass}" title="${isCheckedIn ? `${nick} (มาปฏิบัติงาน - ${hasFree ? `ว่าง ${freeCount} รอบ` : 'เต็มทุกรอบ'})` : `${nick} (ไม่มา / ยังไม่ได้เช็คชื่อ)`}">
+          <button type="button" onclick="jumpToAssistantSlot('${asst.id}', '${nick}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition cursor-pointer active:scale-95 ${btnBgClass}" title="${chipTitle}">
             <span>👩 ${nick}</span>
             <span class="text-[9.5px] px-1.5 py-0.2 rounded-full font-bold ${statusBadgeClass}">
               ${statusBadgeText}
@@ -24224,8 +24352,12 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
       // Male Assistant Quick Chips
       const maleChips = maleAssts.map(asst => {
-        const isCheckedIn = Boolean(rosterForDate[asst.id]);
-        const freeCount = isCheckedIn ? getAssistantFreeSlotCount(asst) : 0;
+        const dutyStatus = (typeof getAssistantDutyStatusForDate === "function")
+          ? getAssistantDutyStatusForDate(asst, dateVal)
+          : { isOff: false };
+        const isOff = dutyStatus.isOff;
+        const isNotChecked = dutyStatus.isNotCheckedIn;
+        const freeCount = (isOff || isNotChecked) ? 0 : getAssistantFreeSlotCount(asst);
         const hasFree = freeCount > 0;
         const isCurrent = wizardBookingData.assistantId === asst.id;
         const nick = escapeHtml(asst.nickname || asst.name);
@@ -24234,22 +24366,32 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         let statusBadgeClass = 'bg-slate-200 dark:bg-slate-700 text-slate-500 font-bold';
         let btnBgClass = 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-60';
 
-        if (isCheckedIn) {
-          if (hasFree) {
-            statusBadgeText = `ว่าง ${freeCount}`;
-            statusBadgeClass = isCurrent ? 'bg-white text-sky-700 font-black' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold';
-            btnBgClass = isCurrent ? 'bg-sky-600 text-white border-sky-700 shadow-xs ring-2 ring-sky-400' : 'bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-900/50 text-sky-900 dark:text-sky-200 border-sky-200 dark:border-sky-800';
-          } else {
-            statusBadgeText = 'เต็ม';
-            statusBadgeClass = 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold';
-            btnBgClass = isCurrent ? 'bg-sky-600 text-white border-sky-700 shadow-xs ring-2 ring-sky-400' : 'bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700';
-          }
-        } else if (asst.active === false || asst.shiftType === 'off') {
+        if (isOff) {
           statusBadgeText = 'ลาเวร';
+          statusBadgeClass = 'bg-slate-200 dark:bg-slate-700 text-slate-500 font-bold';
+          btnBgClass = 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-60';
+        } else if (isNotChecked) {
+          statusBadgeText = 'ยังไม่เช็คชื่อ';
+          statusBadgeClass = 'bg-slate-200 dark:bg-slate-700 text-slate-500 font-bold';
+          btnBgClass = 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-60';
+        } else if (hasFree) {
+          statusBadgeText = `ว่าง ${freeCount}`;
+          statusBadgeClass = isCurrent ? 'bg-white text-sky-700 font-black' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold';
+          btnBgClass = isCurrent ? 'bg-sky-600 text-white border-sky-700 shadow-xs ring-2 ring-sky-400' : 'bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-900/50 text-sky-900 dark:text-sky-200 border-sky-200 dark:border-sky-800';
+        } else {
+          statusBadgeText = 'เต็ม';
+          statusBadgeClass = 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold';
+          btnBgClass = isCurrent ? 'bg-sky-600 text-white border-sky-700 shadow-xs ring-2 ring-sky-400' : 'bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700';
         }
 
+        const chipTitle = isOff
+          ? `${nick} (ลาเวร / พัก ในวันที่เลือก)`
+          : isNotChecked
+            ? `${nick} (ยังไม่ได้เช็คชื่อเข้างาน)`
+            : `${nick} (พร้อมให้บริการ - ${hasFree ? `ว่าง ${freeCount} รอบ` : 'เต็มทุกรอบ'})`;
+
         return `
-          <button type="button" onclick="jumpToAssistantSlot('${asst.id}', '${nick}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition cursor-pointer active:scale-95 ${btnBgClass}" title="${isCheckedIn ? `${nick} (มาปฏิบัติงาน - ${hasFree ? `ว่าง ${freeCount} รอบ` : 'เต็มทุกรอบ'})` : `${nick} (ไม่มา / ยังไม่ได้เช็คชื่อ)`}">
+          <button type="button" onclick="jumpToAssistantSlot('${asst.id}', '${nick}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition cursor-pointer active:scale-95 ${btnBgClass}" title="${chipTitle}">
             <span>👨 ${nick}</span>
             <span class="text-[9.5px] px-1.5 py-0.2 rounded-full font-bold ${statusBadgeClass}">
               ${statusBadgeText}
@@ -24258,9 +24400,12 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         `;
       }).join("");
 
-      const femaleCheckedCount = femaleAssts.filter(a => Boolean(rosterForDate[a.id])).length;
-      const maleCheckedCount = maleAssts.filter(a => Boolean(rosterForDate[a.id])).length;
-      const totalCheckedCount = femaleCheckedCount + maleCheckedCount;
+      const isDateToday = (typeof getTodayDateString === "function" && dateVal === getTodayDateString());
+      const onDutyStaffCount = activeAssts.filter(a => {
+        const st = (typeof getAssistantDutyStatusForDate === "function") ? getAssistantDutyStatusForDate(a, dateVal) : { isOff: false };
+        return !st.isOff && !st.isNotCheckedIn;
+      }).length;
+      const offDutyStaffCount = activeAssts.length - onDutyStaffCount;
 
       directoryBox.innerHTML = `
         <div class="flex items-center justify-between gap-1 border-b border-slate-200 dark:border-slate-700/80 pb-1.5 flex-wrap">
@@ -24270,10 +24415,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           </div>
           <div class="flex items-center gap-1.5 flex-wrap">
             <span class="text-[10px] text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full font-bold">
-              🟢 เช็คชื่อมา ${totalCheckedCount} ท่าน
+              🟢 ${isDateToday ? 'เช็คชื่อมา ' : 'พร้อมให้บริการ '}${onDutyStaffCount} ท่าน
             </span>
             <span class="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-bold border border-slate-200 dark:border-slate-700">
-              ⚪ ไม่มา ${activeAssts.length - totalCheckedCount} ท่าน
+              ⚪ ${isDateToday ? 'ยังไม่เช็ค/ลา ' : 'ลาเวร '}${offDutyStaffCount} ท่าน
             </span>
           </div>
         </div>
@@ -24310,8 +24455,11 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       const sortedAsstsForCards = [...femaleAssts, ...maleAssts];
 
       sortedAsstsForCards.forEach(asst => {
-        const isCheckedIn = Boolean(rosterForDate[asst.id]);
-        const rEntry = isCheckedIn ? (typeof normalizeAssistantRosterEntry === "function" ? normalizeAssistantRosterEntry(rosterForDate[asst.id]) : rosterForDate[asst.id]) : null;
+        const dutyStatus = (typeof getAssistantDutyStatusForDate === "function")
+          ? getAssistantDutyStatusForDate(asst, dateVal)
+          : { isOff: false };
+        const isOff = dutyStatus.isOff;
+        const isNotChecked = dutyStatus.isNotCheckedIn;
 
         const asstBox = document.createElement("div");
         asstBox.id = "asst-slot-card-" + asst.id;
@@ -24328,7 +24476,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
             `;
           }
 
-          const onDuty = isAssistantOnDutyForSlot(asst, slot, dateVal);
+          const onDuty = !isOff && !isNotChecked && isAssistantOnDutyForSlot(asst, slot, dateVal);
 
           const isOccupied = appointments.some(apt => {
             if (apt.bookDate === dateVal && apt.assistantId === asst.id) {
@@ -24343,7 +24491,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           const isGenderFull = isMale ? (genderAvail.maleFreeCount <= 0) : (genderAvail.femaleFreeCount <= 0);
 
           const isSelected = (wizardBookingData.timeSlot === slot && wizardBookingData.assistantId === asst.id);
-          const isAvailable = isCheckedIn && onDuty && !isOccupied && !isGenderFull;
+          const isAvailable = onDuty && !isOccupied && !isGenderFull;
 
           let cardClass = "";
           let statusLabel = "ว่าง";
@@ -24351,7 +24499,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           if (isSelected) {
             cardClass = "bg-emerald-600 text-white ring-2 ring-emerald-400 ring-offset-1 border border-emerald-400 shadow-xs font-bold";
             statusLabel = "✅ เลือกแล้ว";
-          } else if (!isCheckedIn) {
+          } else if (isOff) {
+            cardClass = "bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed";
+            statusLabel = "ลาเวร";
+          } else if (isNotChecked) {
             cardClass = "bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed";
             statusLabel = "ไม่มา";
           } else if (!onDuty) {
@@ -24365,15 +24516,17 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
             statusLabel = "ว่าง";
           }
 
-          const toolTip = !isCheckedIn 
-            ? `${escapeHtml(asst.nickname || asst.name)} ยังไม่ได้เช็คชื่อเข้างาน (ไม่มา)` 
-            : !onDuty 
-              ? `${escapeHtml(asst.nickname || asst.name)} ไม่อยู่เวรในรอบนี้` 
-              : isOccupied 
-                ? 'ติดนัดหมาย' 
-                : isGenderFull 
-                  ? `คิวผู้ช่วยแพทย์${isMale ? 'ชาย' : 'หญิง'}ในรอบนี้เต็มแล้ว` 
-                  : `คลิกเพื่อเลือกรอบเวลานี้กับ ${escapeHtml(asst.nickname || asst.name)}`;
+          const toolTip = isOff
+            ? `${escapeHtml(asst.nickname || asst.name)} ลาเวร / พัก ในวันที่เลือก`
+            : isNotChecked
+              ? `${escapeHtml(asst.nickname || asst.name)} ยังไม่ได้เช็คชื่อเข้างาน (ไม่มา)`
+              : !onDuty 
+                ? `${escapeHtml(asst.nickname || asst.name)} ไม่อยู่เวรในรอบนี้` 
+                : isOccupied 
+                  ? 'ติดนัดหมาย' 
+                  : isGenderFull 
+                    ? `คิวผู้ช่วยแพทย์${isMale ? 'ชาย' : 'หญิง'}ในรอบนี้เต็มแล้ว` 
+                    : `คลิกเพื่อเลือกรอบเวลานี้กับ ${escapeHtml(asst.nickname || asst.name)}`;
 
           return `
             <div class="text-center p-1 sm:p-1.5 rounded-lg text-xs font-semibold transition transform ${cardClass}" onclick="selectWizardSlotClassic('${slot}', '${asst.id}', ${isAvailable})" title="${toolTip}">
@@ -24388,6 +24541,12 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-rose-200 dark:border-rose-800'
           : 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border-sky-200 dark:border-sky-800';
 
+        const statusBadgeHeader = isOff
+          ? '<span class="text-[9.5px] px-2 py-0.2 rounded-full font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-300">⚪ ลาเวร / พัก</span>'
+          : isNotChecked
+            ? '<span class="text-[9.5px] px-2 py-0.2 rounded-full font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-300">⚪ ยังไม่เช็คชื่อ</span>'
+            : '<span class="text-[9.5px] px-2 py-0.2 rounded-full font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">🟢 พร้อมให้บริการ</span>';
+
         asstBox.innerHTML = `
           <div class="font-bold text-xs text-slate-800 dark:text-slate-100 flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-700/60 flex-wrap gap-1">
             <div class="flex items-center space-x-1.5 flex-wrap">
@@ -24395,7 +24554,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
               <span class="text-slate-900 dark:text-white font-bold">${escapeHtml(asst.nickname || asst.name)}</span>
               ${asst.nickname && asst.name !== asst.nickname ? `<span class="text-[10px] text-slate-400 font-normal hidden sm:inline">(${escapeHtml(asst.name)})</span>` : ''}
               <span class="text-[9.5px] px-1.5 py-0.2 rounded border font-semibold ${genderBadgeClass}">${asst.gender === 'female' ? 'หญิง' : 'ชาย'}</span>
-              ${isCheckedIn ? '<span class="text-[9.5px] px-2 py-0.2 rounded-full font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">🟢 พร้อมให้บริการ</span>' : '<span class="text-[9.5px] px-2 py-0.2 rounded-full font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-300">⚪ ไม่มา</span>'}
+              ${statusBadgeHeader}
             </div>
             ${wizardBookingData.assistantId === asst.id ? '<span class="text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2 py-0.5 rounded-full font-bold border border-emerald-300">✅ เลือกผู้ช่วยฯ คนนี้</span>' : ''}
           </div>

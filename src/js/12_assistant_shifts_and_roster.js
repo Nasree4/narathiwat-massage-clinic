@@ -10,51 +10,46 @@
       const asst = assistants.find(a => a.id === asstId);
       if (!asst) return;
 
-      const oldType = asst.shiftType || (asst.active ? 'full' : 'off');
-      asst.shiftType = shiftType;
+      if (shiftType !== 'off') {
+        asst.shiftType = shiftType;
+      }
+      asst.active = true;
 
-      if (shiftType === 'off') {
-        asst.active = false;
-        asst.slots = [];
-      } else if (shiftType === 'official') {
-        asst.active = true;
-        asst.slots = [...IN_HOURS_SLOTS];
+      const targetDate = (typeof currentRosterDate !== "undefined" && currentRosterDate) ? currentRosterDate : (typeof getTodayDateString === "function" ? getTodayDateString() : "");
+      const isToday = (typeof getTodayDateString === "function" && targetDate === getTodayDateString());
+      const isLeave = (shiftType === 'off');
+
+      let slots = [];
+      if (shiftType === 'official') {
+        slots = [...IN_HOURS_SLOTS];
       } else if (shiftType === 'ot') {
-        asst.active = true;
-        asst.slots = [...OUT_OF_HOURS_SLOTS];
+        slots = [...OUT_OF_HOURS_SLOTS];
       } else if (shiftType === 'full') {
-        asst.active = true;
-        asst.slots = [...ALL_WORKING_SLOTS];
+        slots = [...ALL_WORKING_SLOTS];
       } else if (shiftType === 'custom') {
-        asst.active = true;
-        if (!Array.isArray(asst.slots) || asst.slots.length === 0) {
-          asst.slots = [...ALL_WORKING_SLOTS];
-        }
+        slots = (Array.isArray(asst.slots) && asst.slots.length > 0) ? [...asst.slots] : [...ALL_WORKING_SLOTS];
+      }
+
+      if (isToday) {
+        asst.slots = isLeave ? [] : slots;
       }
 
       // Synchronize active date roster if assistant is in the roster matrix
-      const targetDate = (typeof currentRosterDate !== "undefined" && currentRosterDate) ? currentRosterDate : getTodayDateString();
-      if (typeof assistantDutyRosters !== "undefined" && assistantDutyRosters[targetDate] && assistantDutyRosters[targetDate][asstId]) {
-        const rEntry = normalizeAssistantRosterEntry(assistantDutyRosters[targetDate][asstId]);
-        rEntry.slots = getAssistantWorkSlots(asst);
-        assistantDutyRosters[targetDate][asstId] = rEntry;
+      if (typeof assistantDutyRosters !== "undefined" && targetDate) {
+        if (!assistantDutyRosters[targetDate]) assistantDutyRosters[targetDate] = {};
+        assistantDutyRosters[targetDate][asstId] = {
+          slots: isLeave ? [] : slots,
+          checkInTime: isLeave ? "" : "08:00 น.",
+          shiftType: shiftType,
+          isExplicitlyEmpty: isLeave
+        };
         if (typeof saveAssistantRoster === "function") {
           saveAssistantRoster(targetDate, false);
         }
       }
 
       persistAssistants();
-
-      if (supabaseClient) {
-        try {
-          supabaseClient.from("assistants").update({
-            active: asst.active
-          }).eq("id", asst.id).then(() => {}).catch(err => {
-            console.warn("Supabase assistant active status sync warning:", err);
-          });
-        } catch(e) {}
-      }
-      renderManageShifts();
+      renderManageShifts(targetDate);
       if (typeof renderAssistantRosterMatrix === "function") {
         renderAssistantRosterMatrix();
       }
@@ -75,7 +70,7 @@
       if (supabaseClient) {
         try {
           await supabaseClient.from("assistants").update({
-            active: asst.active
+            active: true
           }).eq("id", asstId);
         } catch(e) { console.error("Error syncing shift type to Supabase:", e); }
       }
@@ -87,64 +82,80 @@
         return;
       }
 
+      const targetDate = document.getElementById("manage-selected-date")?.value || (typeof currentRosterDate !== "undefined" && currentRosterDate) || (typeof getTodayDateString === "function" ? getTodayDateString() : "");
+      const targetDateDisplay = (typeof formatThaiDisplayDate === "function") ? formatThaiDisplayDate(targetDate) : targetDate;
+
       let presetName = "ทั้งวัน";
       let shiftType = "full";
-      let isActive = true;
       let slots = [...ALL_WORKING_SLOTS];
+      let isLeave = false;
 
       if (preset === 'official') {
         presetName = "☀️ ในเวลาราชการ (08:00 - 16:00 น.)";
         shiftType = "official";
-        isActive = true;
         slots = [...IN_HOURS_SLOTS];
       } else if (preset === 'ot') {
         presetName = "🌙 นอกเวลาราชการ / OT (17:00 - 19:00 น.)";
         shiftType = "ot";
-        isActive = true;
         slots = [...OUT_OF_HOURS_SLOTS];
       } else if (preset === 'full') {
         presetName = "⭐ เข้าเวรทั้งวัน (08:00 - 19:00 น.)";
         shiftType = "full";
-        isActive = true;
         slots = [...ALL_WORKING_SLOTS];
       } else if (preset === 'off') {
         presetName = "⚪ ลาเวร / พัก (Off Duty)";
         shiftType = "off";
-        isActive = false;
         slots = [];
+        isLeave = true;
       }
 
-      if (!confirm(`คุณต้องการปรับเวรผู้ช่วยฯ ทุกคน (${assistants.length} คน) เป็น "${presetName}" หรือไม่?`)) {
+      if (!confirm(`คุณต้องการปรับเวรผู้ช่วยฯ ทุกคน (${assistants.length} คน) ประจำวันที่ ${targetDateDisplay} เป็น "${presetName}" หรือไม่?`)) {
         return;
       }
 
-      assistants.forEach(a => {
-        a.shiftType = shiftType;
-        a.active = isActive;
-        a.slots = [...slots];
-      });
+      // Apply to assistantDutyRosters for targetDate specifically
+      if (typeof assistantDutyRosters !== "undefined") {
+        if (!assistantDutyRosters[targetDate]) assistantDutyRosters[targetDate] = {};
+        assistants.forEach(a => {
+          assistantDutyRosters[targetDate][a.id] = {
+            slots: [...slots],
+            checkInTime: isLeave ? "" : "08:00 น.",
+            shiftType: shiftType,
+            isExplicitlyEmpty: isLeave
+          };
+        });
 
-      persistAssistants();
-      renderManageShifts();
+        try {
+          localStorage.setItem("ttm_assistant_duty_rosters", JSON.stringify(assistantDutyRosters));
+        } catch(e) {}
+
+        if (supabaseClient) {
+          try {
+            await supabaseClient.from("slot_configs").upsert({
+              config_key: targetDate,
+              scope: "roster",
+              slots_json: assistantDutyRosters[targetDate],
+              updated_at: new Date().toISOString()
+            });
+          } catch(err) {
+            console.warn("Supabase bulk roster save error:", err);
+          }
+        }
+      }
+
+      renderManageShifts(targetDate);
+      if (typeof renderAssistantRosterMatrix === "function") {
+        renderAssistantRosterMatrix();
+      }
       populateAssistantsDropdown("new-assistant-select");
-      showToast(`ปรับเวรผู้ช่วยฯ ทุกคนเป็น "${presetName}" เรียบร้อยแล้ว`, "success");
+      showToast(`ปรับเวรทุกคนประจำวันที่ ${targetDateDisplay} เป็น "${presetName}" เรียบร้อยแล้ว`, "success");
 
-      await logActivity("CONFIG_SYSTEM", `ปรับเวรผู้ช่วยฯ ทุกคนเป็น ${presetName} (${assistants.length} คน)`, {
+      await logActivity("CONFIG_SYSTEM", `ปรับเวรผู้ช่วยฯ ทุกคนประจำวันที่ ${targetDate} เป็น ${presetName} (${assistants.length} คน)`, {
         preset: preset,
         shiftType: shiftType,
-        active: isActive,
+        targetDate: targetDate,
         total: assistants.length
       });
-
-      if (supabaseClient) {
-        try {
-          for (const a of assistants) {
-            await supabaseClient.from("assistants").update({
-              active: a.active
-            }).eq("id", a.id);
-          }
-        } catch(e) { console.error("Error syncing bulk shift preset to Supabase:", e); }
-      }
     }
 
     // Backwards compatible bulk shift toggle
@@ -671,7 +682,7 @@
     }
 
     
-    // Unified Assistant Duty Status for Date Helper (v5.3.0)
+    // Unified Assistant Duty Status for Date Helper (v5.4.0)
     function getAssistantDutyStatusForDate(asst, dateStr) {
       if (!asst) return { isOff: true, type: 'off', label: '⚪ ลาเวร / พัก (Off Duty)', shortLabel: '⚪ ลาเวร / พัก', badgeClass: 'bg-slate-100 text-slate-500 border-slate-200' };
 
@@ -679,9 +690,9 @@
       const rosterObj = (typeof assistantDutyRosters !== "undefined" && assistantDutyRosters[targetDate]) ? assistantDutyRosters[targetDate] : null;
       const rEntry = rosterObj && rosterObj[asst.id] ? (typeof normalizeAssistantRosterEntry === "function" ? normalizeAssistantRosterEntry(rosterObj[asst.id]) : rosterObj[asst.id]) : null;
 
-      // 1. If explicit roster entry exists for this date
+      // 1. If explicit roster entry exists for this specific date
       if (rEntry) {
-        if (rEntry.isExplicitlyEmpty || !rEntry.slots || rEntry.slots.length === 0) {
+        if (rEntry.isExplicitlyEmpty || rEntry.shiftType === 'off' || !rEntry.slots || rEntry.slots.length === 0) {
           return {
             isOff: true,
             type: 'off',
@@ -739,7 +750,7 @@
       }
 
       // 2. Fallback to assistant object's own default properties
-      if (asst.active === false || asst.shiftType === 'off') {
+      if (asst.active === false) {
         return {
           isOff: true,
           type: 'off',
@@ -751,14 +762,37 @@
         };
       }
 
-      const shiftInfo = getShiftBadgeInfo(asst);
+      // Check if targetDate is TODAY and live check-in has actively started
+      const isToday = (typeof getTodayDateString === "function" && targetDate === getTodayDateString());
+      if (isToday && rosterObj) {
+        const hasActiveCheckInsToday = Object.values(rosterObj).some(e => {
+          const norm = normalizeAssistantRosterEntry(e);
+          return !norm.isExplicitlyEmpty && norm.shiftType !== 'off' && Array.isArray(norm.slots) && norm.slots.length > 0;
+        });
+        if (hasActiveCheckInsToday) {
+          return {
+            isOff: false,
+            isNotCheckedIn: true,
+            type: 'not_checked_in',
+            label: '⚪ ยังไม่ได้เช็คชื่อ (ไม่มา)',
+            shortLabel: '⚪ ไม่มา',
+            badgeClass: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700',
+            slots: [],
+            checkInTime: ''
+          };
+        }
+      }
+
+      const defaultShift = (asst.shiftType && asst.shiftType !== 'off') ? asst.shiftType : 'full';
+      const defaultSlots = getAssistantWorkSlots(asst);
+      const shiftInfo = getShiftBadgeInfo({ ...asst, shiftType: defaultShift, slots: defaultSlots });
       return {
         isOff: false,
         type: shiftInfo.type,
         label: shiftInfo.label,
         shortLabel: shiftInfo.shortLabel,
         badgeClass: shiftInfo.badgeClass,
-        slots: asst.slots || [],
+        slots: defaultSlots,
         checkInTime: ''
       };
     }
@@ -1349,9 +1383,8 @@
         checkedSlots.push(cb.value);
       });
 
-      asst.shiftType = shiftType;
-      asst.active = shiftType !== "off";
-      asst.slots = shiftType === "off" ? [] : checkedSlots;
+      const isLeave = (shiftType === "off" || checkedSlots.length === 0);
+      const appliedSlots = isLeave ? [] : [...checkedSlots];
 
       let targetDates = [];
       if (currentModalDutyDateMode === "range") {
@@ -1365,14 +1398,27 @@
         targetDates = [singleDate];
       }
 
+      const todayDate = (typeof getTodayDateString === "function") ? getTodayDateString() : new Date().toISOString().slice(0, 10);
+
+      // Only update today's live slots if today is in the targeted dates
+      if (targetDates.includes(todayDate)) {
+        asst.slots = [...appliedSlots];
+        if (!isLeave) {
+          asst.shiftType = shiftType;
+        }
+      }
+      // Master employee record remains active
+      asst.active = true;
+
       // Save to assistantDutyRosters for each target date
       if (typeof assistantDutyRosters !== "undefined") {
         for (const d of targetDates) {
           if (!assistantDutyRosters[d]) assistantDutyRosters[d] = {};
           assistantDutyRosters[d][asst.id] = {
-            slots: [...asst.slots],
-            checkInTime: checkinVal ? (checkinVal + " น.") : "",
-            isExplicitlyEmpty: asst.slots.length === 0 || shiftType === "off"
+            slots: [...appliedSlots],
+            checkInTime: isLeave ? "" : (checkinVal ? (checkinVal + " น.") : "08:00 น."),
+            shiftType: isLeave ? "off" : shiftType,
+            isExplicitlyEmpty: isLeave
           };
 
           if (supabaseClient) {
@@ -1396,10 +1442,11 @@
 
       persistAssistants();
 
+      // Ensure assistant master record is active in Supabase
       if (supabaseClient) {
         try {
           await supabaseClient.from("assistants").update({
-            active: asst.active
+            active: true
           }).eq("id", asst.id);
         } catch(err) {
           console.warn("Supabase assistant active update error:", err);
@@ -1410,7 +1457,7 @@
       closeAssistantDetailModal();
 
       // Refresh background manage shifts cards/list
-      renderManageShifts();
+      renderManageShifts(targetDates[0]);
 
       let dateText = "";
       if (currentModalDutyDateMode === "range") {
@@ -1602,7 +1649,7 @@
 
         // Filter by Specific Slot
         if (filterSlot !== "all") {
-          if (!isAssistantOnDutyForSlot(asst, filterSlot)) return false;
+          if (!isAssistantOnDutyForSlot(asst, filterSlot, targetRosterDate)) return false;
         }
 
         // Filter by Gender

@@ -402,24 +402,35 @@
       if (!asst || asst.active === false) return false;
       if (!timeSlot) return true;
       
-      // 1. If date-specific matrix roster exists for this date, check-in is required
+      // 1. If date-specific matrix roster exists for this date, check date-specific entry
       if (dateStr && typeof assistantDutyRosters !== "undefined" && assistantDutyRosters[dateStr]) {
         const dateRoster = assistantDutyRosters[dateStr];
         const hasRosterEntries = Object.keys(dateRoster).length > 0;
         if (hasRosterEntries) {
           if (dateRoster[asst.id] !== undefined) {
             const entry = normalizeAssistantRosterEntry(dateRoster[asst.id]);
+            if (entry.isExplicitlyEmpty || entry.shiftType === 'off') return false;
             const slots = Array.isArray(entry.slots) ? entry.slots : [];
             return slots.includes(timeSlot);
           } else {
-            // Roster exists for this date, but assistant has NOT checked in -> "ไม่มา"
-            return false;
+            // Check if dateStr is TODAY
+            const isToday = (typeof getTodayDateString === "function" && dateStr === getTodayDateString());
+            const hasActiveCheckInsToday = isToday && Object.values(dateRoster).some(e => {
+              const norm = normalizeAssistantRosterEntry(e);
+              return !norm.isExplicitlyEmpty && norm.shiftType !== 'off' && Array.isArray(norm.slots) && norm.slots.length > 0;
+            });
+            if (hasActiveCheckInsToday) {
+              // Live roster is actively ongoing today, but this assistant has not checked in yet
+              return false;
+            }
+            // For future or other dates: assistant did not take leave on this date, so available on default shift
+            const slots = getAssistantWorkSlots(asst);
+            return slots.includes(timeSlot);
           }
         }
       }
 
-      // 2. Fallback to assistant's default shift configuration only if no roster has been entered for this date
-      if (asst.shiftType === 'off') return false;
+      // 2. Fallback to assistant's default shift configuration
       const slots = getAssistantWorkSlots(asst);
       return slots.includes(timeSlot);
     }
