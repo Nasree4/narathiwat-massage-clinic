@@ -142,17 +142,17 @@
 
       updateNotificationBadgeUI();
 
-      // Continuous Realtime Sync Heartbeat (Every 5 seconds across all devices)
+      // Background Sync Heartbeat (Every 30 seconds as fallback to Realtime WebSockets)
       setInterval(() => {
-        if (supabaseClient && document.visibilityState === 'visible') {
+        if (supabaseClient && document.visibilityState === 'visible' && !isUserInteractingWithDropdown) {
           loadAllDataFromSupabase(true);
         }
-      }, 5000);
+      }, 30000);
 
       // Periodic Auto-refresh for live elapsed timers (every 30s)
       setInterval(() => {
         const deskTab = document.getElementById("view-desk");
-        if (deskTab && !deskTab.classList.contains("hidden")) {
+        if (deskTab && !deskTab.classList.contains("hidden") && !isUserInteractingWithDropdown) {
           renderDeskQueue();
         }
         if (currentTimingModalAptId) {
@@ -164,16 +164,14 @@
       // Instant Resync when user unlocks phone/iPad or switches back to app tab
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-          console.log("App tab became active, performing instant Cloud sync...");
-          if (supabaseClient) {
-            subscribeToRealtime();
+          if (supabaseClient && !isUserInteractingWithDropdown) {
             loadAllDataFromSupabase(true);
           }
         }
       });
 
       window.addEventListener('focus', () => {
-        if (supabaseClient) {
+        if (supabaseClient && !isUserInteractingWithDropdown) {
           loadAllDataFromSupabase(true);
         }
       });

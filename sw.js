@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ttm-clinic-cache-v138';
+const CACHE_NAME = 'ttm-clinic-cache-v139';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -42,30 +42,71 @@ self.addEventListener('message', event => {
   }
 });
 
+function timeout(ms) {
+  return new Promise((_, reject) => setTimeout(() => reject(new Error('Network timeout')), ms));
+}
+
 self.addEventListener('fetch', event => {
-  // Only handle GET requests and skip Supabase API calls / WebSocket to ensure live Realtime
-  if (event.request.method !== 'GET' || event.request.url.includes('supabase.co')) {
+  const url = event.request.url;
+
+  // Bypass Supabase API, realtime websockets, and non-GET requests
+  if (event.request.method !== 'GET' || url.includes('supabase.co') || url.includes('/rest/v1/') || url.includes('/auth/v1/')) {
     return;
   }
 
-  event.respondWith(
-    fetch(event.request)
-      .then(networkResponse => {
-        if (networkResponse && networkResponse.status === 200) {
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseClone);
-          });
+  // 1. Navigation / HTML Requests: Instant Cache delivery with background update
+  if (event.request.mode === 'navigate' || (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html'))) {
+    event.respondWith(
+      caches.match('/index.html').then(cachedHtml => {
+        const networkFetch = fetch(event.request)
+          .then(networkResponse => {
+            if (networkResponse && networkResponse.status === 200) {
+              const responseClone = networkResponse.clone();
+              caches.open(CACHE_NAME).then(cache => {
+                cache.put('/index.html', responseClone);
+              });
+            }
+            return networkResponse;
+          })
+          .catch(() => cachedHtml);
+
+        // If we have cached HTML, return immediately (<50ms) and refresh in background
+        if (cachedHtml) {
+          networkFetch.catch(() => {});
+          return cachedHtml;
         }
-        return networkResponse;
+
+        return Promise.race([networkFetch, timeout(2500)]).catch(() => cachedHtml || networkFetch);
       })
-      .catch(() => {
-        return caches.match(event.request).then(cachedResponse => {
-          if (cachedResponse) return cachedResponse;
-          if (event.request.headers.get('accept')?.includes('text/html')) {
-            return caches.match('/index.html');
+    );
+    return;
+  }
+
+  // 2. Static Assets & CDN libraries: Cache-First with Stale-While-Revalidate
+  event.respondWith(
+    caches.match(event.request).then(cachedResponse => {
+      if (cachedResponse) {
+        fetch(event.request)
+          .then(networkResponse => {
+            if (networkResponse && networkResponse.status === 200) {
+              caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResponse));
+            }
+          })
+          .catch(() => {});
+        return cachedResponse;
+      }
+
+      return fetch(event.request)
+        .then(networkResponse => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, responseClone);
+            });
           }
-        });
-      })
+          return networkResponse;
+        })
+        .catch(() => cachedResponse);
+    })
   );
 });

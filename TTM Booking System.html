@@ -5809,7 +5809,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.4.3";
+    const APP_VERSION = "v5.4.4";
     const APP_BUILD_DATE = "25 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
@@ -6569,6 +6569,55 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
        PATIENT LIFECYCLE & TIME TRACKING ENGINE (⏱️ ระบบจับเวลาและบันทึกสถานะ)
        ========================================================================= */
 
+    let _memStatusHistories = null;
+    let _memTreatmentTimings = null;
+
+    function getMemStatusHistories() {
+      if (_memStatusHistories === null) {
+        try {
+          _memStatusHistories = JSON.parse(localStorage.getItem("ttm_status_histories") || "{}");
+        } catch(e) {
+          _memStatusHistories = {};
+        }
+      }
+      return _memStatusHistories;
+    }
+
+    function getMemTreatmentTimings() {
+      if (_memTreatmentTimings === null) {
+        try {
+          _memTreatmentTimings = JSON.parse(localStorage.getItem("ttm_treatment_timings") || "{}");
+        } catch(e) {
+          _memTreatmentTimings = {};
+        }
+      }
+      return _memTreatmentTimings;
+    }
+
+    let _saveHistoriesDebounce = null;
+    function scheduleSaveStatusHistories() {
+      if (_saveHistoriesDebounce) clearTimeout(_saveHistoriesDebounce);
+      _saveHistoriesDebounce = setTimeout(() => {
+        try {
+          if (_memStatusHistories) {
+            localStorage.setItem("ttm_status_histories", JSON.stringify(_memStatusHistories));
+          }
+        } catch(e) {}
+      }, 300);
+    }
+
+    let _saveTimingsDebounce = null;
+    function scheduleSaveTreatmentTimings() {
+      if (_saveTimingsDebounce) clearTimeout(_saveTimingsDebounce);
+      _saveTimingsDebounce = setTimeout(() => {
+        try {
+          if (_memTreatmentTimings) {
+            localStorage.setItem("ttm_treatment_timings", JSON.stringify(_memTreatmentTimings));
+          }
+        } catch(e) {}
+      }, 300);
+    }
+
     function recordStatusTransition(apt, newStatus, userOrRole = "") {
       if (!apt) return;
       const nowIso = new Date().toISOString();
@@ -6592,12 +6641,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       }
 
       if (!apt.statusHistory || !Array.isArray(apt.statusHistory) || apt.statusHistory.length === 0) {
-        try {
-          const savedHistories = JSON.parse(localStorage.getItem("ttm_status_histories") || "{}");
-          if (savedHistories[apt.id] && Array.isArray(savedHistories[apt.id])) {
-            apt.statusHistory = savedHistories[apt.id];
-          }
-        } catch(e) {}
+        const savedHistories = getMemStatusHistories();
+        if (savedHistories[apt.id] && Array.isArray(savedHistories[apt.id])) {
+          apt.statusHistory = savedHistories[apt.id];
+        }
       }
 
       if (!apt.statusHistory || apt.statusHistory.length === 0) {
@@ -6626,12 +6673,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         by: recordedBy
       });
 
-      // Persist status history map to localStorage
-      try {
-        const savedHistories = JSON.parse(localStorage.getItem("ttm_status_histories") || "{}");
-        savedHistories[apt.id] = apt.statusHistory;
-        localStorage.setItem("ttm_status_histories", JSON.stringify(savedHistories));
-      } catch(e) {}
+      // Persist status history map to in-memory cache and debounce save to storage
+      const savedHistories = getMemStatusHistories();
+      savedHistories[apt.id] = apt.statusHistory;
+      scheduleSaveStatusHistories();
 
       // Recalculate summary timings
       calculateAppointmentTimings(apt);
@@ -6723,12 +6768,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       if (!apt) return [];
 
       if (!apt.statusHistory || !Array.isArray(apt.statusHistory) || apt.statusHistory.length === 0) {
-        try {
-          const savedHistories = JSON.parse(localStorage.getItem("ttm_status_histories") || "{}");
-          if (savedHistories[apt.id] && Array.isArray(savedHistories[apt.id]) && savedHistories[apt.id].length > 0) {
-            apt.statusHistory = savedHistories[apt.id];
-          }
-        } catch(e) {}
+        const savedHistories = getMemStatusHistories();
+        if (savedHistories[apt.id] && Array.isArray(savedHistories[apt.id]) && savedHistories[apt.id].length > 0) {
+          apt.statusHistory = savedHistories[apt.id];
+        }
       }
 
       const history = apt.statusHistory || [];
@@ -6820,12 +6863,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         ];
       }
 
-      // Persist history
-      try {
-        const savedHistories = JSON.parse(localStorage.getItem("ttm_status_histories") || "{}");
-        savedHistories[apt.id] = apt.statusHistory;
-        localStorage.setItem("ttm_status_histories", JSON.stringify(savedHistories));
-      } catch(e) {}
+      // Persist history to in-memory cache
+      const savedHistories = getMemStatusHistories();
+      savedHistories[apt.id] = apt.statusHistory;
+      scheduleSaveStatusHistories();
 
       return apt.statusHistory;
     }
@@ -6925,16 +6966,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         totalEnd
       };
 
-      // Persist timings to localStorage including treatmentStartTime / treatmentEndTime
-      try {
-        const savedTimings = JSON.parse(localStorage.getItem("ttm_treatment_timings") || "{}");
-        savedTimings[apt.id] = {
-          ...apt.timings,
-          treatmentStartTime: apt.treatmentStartTime || null,
-          treatmentEndTime: apt.treatmentEndTime || null
-        };
-        localStorage.setItem("ttm_treatment_timings", JSON.stringify(savedTimings));
-      } catch(e) {}
+      // Persist timings to in-memory cache and debounce save
+      const savedTimings = getMemTreatmentTimings();
+      savedTimings[apt.id] = {
+        ...apt.timings,
+        treatmentStartTime: apt.treatmentStartTime || null,
+        treatmentEndTime: apt.treatmentEndTime || null
+      };
+      scheduleSaveTreatmentTimings();
 
       return apt.timings;
     }
@@ -23871,17 +23910,17 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
       updateNotificationBadgeUI();
 
-      // Continuous Realtime Sync Heartbeat (Every 5 seconds across all devices)
+      // Background Sync Heartbeat (Every 30 seconds as fallback to Realtime WebSockets)
       setInterval(() => {
-        if (supabaseClient && document.visibilityState === 'visible') {
+        if (supabaseClient && document.visibilityState === 'visible' && !isUserInteractingWithDropdown) {
           loadAllDataFromSupabase(true);
         }
-      }, 5000);
+      }, 30000);
 
       // Periodic Auto-refresh for live elapsed timers (every 30s)
       setInterval(() => {
         const deskTab = document.getElementById("view-desk");
-        if (deskTab && !deskTab.classList.contains("hidden")) {
+        if (deskTab && !deskTab.classList.contains("hidden") && !isUserInteractingWithDropdown) {
           renderDeskQueue();
         }
         if (currentTimingModalAptId) {
@@ -23893,16 +23932,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       // Instant Resync when user unlocks phone/iPad or switches back to app tab
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-          console.log("App tab became active, performing instant Cloud sync...");
-          if (supabaseClient) {
-            subscribeToRealtime();
+          if (supabaseClient && !isUserInteractingWithDropdown) {
             loadAllDataFromSupabase(true);
           }
         }
       });
 
       window.addEventListener('focus', () => {
-        if (supabaseClient) {
+        if (supabaseClient && !isUserInteractingWithDropdown) {
           loadAllDataFromSupabase(true);
         }
       });

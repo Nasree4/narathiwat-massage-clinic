@@ -8,6 +8,55 @@
        PATIENT LIFECYCLE & TIME TRACKING ENGINE (⏱️ ระบบจับเวลาและบันทึกสถานะ)
        ========================================================================= */
 
+    let _memStatusHistories = null;
+    let _memTreatmentTimings = null;
+
+    function getMemStatusHistories() {
+      if (_memStatusHistories === null) {
+        try {
+          _memStatusHistories = JSON.parse(localStorage.getItem("ttm_status_histories") || "{}");
+        } catch(e) {
+          _memStatusHistories = {};
+        }
+      }
+      return _memStatusHistories;
+    }
+
+    function getMemTreatmentTimings() {
+      if (_memTreatmentTimings === null) {
+        try {
+          _memTreatmentTimings = JSON.parse(localStorage.getItem("ttm_treatment_timings") || "{}");
+        } catch(e) {
+          _memTreatmentTimings = {};
+        }
+      }
+      return _memTreatmentTimings;
+    }
+
+    let _saveHistoriesDebounce = null;
+    function scheduleSaveStatusHistories() {
+      if (_saveHistoriesDebounce) clearTimeout(_saveHistoriesDebounce);
+      _saveHistoriesDebounce = setTimeout(() => {
+        try {
+          if (_memStatusHistories) {
+            localStorage.setItem("ttm_status_histories", JSON.stringify(_memStatusHistories));
+          }
+        } catch(e) {}
+      }, 300);
+    }
+
+    let _saveTimingsDebounce = null;
+    function scheduleSaveTreatmentTimings() {
+      if (_saveTimingsDebounce) clearTimeout(_saveTimingsDebounce);
+      _saveTimingsDebounce = setTimeout(() => {
+        try {
+          if (_memTreatmentTimings) {
+            localStorage.setItem("ttm_treatment_timings", JSON.stringify(_memTreatmentTimings));
+          }
+        } catch(e) {}
+      }, 300);
+    }
+
     function recordStatusTransition(apt, newStatus, userOrRole = "") {
       if (!apt) return;
       const nowIso = new Date().toISOString();
@@ -31,12 +80,10 @@
       }
 
       if (!apt.statusHistory || !Array.isArray(apt.statusHistory) || apt.statusHistory.length === 0) {
-        try {
-          const savedHistories = JSON.parse(localStorage.getItem("ttm_status_histories") || "{}");
-          if (savedHistories[apt.id] && Array.isArray(savedHistories[apt.id])) {
-            apt.statusHistory = savedHistories[apt.id];
-          }
-        } catch(e) {}
+        const savedHistories = getMemStatusHistories();
+        if (savedHistories[apt.id] && Array.isArray(savedHistories[apt.id])) {
+          apt.statusHistory = savedHistories[apt.id];
+        }
       }
 
       if (!apt.statusHistory || apt.statusHistory.length === 0) {
@@ -65,12 +112,10 @@
         by: recordedBy
       });
 
-      // Persist status history map to localStorage
-      try {
-        const savedHistories = JSON.parse(localStorage.getItem("ttm_status_histories") || "{}");
-        savedHistories[apt.id] = apt.statusHistory;
-        localStorage.setItem("ttm_status_histories", JSON.stringify(savedHistories));
-      } catch(e) {}
+      // Persist status history map to in-memory cache and debounce save to storage
+      const savedHistories = getMemStatusHistories();
+      savedHistories[apt.id] = apt.statusHistory;
+      scheduleSaveStatusHistories();
 
       // Recalculate summary timings
       calculateAppointmentTimings(apt);
@@ -162,12 +207,10 @@
       if (!apt) return [];
 
       if (!apt.statusHistory || !Array.isArray(apt.statusHistory) || apt.statusHistory.length === 0) {
-        try {
-          const savedHistories = JSON.parse(localStorage.getItem("ttm_status_histories") || "{}");
-          if (savedHistories[apt.id] && Array.isArray(savedHistories[apt.id]) && savedHistories[apt.id].length > 0) {
-            apt.statusHistory = savedHistories[apt.id];
-          }
-        } catch(e) {}
+        const savedHistories = getMemStatusHistories();
+        if (savedHistories[apt.id] && Array.isArray(savedHistories[apt.id]) && savedHistories[apt.id].length > 0) {
+          apt.statusHistory = savedHistories[apt.id];
+        }
       }
 
       const history = apt.statusHistory || [];
@@ -259,12 +302,10 @@
         ];
       }
 
-      // Persist history
-      try {
-        const savedHistories = JSON.parse(localStorage.getItem("ttm_status_histories") || "{}");
-        savedHistories[apt.id] = apt.statusHistory;
-        localStorage.setItem("ttm_status_histories", JSON.stringify(savedHistories));
-      } catch(e) {}
+      // Persist history to in-memory cache
+      const savedHistories = getMemStatusHistories();
+      savedHistories[apt.id] = apt.statusHistory;
+      scheduleSaveStatusHistories();
 
       return apt.statusHistory;
     }
@@ -364,16 +405,14 @@
         totalEnd
       };
 
-      // Persist timings to localStorage including treatmentStartTime / treatmentEndTime
-      try {
-        const savedTimings = JSON.parse(localStorage.getItem("ttm_treatment_timings") || "{}");
-        savedTimings[apt.id] = {
-          ...apt.timings,
-          treatmentStartTime: apt.treatmentStartTime || null,
-          treatmentEndTime: apt.treatmentEndTime || null
-        };
-        localStorage.setItem("ttm_treatment_timings", JSON.stringify(savedTimings));
-      } catch(e) {}
+      // Persist timings to in-memory cache and debounce save
+      const savedTimings = getMemTreatmentTimings();
+      savedTimings[apt.id] = {
+        ...apt.timings,
+        treatmentStartTime: apt.treatmentStartTime || null,
+        treatmentEndTime: apt.treatmentEndTime || null
+      };
+      scheduleSaveTreatmentTimings();
 
       return apt.timings;
     }
