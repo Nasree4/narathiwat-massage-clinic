@@ -3,11 +3,11 @@
   "trailingSlash": false,
   "headers": [
     {
-      "source": "/(sw.js|manifest.json)",
+      "source": "/(sw.js|manifest.json|index.html|.*\\.html|$)",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
+          "value": "no-cache, no-store, must-revalidate, max-age=0"
         }
       ]
     },
