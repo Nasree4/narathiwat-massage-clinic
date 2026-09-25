@@ -234,25 +234,29 @@
     // System Version & Force Update Check Handler (Multi-Device Auto-Sync)
     async function checkSystemUpdate(interactive = false) {
       if (interactive) {
-        showToast(`กำลังตรวจสอบและซิงค์การอัปเดตทุกอุปกรณ์... (${APP_VERSION})`, 'info');
+        showToast(`กำลังตรวจสอบและดึงเวอร์ชันล่าสุดจากเซิร์ฟเวอร์...`, 'info');
       }
 
       // Sync DOM version tags
       syncVersionTags();
 
-      // 1. Service Worker Update Check
+      // 1. Force clear old CacheStorage and update Service Worker
+      if ('caches' in window) {
+        try {
+          const keys = await caches.keys();
+          for (const key of keys) {
+            await caches.delete(key);
+          }
+        } catch (e) {}
+      }
+
       if ('serviceWorker' in navigator) {
         try {
-          const reg = await navigator.serviceWorker.getRegistration();
-          if (reg) {
-            await reg.update();
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const reg of regs) {
+            await reg.update().catch(() => {});
             if (reg.waiting) {
               reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-              showToast('พบเวอร์ชันใหม่! กำลังรีโหลดเพื่อใช้งานเวอร์ชันล่าสุด...', 'success');
-              setTimeout(() => {
-                window.location.reload();
-              }, 600);
-              return;
             }
           }
         } catch (e) {
@@ -281,9 +285,11 @@
       }
 
       if (interactive) {
+        showToast(`✅ รีโหลดเพื่อใช้งานเวอร์ชันล่าสุด (${APP_VERSION})...`, 'success');
         setTimeout(() => {
-          showToast(`✅ อัปเดตและซิงค์ข้อมูลล่าสุดเรียบร้อยแล้ว (${APP_VERSION})`, 'success');
-        }, 500);
+          window.location.href = window.location.origin + window.location.pathname + '?reload=' + Date.now();
+        }, 400);
+        return;
       }
     }
   
