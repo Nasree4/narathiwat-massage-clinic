@@ -240,6 +240,7 @@
     }
 
     function openSettingsModal() {
+      if (typeof syncVersionTags === 'function') syncVersionTags();
       initTheme();
       applyLanguage(currentLang);
       renderSettingsAccountCard();

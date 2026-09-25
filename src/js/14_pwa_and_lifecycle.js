@@ -98,6 +98,7 @@
     initServiceWorker();
 
     window.onload = function () {
+      syncVersionTags();
       initTheme();
       applyLanguage(currentLang);
 
@@ -217,13 +218,7 @@
       }
     }
 
-    // System Version & Force Update Check Handler (Multi-Device Auto-Sync)
-    async function checkSystemUpdate(interactive = false) {
-      if (interactive) {
-        showToast(`กำลังตรวจสอบและซิงค์การอัปเดตทุกอุปกรณ์... (${APP_VERSION})`, 'info');
-      }
-
-      // Sync DOM version tags
+    function syncVersionTags() {
       const headerTag = document.getElementById('app-header-version-tag');
       if (headerTag) headerTag.textContent = APP_VERSION;
       const footerTag = document.getElementById('app-footer-version-tag');
@@ -234,6 +229,16 @@
       if (modalFooterTag) modalFooterTag.textContent = APP_VERSION;
       const buildDateTag = document.getElementById('app-settings-build-date');
       if (buildDateTag) buildDateTag.textContent = APP_BUILD_DATE;
+    }
+
+    // System Version & Force Update Check Handler (Multi-Device Auto-Sync)
+    async function checkSystemUpdate(interactive = false) {
+      if (interactive) {
+        showToast(`กำลังตรวจสอบและซิงค์การอัปเดตทุกอุปกรณ์... (${APP_VERSION})`, 'info');
+      }
+
+      // Sync DOM version tags
+      syncVersionTags();
 
       // 1. Service Worker Update Check
       if ('serviceWorker' in navigator) {
