@@ -13,17 +13,20 @@
       const nowIso = new Date().toISOString();
       const recordedBy = userOrRole || (currentUser ? `${currentUser.name} (${getRoleBadgeLabel(currentUser.role)})` : "เจ้าหน้าที่");
 
-      // If entering massage treatment (🟣 ห้อง X), record exact treatment start time
+      // If entering massage treatment (🟣 ห้อง X), record exact treatment start time (real action timestamp)
       if (newStatus && (newStatus.startsWith("🟣") || (newStatus.startsWith("ห้อง") && !newStatus.startsWith("🔵")))) {
-        if (!apt.treatmentStartTime) {
+        apt.treatmentEndTime = null;
+        if (!apt.treatmentStartTime || (apt.status && !apt.status.startsWith("🟣"))) {
           apt.treatmentStartTime = nowIso;
         }
       }
 
-      // If ending massage treatment (🟢 กลับบ้าน, 🔴 ส่งต่อ), record exact treatment end time
+      // If ending massage treatment (🟢 กลับบ้าน, 🔴 ส่งต่อ), record exact treatment end time (real action timestamp)
       if (newStatus && (newStatus.includes("กลับบ้าน") || newStatus.includes("ส่งต่อ"))) {
-        if (!apt.treatmentEndTime) {
-          apt.treatmentEndTime = nowIso;
+        apt.treatmentEndTime = nowIso;
+        if (!apt.treatmentStartTime) {
+          const mEntry = (apt.statusHistory || []).find(h => (h.status || "").startsWith("🟣") || ((h.status || "").includes("ห้อง") && !(h.status || "").startsWith("🔵")));
+          if (mEntry) apt.treatmentStartTime = mEntry.timestamp;
         }
       }
 
@@ -412,8 +415,8 @@
       if (isDone) {
         const total = apt.timings ? apt.timings.totalStayMin : 0;
         return `
-          <button type="button" onclick="event.stopPropagation(); openPatientTimingModal('${apt.id}')" class="${baseBtnClass} bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-200 dark:hover:bg-emerald-900" title="คลิกเพื่อดูสรุปเวลาการรักษา (รวม ${formatElapsedDuration(total)})">
-            <i data-lucide="check-circle" class="${customClass ? 'w-3.5 h-3.5' : 'w-3 h-3'} text-emerald-600 dark:text-emerald-400"></i>
+          <button type="button" onclick="event.stopPropagation(); openPatientTimingModal('${apt.id}')" class="${baseBtnClass} bg-emerald-100 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100 border-emerald-400 dark:border-emerald-700 hover:bg-emerald-200 dark:hover:bg-emerald-900 font-black" title="คลิกเพื่อดูสรุปเวลาการรักษา (รวม ${formatElapsedDuration(total)})">
+            <i data-lucide="check-circle" class="${customClass ? 'w-3.5 h-3.5' : 'w-3 h-3'} text-emerald-700 dark:text-emerald-400"></i>
             <span>⏱️ ดูเวลา (${total} นาที)</span>
           </button>
         `;
@@ -434,32 +437,32 @@
 
       if (isWaiting) {
         if (elapsedMin < 20) {
-          badgeClass = "bg-amber-50 text-amber-900 dark:bg-amber-950/80 dark:text-amber-200 border-amber-300 dark:border-amber-700 hover:bg-amber-100";
+          badgeClass = "bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-100 border-amber-400 dark:border-amber-700 hover:bg-amber-200 font-extrabold";
         } else if (elapsedMin < 40) {
-          badgeClass = "bg-amber-100 text-amber-950 dark:bg-amber-900/90 dark:text-amber-100 border-amber-400 dark:border-amber-600 hover:bg-amber-200 font-bold";
+          badgeClass = "bg-amber-200 text-amber-950 dark:bg-amber-900 dark:text-amber-100 border-amber-500 dark:border-amber-600 hover:bg-amber-300 font-black";
         } else {
-          badgeClass = "bg-rose-100 text-rose-950 dark:bg-rose-950 dark:text-rose-200 border-rose-400 dark:border-rose-700 hover:bg-rose-200 font-black animate-pulse";
+          badgeClass = "bg-rose-100 text-rose-950 dark:bg-rose-950 dark:text-rose-100 border-rose-400 dark:border-rose-700 hover:bg-rose-200 font-black animate-pulse";
         }
         label = `⏱️ ดูเวลา (รอตรวจ ${elapsedMin} น.)`;
         icon = "timer";
-        iconColor = "text-amber-600 dark:text-amber-400";
+        iconColor = "text-amber-700 dark:text-amber-300";
       } else if (isWaitingRoom) {
-        badgeClass = "bg-blue-50 text-blue-900 dark:bg-blue-950/80 dark:text-blue-200 border-blue-300 dark:border-blue-700 hover:bg-blue-100 font-bold";
+        badgeClass = "bg-blue-100 text-blue-950 dark:bg-blue-950 dark:text-blue-100 border-blue-400 dark:border-blue-700 hover:bg-blue-200 font-black";
         const rm = status.replace("🔵 ", "").trim();
         label = `⏱️ ดูเวลา (รอ${rm} ${elapsedMin} น.)`;
         icon = "clock";
-        iconColor = "text-blue-600 dark:text-blue-400";
+        iconColor = "text-blue-700 dark:text-blue-300";
       } else if (isWaitingMassage) {
-        badgeClass = "bg-sky-50 text-sky-900 dark:bg-sky-950/80 dark:text-sky-200 border-sky-300 dark:border-sky-700 hover:bg-sky-100 font-semibold";
+        badgeClass = "bg-sky-100 text-sky-950 dark:bg-sky-950 dark:text-sky-100 border-sky-400 dark:border-sky-700 hover:bg-sky-200 font-black";
         label = `⏱️ ดูเวลา (รอนวด ${elapsedMin} น.)`;
         icon = "sparkles";
-        iconColor = "text-sky-600 dark:text-sky-400";
+        iconColor = "text-sky-700 dark:text-sky-300";
       } else if (isMassaging) {
-        badgeClass = "bg-purple-100 text-purple-950 dark:bg-purple-950 dark:text-purple-200 border-purple-300 dark:border-purple-700 hover:bg-purple-200 font-extrabold";
+        badgeClass = "bg-purple-100 text-purple-950 dark:bg-purple-950 dark:text-purple-100 border-purple-400 dark:border-purple-600 hover:bg-purple-200 font-black";
         const rm = status.replace("🟣 ", "").trim();
         label = `⏱️ ดูเวลา (นวด${rm} ${elapsedMin} น.)`;
         icon = "activity";
-        iconColor = "text-purple-600 dark:text-purple-400";
+        iconColor = "text-purple-700 dark:text-purple-300";
       }
 
       return `
@@ -486,24 +489,24 @@
       const sM = String(startD.getMinutes()).padStart(2, '0');
       const startTimeStr = `${sH}.${sM} น.`;
 
-      const isDone = doneEntry || (apt.status || "").includes("กลับบ้าน") || (apt.status || "").includes("ส่งต่อ");
+      const isDone = (apt.status || "").includes("กลับบ้าน") || (apt.status || "").includes("ส่งต่อ") || Boolean(doneEntry);
       const endIso = apt.treatmentEndTime || (doneEntry ? doneEntry.timestamp : null);
 
       if (isDone) {
         let endD = endIso ? new Date(endIso) : null;
         if (!endD || isNaN(endD.getTime())) {
-          endD = new Date(startD.getTime() + 60 * 60000);
+          endD = new Date();
         }
         const eH = String(endD.getHours()).padStart(2, '0');
         const eM = String(endD.getMinutes()).padStart(2, '0');
         const endTimeStr = `${eH}.${eM} น.`;
         return `
-          <span class="inline-flex items-center gap-0.5 text-[9.5px] font-bold text-sky-800 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/70 px-1.5 py-0.5 rounded border border-sky-200 dark:border-sky-800 shadow-2xs whitespace-nowrap" title="เวลาเริ่มนวด (เวลาจริงที่กดปุ่ม)">
-            <i data-lucide="play" class="w-2.5 h-2.5 text-sky-600 dark:text-sky-400"></i>
+          <span class="inline-flex items-center gap-1 text-[11px] font-black text-sky-950 dark:text-sky-100 bg-sky-100 dark:bg-sky-950 px-2 py-0.5 rounded-md border border-sky-400 dark:border-sky-600 shadow-2xs whitespace-nowrap" title="เวลาเริ่มนวด (เวลาจริงที่กดปุ่ม)">
+            <i data-lucide="play" class="w-3 h-3 text-sky-700 dark:text-sky-300 shrink-0"></i>
             <span>เริ่ม ${startTimeStr}</span>
           </span>
-          <span class="inline-flex items-center gap-0.5 text-[9.5px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 shadow-2xs whitespace-nowrap" title="เวลาสิ้นสุดนวด">
-            <i data-lucide="check" class="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400"></i>
+          <span class="inline-flex items-center gap-1 text-[11px] font-black text-emerald-950 dark:text-emerald-100 bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded-md border border-emerald-500 dark:border-emerald-600 shadow-2xs whitespace-nowrap" title="เวลาสิ้นสุดนวด (เวลาจริงที่กดปุ่มเสร็จสิ้น)">
+            <i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-700 dark:text-emerald-300 shrink-0"></i>
             <span>สิ้นสุด ${endTimeStr}</span>
           </span>
         `;
@@ -514,12 +517,12 @@
         const expM = String(expD.getMinutes()).padStart(2, '0');
         const expEndTimeStr = `${expH}.${expM} น.`;
         return `
-          <span class="inline-flex items-center gap-0.5 text-[9.5px] font-bold text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/70 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800 shadow-2xs whitespace-nowrap" title="เวลาเริ่มนวด (เวลาจริงที่กดปุ่ม)">
-            <i data-lucide="play" class="w-2.5 h-2.5 text-purple-600 dark:text-purple-400"></i>
+          <span class="inline-flex items-center gap-1 text-[11px] font-black text-purple-950 dark:text-purple-100 bg-purple-100 dark:bg-purple-950 px-2 py-0.5 rounded-md border border-purple-400 dark:border-purple-600 shadow-2xs whitespace-nowrap" title="เวลาเริ่มนวด (เวลาจริงที่กดปุ่ม)">
+            <i data-lucide="play" class="w-3 h-3 text-purple-700 dark:text-purple-300 shrink-0"></i>
             <span>เริ่ม ${startTimeStr}</span>
           </span>
-          <span class="inline-flex items-center gap-0.5 text-[9.5px] font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/70 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800 shadow-2xs whitespace-nowrap" title="คาดว่าจะสิ้นสุดการนวด">
-            <i data-lucide="clock" class="w-2.5 h-2.5 text-amber-600 dark:text-amber-400"></i>
+          <span class="inline-flex items-center gap-1 text-[11px] font-black text-amber-950 dark:text-amber-100 bg-amber-100 dark:bg-amber-950 px-2 py-0.5 rounded-md border border-amber-400 dark:border-amber-600 shadow-2xs whitespace-nowrap" title="คาดว่าจะสิ้นสุดการนวด">
+            <i data-lucide="clock" class="w-3 h-3 text-amber-700 dark:text-amber-300 shrink-0"></i>
             <span>สิ้นสุด ~${expEndTimeStr}</span>
           </span>
         `;

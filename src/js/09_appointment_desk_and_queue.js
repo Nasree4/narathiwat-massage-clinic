@@ -1780,18 +1780,17 @@
         finalStatus = "🔵 " + targetRoom;
       }
 
-      // If moving to massage treatment (🟣 ห้อง X), record treatment start time if not already set
+      // If moving to massage treatment (🟣 ห้อง X), record exact treatment start time
       if (finalStatus.startsWith("🟣") || (finalStatus.startsWith("ห้อง") && !finalStatus.startsWith("🔵"))) {
-        if (!apt.treatmentStartTime) {
+        apt.treatmentEndTime = null;
+        if (!apt.treatmentStartTime || (oldStatus && !oldStatus.startsWith("🟣"))) {
           apt.treatmentStartTime = new Date().toISOString();
         }
       }
 
-      // If moving to finish/transfer, record treatment end time if not already set
+      // If moving to finish/transfer, record exact treatment end time
       if (finalStatus === "🟢 กลับบ้าน" || finalStatus === "🔴 ส่งต่อ") {
-        if (!apt.treatmentEndTime) {
-          apt.treatmentEndTime = new Date().toISOString();
-        }
+        apt.treatmentEndTime = new Date().toISOString();
       }
 
       // 1. Lock this ID in-flight to prevent background sync from reverting
@@ -1949,6 +1948,7 @@
       const apt = appointments.find(a => a.id === appointmentId);
       if (!apt) return;
 
+      apt.treatmentEndTime = new Date().toISOString();
       await handleStatusChange(appointmentId, "🟢 กลับบ้าน");
       showToast(`✅ สิ้นสุดการนวด: คุณ ${apt.patientName} เรียบร้อย (บันทึกเวลาและคืนเตียงสำเร็จ)`, "success");
     }
