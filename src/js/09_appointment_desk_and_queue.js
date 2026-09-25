@@ -191,15 +191,24 @@
         <option disabled>──────────────</option>
       `;
 
-      const activeAssts = (assistants || []).filter(a => a.active !== false && a.shiftType !== 'off');
+      const activeAssts = (assistants || []).filter(a => a.active !== false);
       activeAssts.forEach(a => {
-        const onDuty = timeSlot ? isAssistantOnDutyForSlot(a, timeSlot, dateVal) : true;
+        const dutyStatus = (typeof getAssistantDutyStatusForDate === "function")
+          ? getAssistantDutyStatusForDate(a, dateVal)
+          : { isOff: a.shiftType === 'off' };
+        const isOff = dutyStatus.isOff;
+        const onDuty = !isOff && (timeSlot ? isAssistantOnDutyForSlot(a, timeSlot, dateVal) : true);
+
+        let occupiedPatient = "";
         const isOccupied = appointments.some(otherApt => {
           if (otherApt.id === aptId) return false;
           if (otherApt.bookDate === dateVal && otherApt.assistantId === a.id) {
             if (otherApt.status === "🔴 ส่งต่อ" || otherApt.status === "ยกเลิก") return false;
             const otherSlots = (otherApt.slotsOccupied && otherApt.slotsOccupied.length > 0) ? otherApt.slotsOccupied : [otherApt.timeSlot];
-            return otherSlots.includes(timeSlot);
+            if (otherSlots.includes(timeSlot)) {
+              occupiedPatient = otherApt.patientName || "ผู้รับบริการ";
+              return true;
+            }
           }
           return false;
         });
@@ -208,12 +217,14 @@
         const nick = a.nickname || a.name;
         const isSel = selectedId === a.id;
 
-        if (onDuty && !isOccupied) {
-          opts += `<option value="${a.id}" ${isSel ? 'selected' : ''}>${icon} ${escapeHtml(nick)} (ว่าง)</option>`;
+        if (isOff) {
+          opts += `<option value="${a.id}" ${isSel ? 'selected' : ''} class="text-slate-400 bg-slate-100 dark:bg-slate-800">${icon} ${escapeHtml(nick)} (ลาเวร/พัก)</option>`;
         } else if (!onDuty) {
           opts += `<option value="${a.id}" ${isSel ? 'selected' : ''} class="text-slate-400 bg-slate-100 dark:bg-slate-800">${icon} ${escapeHtml(nick)} (ไม่อยู่เวร)</option>`;
+        } else if (isOccupied) {
+          opts += `<option value="${a.id}" ${isSel ? 'selected' : ''} class="text-amber-800 bg-amber-50 dark:bg-amber-950/60 dark:text-amber-300 font-bold">${icon} ${escapeHtml(nick)} (ติดนัด: คุณ ${escapeHtml(occupiedPatient)})</option>`;
         } else {
-          opts += `<option value="${a.id}" ${isSel ? 'selected' : ''} class="text-slate-400 bg-slate-100 dark:bg-slate-800">${icon} ${escapeHtml(nick)} (ติดนัด)</option>`;
+          opts += `<option value="${a.id}" ${isSel ? 'selected' : ''}>${icon} ${escapeHtml(nick)} (ว่าง)</option>`;
         }
       });
 
@@ -263,6 +274,25 @@
       const newSlotsOccupied = [newSlot];
       if (requiresTwoSlots && currentIndex !== -1 && currentIndex + 1 < slotsList.length) {
         newSlotsOccupied.push(slotsList[currentIndex + 1]);
+      }
+
+      // Universal Assistant Booking Conflict Check (v5.4.2)
+      const conflict = (typeof checkAssistantBookingConflict === "function") ? checkAssistantBookingConflict({
+        assistantId: newAsstId,
+        bookDate: newDate,
+        timeSlot: newSlot,
+        slotsOccupied: newSlotsOccupied,
+        excludeAppointmentId: aptId,
+        requiresTwoSlots: requiresTwoSlots,
+        patientName: apt.patientName
+      }) : { hasConflict: false };
+
+      if (conflict && conflict.hasConflict) {
+        if (typeof showAssistantConflictModal === "function") {
+          showAssistantConflictModal(conflict, newSlot, newDate);
+        }
+        showToast(`❌ ไม่สามารถย้ายรอบเวลาได้: ${conflict.title}`, "error");
+        return;
       }
 
       let newAsstNick = "ไม่ระบุ";
@@ -1503,6 +1533,29 @@
       const apt = appointments.find(a => a.id === appointmentId);
       if (!apt) return;
 
+      const aptSlots = (apt.slotsOccupied && apt.slotsOccupied.length > 0) ? apt.slotsOccupied : [apt.timeSlot];
+      const requiresTwoSlots = aptSlots.length > 1;
+
+      // Universal Conflict Validation (v5.4.2)
+      const conflict = (typeof checkAssistantBookingConflict === "function") ? checkAssistantBookingConflict({
+        assistantId: newAssistantId,
+        bookDate: apt.bookDate,
+        timeSlot: apt.timeSlot,
+        slotsOccupied: aptSlots,
+        excludeAppointmentId: apt.id,
+        requiresTwoSlots: requiresTwoSlots,
+        patientName: apt.patientName
+      }) : { hasConflict: false };
+
+      if (conflict && conflict.hasConflict) {
+        if (typeof showAssistantConflictModal === "function") {
+          showAssistantConflictModal(conflict, apt.timeSlot, apt.bookDate);
+        }
+        showToast(`❌ ไม่สามารถเลือกผู้ช่วยฯ ท่านนี้ได้: ${conflict.title}`, "error");
+        renderDeskQueue(true); // Revert dropdown in UI
+        return;
+      }
+
       let newNick = "ไม่ระบุ";
       if (newAssistantId === "female") {
         newNick = "ไม่ระบุ (ขอผู้หญิง)";
@@ -1513,30 +1566,6 @@
       } else {
         const targetAsst = assistants.find(a => a.id === newAssistantId);
         newNick = targetAsst ? (targetAsst.nickname || targetAsst.name) : newAssistantId;
-
-        // Check if assistant is on duty in this slot
-        if (targetAsst && apt.bookDate && apt.timeSlot) {
-          const onDuty = isAssistantOnDutyForSlot(targetAsst, apt.timeSlot, apt.bookDate);
-          if (!onDuty) {
-            showToast(`⚠️ แจ้งเตือน: ${newNick} ไม่อยู่เวรในรอบ ${formatTimeLabel(apt.timeSlot)} วันที่ ${formatThaiDateShort(apt.bookDate)}`, "warning");
-          }
-        }
-
-        // Check if this assistant already has another active appointment in this time slot
-        const aptSlots = apt.slotsOccupied || [apt.timeSlot];
-        const hasCollision = appointments.some(other => {
-          if (other.id === apt.id || other.bookDate !== apt.bookDate) return false;
-          if (other.status === "🔴 ส่งต่อ" || other.status === "ยกเลิก") return false;
-          if (other.assistantId === newAssistantId) {
-            const otherSlots = other.slotsOccupied || [other.timeSlot];
-            return otherSlots.some(s => aptSlots.includes(s));
-          }
-          return false;
-        });
-
-        if (hasCollision) {
-          showToast(`⚠️ แจ้งเตือน: ผู้ช่วยฯ ${newNick} มีคิวนัดหมายอื่นในรอบนี้อยู่แล้ว (ซ้ำซ้อน)`, "warning");
-        }
       }
 
       const oldNick = apt.assistantNick;
@@ -2171,6 +2200,7 @@
       }
 
       renderNextAptSlots(dateVal);
+      populateNextAptAssistantDropdown(dateVal, "");
     }
 
     function renderNextAptSlots(dateVal) {
@@ -2257,6 +2287,7 @@
 
       // Re-render slots to highlight selected
       renderNextAptSlots(nextAptCurrentData.bookDate);
+      populateNextAptAssistantDropdown(nextAptCurrentData.bookDate, slot);
     }
 
     function renderNextAptMainServices() {
@@ -2330,16 +2361,20 @@
       });
     }
 
-    function populateNextAptAssistantDropdown() {
+    function populateNextAptAssistantDropdown(targetDate, targetSlot) {
       const sel = document.getElementById("next-apt-assistant-select");
       if (!sel) return;
+
+      const dateVal = targetDate || (nextAptCurrentData && nextAptCurrentData.bookDate) || todayStr;
+      const slotVal = targetSlot || (nextAptCurrentData && nextAptCurrentData.selectedSlot) || "";
+      const currentSelectedVal = sel.value;
+
       sel.innerHTML = "";
 
       // 1. Quick preferences (Default is Female preference)
       const optFemale = document.createElement("option");
       optFemale.value = JSON.stringify({ id: "female", nick: "ขอผู้หญิง" });
       optFemale.textContent = "👩 ขอผู้ช่วยผู้หญิง (ค่าเริ่มต้น)";
-      optFemale.selected = true;
       sel.appendChild(optFemale);
 
       const optMale = document.createElement("option");
@@ -2353,12 +2388,54 @@
         const optGroup = document.createElement("optgroup");
         optGroup.label = "--- รายชื่อผู้ช่วยแพทย์แผนไทย ---";
         activeStaff.forEach(asst => {
+          const dutyStatus = (typeof getAssistantDutyStatusForDate === "function")
+            ? getAssistantDutyStatusForDate(asst, dateVal)
+            : { isOff: asst.shiftType === 'off' };
+          const isOff = dutyStatus.isOff;
+          const onDuty = !isOff && (slotVal ? isAssistantOnDutyForSlot(asst, slotVal, dateVal) : true);
+
+          let occupiedPatient = "";
+          const isOccupied = slotVal ? (appointments || []).some(otherApt => {
+            if (otherApt.bookDate === dateVal && otherApt.assistantId === asst.id) {
+              if (otherApt.status === "🔴 ส่งต่อ" || otherApt.status === "ยกเลิก") return false;
+              const otherSlots = (otherApt.slotsOccupied && otherApt.slotsOccupied.length > 0) ? otherApt.slotsOccupied : [otherApt.timeSlot];
+              if (otherSlots.includes(slotVal)) {
+                occupiedPatient = otherApt.patientName || "ผู้รับบริการ";
+                return true;
+              }
+            }
+            return false;
+          }) : false;
+
+          let statusTag = "ว่าง";
+          let isBlocked = false;
+          if (isOff) {
+            statusTag = "ลาเวร/พัก";
+            isBlocked = true;
+          } else if (!onDuty) {
+            statusTag = "ไม่อยู่เวร";
+            isBlocked = true;
+          } else if (isOccupied) {
+            statusTag = `ติดนัด: ${occupiedPatient}`;
+            isBlocked = true;
+          }
+
           const opt = document.createElement("option");
-          opt.value = JSON.stringify({ id: asst.id, nick: asst.nickname });
-          opt.textContent = `${asst.gender === "ชาย" ? '👨' : '👩'} คุณ ${asst.nickname} (${asst.gender || 'หญิง'})`;
+          opt.value = JSON.stringify({ id: asst.id, nick: asst.nickname || asst.name });
+          opt.textContent = `${asst.gender === "ชาย" ? '👨' : '👩'} คุณ ${asst.nickname || asst.name} (${statusTag})`;
+          if (isBlocked) {
+            opt.className = "text-slate-400 bg-slate-100 dark:bg-slate-800";
+          }
           optGroup.appendChild(opt);
         });
         sel.appendChild(optGroup);
+      }
+
+      if (currentSelectedVal) {
+        sel.value = currentSelectedVal;
+      }
+      if (!sel.value) {
+        sel.value = JSON.stringify({ id: "female", nick: "ขอผู้หญิง" });
       }
     }
 
@@ -2417,6 +2494,24 @@
       const slotsOccupied = [timeSlot];
       if (requiresTwoSlots && currentIndex !== -1 && currentIndex + 1 < slotsList.length) {
         slotsOccupied.push(slotsList[currentIndex + 1]);
+      }
+
+      // Universal Conflict Check (v5.4.2)
+      const conflict = (typeof checkAssistantBookingConflict === "function") ? checkAssistantBookingConflict({
+        assistantId: asstId,
+        bookDate: bookDate,
+        timeSlot: timeSlot,
+        slotsOccupied: slotsOccupied,
+        requiresTwoSlots: requiresTwoSlots,
+        patientName: nextAptCurrentData.patientName
+      }) : { hasConflict: false };
+
+      if (conflict && conflict.hasConflict) {
+        if (typeof showAssistantConflictModal === "function") {
+          showAssistantConflictModal(conflict, timeSlot, bookDate);
+        }
+        showToast(`❌ ไม่สามารถนัดหมายรอบถัดไปได้: ${conflict.title}`, "error");
+        return;
       }
 
       const btnSubmit = document.getElementById("btn-submit-next-appointment");
@@ -2710,9 +2805,30 @@
       const slotsOccupied = [apt.timeSlot];
       if (requiresTwoSlots) {
         const nextSlot = getNextSlot(apt.timeSlot, slotsList);
-        if (nextSlot) {
-          slotsOccupied.push(nextSlot);
+        if (!nextSlot) {
+          showToast("รอบเวลานี้เป็นรอบสุดท้ายของวัน ไม่สามารถเลือกหัตถการที่ใช้เวลา 2 รอบเวลาได้", "error");
+          return;
         }
+        slotsOccupied.push(nextSlot);
+      }
+
+      // Universal Conflict Check (v5.4.2)
+      const conflict = (typeof checkAssistantBookingConflict === "function") ? checkAssistantBookingConflict({
+        assistantId: apt.assistantId,
+        bookDate: apt.bookDate,
+        timeSlot: apt.timeSlot,
+        slotsOccupied: slotsOccupied,
+        excludeAppointmentId: apt.id,
+        requiresTwoSlots: requiresTwoSlots,
+        patientName: apt.patientName
+      }) : { hasConflict: false };
+
+      if (conflict && conflict.hasConflict) {
+        if (typeof showAssistantConflictModal === "function") {
+          showAssistantConflictModal(conflict, apt.timeSlot, apt.bookDate);
+        }
+        showToast(`❌ ไม่สามารถเปลี่ยนเป็น 2 ชม. ได้: ${conflict.title}`, "error");
+        return;
       }
 
       const newScheme = getMedicalSchemeFromUi("services");

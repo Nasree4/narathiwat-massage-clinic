@@ -7,8 +7,8 @@
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.4.1";
-    const APP_BUILD_DATE = "23 กันยายน 2569";
+    const APP_VERSION = "v5.4.2";
+    const APP_BUILD_DATE = "25 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
     const IN_HOURS_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];

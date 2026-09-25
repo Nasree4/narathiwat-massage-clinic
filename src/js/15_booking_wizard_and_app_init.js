@@ -1119,72 +1119,30 @@
         return svc && svc.twoSlots;
       });
 
-      if (assignedAssistantId === "female") {
-        const genderAvail = getGenderAvailability(bookDate, timeSlot, requiresTwoSlots);
-        if (!genderAvail.femaleAvailable) {
-          const msg = `รอบเวลา ${formatCleanTime(timeSlot)} ผู้ช่วยแพทย์หญิงคิวเต็มแล้ว`;
-          openSlotFullAlertModal(timeSlot, msg, `ผู้ช่วยแพทย์หญิงที่เช็คชื่อเข้างานในรอบเวลา ${formatCleanTime(timeSlot)} ติดนัดหมายเต็มแล้ว กรุณาเลือกรอบอื่นหรือเลือกผู้ช่วยแพทย์ชาย`);
-          showToast(msg, "error");
-          goToWizardStep(2);
-          return;
-        }
-      } else if (assignedAssistantId === "male") {
-        const genderAvail = getGenderAvailability(bookDate, timeSlot, requiresTwoSlots);
-        if (!genderAvail.maleAvailable) {
-          const msg = `รอบเวลา ${formatCleanTime(timeSlot)} ผู้ช่วยแพทย์ชายคิวเต็มแล้ว`;
-          openSlotFullAlertModal(timeSlot, msg, `ผู้ช่วยแพทย์ชายที่เช็คชื่อเข้างานในรอบเวลา ${formatCleanTime(timeSlot)} ติดนัดหมายเต็มแล้ว กรุณาเลือกรอบอื่นหรือเลือกผู้ช่วยแพทย์หญิง`);
-          showToast(msg, "error");
-          goToWizardStep(2);
-          return;
-        }
-      } else if (assignedAssistantId && assignedAssistantId !== "auto") {
-        const asst = (assistants || []).find(a => a.id === assignedAssistantId);
-        const asstNick = asst ? (asst.nickname || asst.name) : 'ผู้ช่วยแพทย์';
-        const worksOnDuty = isAssistantOnDutyForSlot(asst, timeSlot, bookDate);
-        if (!worksOnDuty) {
-          const msg = `ผู้ช่วยฯ ${asstNick} ไม่อยู่เวรในรอบ ${formatCleanTime(timeSlot)}`;
-          openSlotFullAlertModal(timeSlot, msg, `ผู้ช่วยแพทย์ ${asstNick} ไม่ได้ลงตารางเวรปฏิบัติงานในรอบเวลานี้ กรุณาเลือกรอบเวลาอื่น`);
-          showToast(msg, "error");
-          goToWizardStep(2);
-          return;
-        }
+      const slotsList = getSlotsForDate(bookDate);
+      const currentIndex = slotsList.indexOf(timeSlot);
+      const slotsOccupied = [timeSlot];
+      if (requiresTwoSlots && currentIndex !== -1 && currentIndex + 1 < slotsList.length) {
+        slotsOccupied.push(slotsList[currentIndex + 1]);
+      }
 
-        const genderAvail = getGenderAvailability(bookDate, timeSlot, requiresTwoSlots);
-        const isMale = asst ? (typeof isMaleAssistant === "function" ? isMaleAssistant(asst) : (asst.gender === 'male')) : false;
-        const isGenderFull = asst && ((isMale ? genderAvail.maleFreeCount : genderAvail.femaleFreeCount) <= 0);
-        if (isGenderFull) {
-          const msg = `รอบเวลา ${formatCleanTime(timeSlot)} คิวผู้ช่วยแพทย์${isMale ? 'ชาย' : 'หญิง'}เต็มแล้ว`;
-          openSlotFullAlertModal(timeSlot, msg, `ผู้ช่วยแพทย์${isMale ? 'ชาย' : 'หญิง'}ที่เช็คชื่อเข้างานในรอบเวลา ${formatCleanTime(timeSlot)} ติดนัดหมายเต็มแล้ว กรุณาเลือกรอบอื่น`);
-          showToast(msg, "error");
-          goToWizardStep(2);
-          return;
-        }
+      // Universal Conflict Validation (v5.4.2)
+      const conflict = (typeof checkAssistantBookingConflict === "function") ? checkAssistantBookingConflict({
+        assistantId: assignedAssistantId,
+        bookDate: bookDate,
+        timeSlot: timeSlot,
+        slotsOccupied: slotsOccupied,
+        requiresTwoSlots: requiresTwoSlots,
+        patientName: patientName
+      }) : { hasConflict: false };
 
-        const hasCollision = appointments.some(apt => {
-          if (apt.bookDate === bookDate && apt.assistantId === assignedAssistantId) {
-            if (apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
-            const aptSlots = (apt.slotsOccupied && apt.slotsOccupied.length > 0) ? apt.slotsOccupied : [apt.timeSlot];
-            return aptSlots.includes(timeSlot);
-          }
-          return false;
-        });
-
-        if (hasCollision) {
-          const msg = `ผู้ช่วยฯ ${asstNick} ติดนัดหมายในรอบ ${formatCleanTime(timeSlot)} แล้ว`;
-          openSlotFullAlertModal(timeSlot, msg, `ผู้ช่วยแพทย์ ${asstNick} มีคิวนัดหมายกับผู้รับบริการท่านอื่นแล้วในรอบเวลานี้ กรุณาเลือกรอบเวลาอื่น`);
-          showToast(msg, "error");
-          goToWizardStep(2);
-          return;
+      if (conflict && conflict.hasConflict) {
+        if (typeof showAssistantConflictModal === "function") {
+          showAssistantConflictModal(conflict, timeSlot, bookDate);
         }
-      } else if (assignedAssistantId === "auto" || !assignedAssistantId) {
-        const genderAvail = getGenderAvailability(bookDate, timeSlot, requiresTwoSlots);
-        if (genderAvail.femaleFreeCount === 0 && genderAvail.maleFreeCount === 0) {
-          const msg = `รอบเวลา ${formatCleanTime(timeSlot)} คิวเต็มแล้ว`;
-          openSlotFullAlertModal(timeSlot, msg, `ผู้ช่วยแพทย์ทุกท่านที่เช็คชื่อเข้างานในรอบเวลา ${formatCleanTime(timeSlot)} ติดนัดหมายเต็มแล้ว กรุณาเลือกรอบเวลาอื่น`);
-          showToast(msg, "error");
-          goToWizardStep(2);
-          return;
-        }
+        showToast(`❌ ไม่สามารถจองคิวได้: ${conflict.title}`, "error");
+        goToWizardStep(2);
+        return;
       }
 
       const citizenOrHn = document.getElementById("wizard-citizenOrHn")?.value.trim() || "-";

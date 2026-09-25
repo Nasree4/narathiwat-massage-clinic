@@ -58,7 +58,7 @@
       return !isMaleAssistant(asst);
     }
 
-    function getGenderAvailability(dateStr, timeSlot, checkTwoSlots = false) {
+    function getGenderAvailability(dateStr, timeSlot, checkTwoSlots = false, excludeAppointmentId = null) {
       const activeStaff = (assistants || []).filter(a => a.active !== false);
       const activeFemales = activeStaff.filter(isFemaleAssistant);
       const activeMales = activeStaff.filter(isMaleAssistant);
@@ -104,12 +104,13 @@
       }
 
       // 1. Individual free staff on duty for this slot (checked-in / scheduled & not busy with specific bookings)
-      const availableStaff = getAvailableAssistantsForSlot(dateStr, timeSlot, checkTwoSlots);
+      const availableStaff = getAvailableAssistantsForSlot(dateStr, timeSlot, checkTwoSlots, excludeAppointmentId);
       const freeFemales = availableStaff.filter(isFemaleAssistant);
       const freeMales = availableStaff.filter(isMaleAssistant);
 
       // 2. Count unassigned gender request bookings in this slot
       const unassignedFemaleBookings = (appointments || []).filter(apt => {
+        if (excludeAppointmentId && apt.id === excludeAppointmentId) return false;
         if (apt.bookDate !== dateStr || apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
         const aptSlots = (apt.slotsOccupied && apt.slotsOccupied.length > 0) ? apt.slotsOccupied : [apt.timeSlot];
         const overlaps = aptSlots.some(s => requiredSlots.includes(s));
@@ -118,6 +119,7 @@
       }).length;
 
       const unassignedMaleBookings = (appointments || []).filter(apt => {
+        if (excludeAppointmentId && apt.id === excludeAppointmentId) return false;
         if (apt.bookDate !== dateStr || apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
         const aptSlots = (apt.slotsOccupied && apt.slotsOccupied.length > 0) ? apt.slotsOccupied : [apt.timeSlot];
         const overlaps = aptSlots.some(s => requiredSlots.includes(s));
@@ -127,6 +129,7 @@
 
       // 3. Count unassigned general / auto bookings in this slot (จัดสรรตามเหมาะสม)
       const unassignedAutoBookings = (appointments || []).filter(apt => {
+        if (excludeAppointmentId && apt.id === excludeAppointmentId) return false;
         if (apt.bookDate !== dateStr || apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
         const aptSlots = (apt.slotsOccupied && apt.slotsOccupied.length > 0) ? apt.slotsOccupied : [apt.timeSlot];
         const overlaps = aptSlots.some(s => requiredSlots.includes(s));
@@ -149,6 +152,7 @@
 
       if (slotConf && typeof slotConf.max === "number" && slotConf.max > 0) {
         const totalAppointmentsInSlot = (appointments || []).filter(apt => {
+          if (excludeAppointmentId && apt.id === excludeAppointmentId) return false;
           if (apt.bookDate !== dateStr || apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
           const aptSlots = (apt.slotsOccupied && apt.slotsOccupied.length > 0) ? apt.slotsOccupied : [apt.timeSlot];
           return aptSlots.some(s => requiredSlots.includes(s));
@@ -167,7 +171,7 @@
       };
     }
 
-    function getAvailableAssistantsForSlot(dateStr, timeSlot, checkTwoSlots = false) {
+    function getAvailableAssistantsForSlot(dateStr, timeSlot, checkTwoSlots = false, excludeAppointmentId = null) {
       if (!dateStr) {
         return (assistants || []).filter(a => a.active !== false);
       }
@@ -197,6 +201,7 @@
 
         // 4. Check if busy in any appointment
         const isOccupied = (appointments || []).some(apt => {
+          if (excludeAppointmentId && apt.id === excludeAppointmentId) return false;
           if (apt.bookDate === dateStr && apt.assistantId === asst.id) {
             if (apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
             const aptSlots = apt.slotsOccupied || [apt.timeSlot];
@@ -210,6 +215,206 @@
 
         return !isOccupied;
       });
+    }
+
+    /**
+     * Universal Assistant Booking Conflict Checker (v5.4.2)
+     * Validates leave, shift duty, double-booking, and capacity across all workflows.
+     */
+    function checkAssistantBookingConflict({
+      assistantId,
+      bookDate,
+      timeSlot,
+      slotsOccupied = null,
+      excludeAppointmentId = null,
+      requiresTwoSlots = false,
+      patientName = ""
+    }) {
+      if (!bookDate || !timeSlot) {
+        return { hasConflict: false };
+      }
+
+      const slotsList = (typeof getSlotsForDate === "function") ? getSlotsForDate(bookDate) : ALL_WORKING_SLOTS;
+      let reqSlots = (Array.isArray(slotsOccupied) && slotsOccupied.length > 0) ? [...slotsOccupied] : [timeSlot];
+      if (reqSlots.length === 1 && requiresTwoSlots) {
+        const nextS = (typeof getNextSlot === "function") ? getNextSlot(timeSlot, slotsList) : null;
+        if (nextS) reqSlots.push(nextS);
+      }
+
+      // 1. SPECIFIC ASSISTANT CHECK
+      if (assistantId && assistantId !== "auto" && assistantId !== "female" && assistantId !== "male") {
+        const asst = (assistants || []).find(a => a.id === assistantId);
+        const asstNick = asst ? (asst.nickname || asst.name) : "ผู้ช่วยแพทย์";
+
+        // 1.1 Inactive Staff Check
+        if (asst && asst.active === false) {
+          return {
+            hasConflict: true,
+            type: 'inactive',
+            title: `ผู้ช่วยแพทย์ ${asstNick} พ้นสภาพการปฏิบัติงาน`,
+            desc: `ไม่สามารถเลือกผู้ช่วยฯ ${asstNick} ได้เนื่องจากไม่ได้ปฏิบัติงานในระบบแล้ว กรุณาเลือกผู้ช่วยฯ ท่านอื่น`,
+            asst
+          };
+        }
+
+        // 1.2 Leave / Off Duty for date Check
+        if (asst && typeof getAssistantDutyStatusForDate === "function") {
+          const dutyStatus = getAssistantDutyStatusForDate(asst, bookDate);
+          if (dutyStatus.isOff) {
+            const dateFormatted = (typeof formatThaiDateShort === "function") ? formatThaiDateShort(bookDate) : bookDate;
+            return {
+              hasConflict: true,
+              type: 'leave',
+              title: `ผู้ช่วยฯ ${asstNick} ลาเวร / พัก (${dateFormatted})`,
+              desc: `ผู้ช่วยแพทย์ ${asstNick} ได้ลงบันทึกวันลาเวร / พักผ่อนในวันที่ ${dateFormatted} ไว้ จึงไม่สามารถรับนัดหมายได้ กรุณาเลือกรอบเวลาอื่นหรือเลือกผู้ช่วยแพทย์ท่านอื่น`,
+              asst
+            };
+          }
+        }
+
+        // 1.3 Working Shift Check for requested slot(s)
+        if (asst && typeof isAssistantOnDutyForSlot === "function") {
+          const worksAllSlots = reqSlots.every(s => isAssistantOnDutyForSlot(asst, s, bookDate));
+          if (!worksAllSlots) {
+            const slotsStr = reqSlots.map(s => (typeof formatCleanTime === "function" ? formatCleanTime(s) : s) + ' น.').join(', ');
+            return {
+              hasConflict: true,
+              type: 'off_shift',
+              title: `ผู้ช่วยฯ ${asstNick} ไม่อยู่เวรในรอบ ${slotsStr}`,
+              desc: `ผู้ช่วยแพทย์ ${asstNick} ไม่ได้ลงตารางเวรปฏิบัติงานในช่วงเวลาดังกล่าว กรุณาเลือกรอบเวลาอื่นที่ผู้ช่วยฯ เข้าเวร`,
+              asst
+            };
+          }
+        }
+
+        // 1.4 Appointment Collision / Double-Booking Check
+        const conflictingApt = (appointments || []).find(apt => {
+          if (excludeAppointmentId && apt.id === excludeAppointmentId) return false;
+          if (apt.bookDate !== bookDate) return false;
+          if (apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
+          if (apt.assistantId === assistantId) {
+            const aptSlots = (apt.slotsOccupied && apt.slotsOccupied.length > 0) ? apt.slotsOccupied : [apt.timeSlot];
+            return aptSlots.some(s => reqSlots.includes(s));
+          }
+          return false;
+        });
+
+        if (conflictingApt) {
+          const cPatient = conflictingApt.patientName || "ผู้รับบริการท่านอื่น";
+          const cTime = (conflictingApt.slotsOccupied && conflictingApt.slotsOccupied.length > 0)
+            ? conflictingApt.slotsOccupied.map(s => (typeof formatCleanTime === "function" ? formatCleanTime(s) : s)).join(' - ')
+            : (typeof formatCleanTime === "function" ? formatCleanTime(conflictingApt.timeSlot) : conflictingApt.timeSlot);
+          const cService = conflictingApt.mainService || "นวดรักษา";
+
+          return {
+            hasConflict: true,
+            type: 'collision',
+            title: `⚠️ ผู้ช่วยฯ ${asstNick} ติดนัดหมายซ้ำซ้อนแล้ว`,
+            desc: `ผู้ช่วยแพทย์ ${asstNick} มีคิวนัดหมายซ้ำซ้อนในรอบเวลา ${cTime} น. กับคุณ "${cPatient}" (${cService}) กรุณาเลือกผู้ช่วยแพทย์ท่านอื่น หรือเลือกรอบเวลาอื่น`,
+            conflictingAppointment: conflictingApt,
+            asst
+          };
+        }
+
+        // 1.5 Gender Pool Capacity Check
+        if (typeof getGenderAvailability === "function") {
+          const genderAvail = getGenderAvailability(bookDate, timeSlot, reqSlots.length > 1, excludeAppointmentId);
+          const isMale = asst ? (typeof isMaleAssistant === "function" ? isMaleAssistant(asst) : (asst.gender === 'male')) : false;
+          const isGenderFull = isMale ? (genderAvail.maleFreeCount <= 0) : (genderAvail.femaleFreeCount <= 0);
+          if (isGenderFull) {
+            const cleanS = typeof formatCleanTime === "function" ? formatCleanTime(timeSlot) : timeSlot;
+            return {
+              hasConflict: true,
+              type: 'gender_full',
+              title: `คิวผู้ช่วยแพทย์${isMale ? 'ชาย' : 'หญิง'}ในรอบนี้เต็มแล้ว`,
+              desc: `ในรอบเวลา ${cleanS} น. คิวผู้ช่วยแพทย์${isMale ? 'ชาย' : 'หญิง'}เต็มอัตรากำลังแล้ว กรุณาเลือกรอบเวลาอื่น`,
+              asst
+            };
+          }
+        }
+
+        return { hasConflict: false, asst };
+      }
+
+      // 2. GENDER PREFERENCE / AUTO POOL CHECK
+      if (typeof getGenderAvailability === "function") {
+        const genderAvail = getGenderAvailability(bookDate, timeSlot, reqSlots.length > 1, excludeAppointmentId);
+        const cleanS = typeof formatCleanTime === "function" ? formatCleanTime(timeSlot) : timeSlot;
+        const dateFormatted = (typeof formatThaiDateShort === "function" && bookDate) ? formatThaiDateShort(bookDate) : (bookDate || "");
+
+        if (assistantId === "female") {
+          if (!genderAvail.femaleAvailable || genderAvail.femaleFreeCount <= 0) {
+            return {
+              hasConflict: true,
+              type: 'pool_full',
+              title: `ผู้ช่วยแพทย์หญิงในรอบนี้คิวเต็มแล้ว`,
+              desc: `ผู้ช่วยแพทย์หญิงที่เข้าเวรในรอบเวลา ${cleanS} น. วันที่ ${dateFormatted} ติดนัดหมายเต็มแล้ว กรุณาเลือกรอบอื่น หรือเลือกขอผู้ช่วยแพทย์ชาย`
+            };
+          }
+        } else if (assistantId === "male") {
+          if (!genderAvail.maleAvailable || genderAvail.maleFreeCount <= 0) {
+            return {
+              hasConflict: true,
+              type: 'pool_full',
+              title: `ผู้ช่วยแพทย์ชายในรอบนี้คิวเต็มแล้ว`,
+              desc: `ผู้ช่วยแพทย์ชายที่เข้าเวรในรอบเวลา ${cleanS} น. วันที่ ${dateFormatted} ติดนัดหมายเต็มแล้ว กรุณาเลือกรอบอื่น หรือเลือกขอผู้ช่วยแพทย์หญิง`
+            };
+          }
+        } else if (assistantId === "auto" || !assistantId) {
+          if (genderAvail.femaleFreeCount <= 0 && genderAvail.maleFreeCount <= 0) {
+            return {
+              hasConflict: true,
+              type: 'all_full',
+              title: `รอบเวลา ${cleanS} น. คิวเต็มครบทุกท่านแล้ว`,
+              desc: `ผู้ช่วยแพทย์ทุกท่านในรอบเวลา ${cleanS} น. วันที่ ${dateFormatted} ติดนัดหมายเต็มแล้ว กรุณาเลือกรอบเวลาอื่น`
+            };
+          }
+        }
+      }
+
+      return { hasConflict: false };
+    }
+
+    /**
+     * Dedicated Modal Alert for Assistant Conflict / Double-Booking (v5.4.2)
+     */
+    function showAssistantConflictModal(conflict, slot, date) {
+      if (!conflict || !conflict.hasConflict) return;
+      const modal = document.getElementById("modal-slot-full-alert");
+      if (!modal) return;
+
+      const titleEl = document.getElementById("slot-full-alert-title");
+      const badgeEl = document.getElementById("slot-full-alert-badge");
+      const descEl = document.getElementById("slot-full-alert-desc");
+
+      const cleanSlot = slot ? (String(slot).replace(/รอบเวลา/g, '').replace(/รอบ/g, '').replace(/น\.?/g, '').trim()) : "-";
+      const slotText = cleanSlot !== "-" ? (cleanSlot.includes('.') ? `${cleanSlot} น.` : `${cleanSlot.replace(':', '.')} น.`) : "-";
+      const dateFormatted = (typeof formatThaiDateShort === "function" && date) ? formatThaiDateShort(date) : (date || "");
+
+      if (titleEl) {
+        titleEl.textContent = conflict.title || `ไม่สามารถนัดหมายรอบเวลา ${slotText} ได้`;
+      }
+      if (badgeEl) {
+        badgeEl.textContent = dateFormatted ? `⏰ รอบเวลา: ${slotText} (วันที่ ${dateFormatted})` : `⏰ รอบเวลา: ${slotText}`;
+      }
+      if (descEl) {
+        descEl.textContent = conflict.desc || "ขออภัยในความไม่สะดวก เนื่องจากผู้ช่วยแพทย์ท่านนี้ติดนัดหมายอื่นหรือไม่อยู่เวรในรอบเวลาดังกล่าว กรุณาเลือกรอบเวลาอื่นหรือเลือกผู้ช่วยแพทย์ท่านอื่น";
+      }
+
+      modal.classList.remove("hidden");
+      if (typeof lucide !== "undefined" && lucide.createIcons) {
+        lucide.createIcons();
+      }
+
+      // Play audio warning if supported
+      if (typeof playAlertTone === "function") {
+        try { playAlertTone(); } catch(e) {}
+      }
+
+      // Toast error notification
+      if (typeof showToast === "function") {
+        showToast(conflict.title || "ไม่สามารถจองคิวซ้ำซ้อนได้", "error");
+      }
     }
 
     function selectQuickChip(type) {
@@ -863,53 +1068,42 @@
         slotsOccupied.push(nextSlot);
       }
 
-      // Assistant Assignment & Collision Detection
-      let assignedAssistantId = assistantId;
+      // Assistant Assignment & Conflict Validation
+      let assignedAssistantId = assistantId || "auto";
       let assignedNick = "ไม่ระบุ";
 
-      const genderAvail = getGenderAvailability(bookDate, timeSlot, requiresTwoSlots);
-
-      if (assistantId && assistantId !== "auto" && assistantId !== "female" && assistantId !== "male") {
-        const asst = assistants.find(a => a.id === assistantId);
-        assignedNick = asst ? (asst.nickname || asst.name) : assistantId;
-
-        const hasCollision = appointments.some(apt => {
-          if (apt.bookDate === bookDate && apt.assistantId === assistantId) {
-            if (apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
-            return (apt.slotsOccupied || [apt.timeSlot]).some(s => slotsOccupied.includes(s));
-          }
-          return false;
-        });
-
-        if (hasCollision) {
-          showToast(`ผู้ช่วยฯ ${assignedNick} ติดนัดหมายในรอบเวลาที่ท่านเลือกแล้ว กรุณาเลือกรอบอื่นหรือเลือกผู้ช่วยฯ ท่านอื่น`, "error");
-          return;
-        }
-      } else if (assistantId === "male") {
-        if (!genderAvail.maleAvailable) {
-          showToast(`❌ ผู้ช่วยแพทย์ชายในรอบเวลานี้ติดนัดหมดแล้ว กรุณาเลือกรอบอื่นหรือเลือกขอผู้หญิง`, "error");
-          return;
-        }
-        assignedAssistantId = "male";
-        assignedNick = "ไม่ระบุ (ขอผู้ชาย)";
-      } else if (assistantId === "female") {
-        if (!genderAvail.femaleAvailable) {
-          showToast(`❌ ผู้ช่วยแพทย์หญิงในรอบเวลานี้ติดนัดหมดแล้ว กรุณาเลือกรอบอื่นหรือเลือกขอผู้ชาย`, "error");
-          return;
-        }
-        assignedAssistantId = "female";
+      if (assignedAssistantId === "female") {
         assignedNick = "ไม่ระบุ (ขอผู้หญิง)";
-      } else {
-        // Fallback default
+      } else if (assignedAssistantId === "male") {
+        assignedNick = "ไม่ระบุ (ขอผู้ชาย)";
+      } else if (assignedAssistantId !== "auto") {
+        const asst = assistants.find(a => a.id === assignedAssistantId);
+        assignedNick = asst ? (asst.nickname || asst.name) : assignedAssistantId;
+      }
+
+      const conflictCheck = checkAssistantBookingConflict({
+        assistantId: assignedAssistantId,
+        bookDate,
+        timeSlot,
+        slotsOccupied,
+        requiresTwoSlots,
+        patientName
+      });
+
+      if (conflictCheck && conflictCheck.hasConflict) {
+        showAssistantConflictModal(conflictCheck, timeSlot, bookDate);
+        return;
+      }
+
+      // Default fallback if auto
+      if (assignedAssistantId === "auto") {
+        const genderAvail = getGenderAvailability(bookDate, timeSlot, requiresTwoSlots);
         if (genderAvail.femaleAvailable) {
           assignedAssistantId = "female";
           assignedNick = "ไม่ระบุ (ขอผู้หญิง)";
         } else if (genderAvail.maleAvailable) {
           assignedAssistantId = "male";
           assignedNick = "ไม่ระบุ (ขอผู้ชาย)";
-        } else {
-          assignedAssistantId = "auto";
-          assignedNick = "ไม่ระบุ";
         }
       }
 

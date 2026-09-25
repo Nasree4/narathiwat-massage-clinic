@@ -1577,7 +1577,9 @@
     function closeSlotFullAlertModal() {
       const modal = document.getElementById("modal-slot-full-alert");
       if (modal) modal.classList.add("hidden");
-      if (typeof currentWizardStep !== "undefined" && currentWizardStep !== 2) {
+      const wizardModal = document.getElementById("modal-booking-wizard");
+      const isWizardOpen = wizardModal && !wizardModal.classList.contains("hidden");
+      if (isWizardOpen && typeof currentWizardStep !== "undefined" && currentWizardStep !== 2) {
         if (typeof goToWizardStep === "function") goToWizardStep(2);
       }
     }
