@@ -187,13 +187,13 @@ const res5 = context.checkAssistantBookingConflict({
 });
 assert(res5.hasConflict === false, "Allows self-matching when excludeAppointmentId is provided (rescheduling same slot)");
 
-// Test 6: Active assistants are available across slots when not on leave or busy
+// Test 6: Active assistants are available across slots when on duty and not on leave or busy
 const res6 = context.checkAssistantBookingConflict({
   assistantId: "asst-2",
   bookDate: "2026-09-25",
-  timeSlot: "08:00"
+  timeSlot: "17:00"
 });
-assert(res6.hasConflict === false, "Allows active non-leave assistant to be booked across any slot");
+assert(res6.hasConflict === false, "Allows active non-leave assistant on duty to be booked");
 
 // Test 7: Leave / off-duty assistant blocking
 context.vmRun(`
@@ -230,5 +230,32 @@ const res8 = context.checkAssistantBookingConflict({
 });
 assert(res8.hasConflict === true && res8.type === "inactive", "Blocks booking for inactive assistant");
 
+// Test 9 & 10: Roster Matrix specific duty slots synchronization
+context.vmRun(`
+  assistantDutyRosters = {
+    "2026-09-28": {
+      "asst-3": {
+        shiftType: "custom",
+        slots: ["15:00", "16:00", "17:00", "18:00", "19:00"]
+      }
+    }
+  };
+`);
+
+const res9 = context.checkAssistantBookingConflict({
+  assistantId: "asst-3",
+  bookDate: "2026-09-28",
+  timeSlot: "08:00"
+});
+assert(res9.hasConflict === true && res9.type === "off_shift", "Blocks booking when assistant is not checked on duty for specific slot in Roster Matrix");
+
+const res10 = context.checkAssistantBookingConflict({
+  assistantId: "asst-3",
+  bookDate: "2026-09-28",
+  timeSlot: "15:00"
+});
+assert(res10.hasConflict === false, "Allows booking when assistant is checked on duty for specific slot in Roster Matrix");
+
 console.log(`\n🏁 Test Results: ${passed} / ${total} passed (${passed === total ? '100% SUCCESS' : 'FAILURES DETECTED'})`);
+
 

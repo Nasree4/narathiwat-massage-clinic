@@ -771,9 +771,9 @@
           <h1 class="text-sm sm:text-base md:text-lg font-bold leading-tight tracking-wide flex items-center gap-1 sm:gap-1.5 flex-wrap">
             <span data-i18n="app_title">คลินิกการแพทย์แผนไทย</span>
             <span class="text-[10px] sm:text-[11px] font-normal px-2 py-0.5 bg-herbal-800/80 text-herbal-200 rounded-full border border-herbal-600 hidden sm:inline-block" data-i18n="service_status">เปิดบริการปกติ</span>
-            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.7 (คลิกเพื่อตรวจสอบการอัปเดต)">
+            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.8 (คลิกเพื่อตรวจสอบการอัปเดต)">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span id="app-header-version-tag">v5.5.7</span>
+              <span id="app-header-version-tag">v5.5.8</span>
             </button>
           </h1>
           <p class="text-[11px] sm:text-xs text-herbal-200 font-light" data-i18n="app_hospital">
@@ -2644,7 +2644,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="font-medium text-slate-700 dark:text-slate-300">คลินิกการแพทย์แผนไทย รพ.นราธิวาสราชนครินทร์</span>
         <span class="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
-        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.7</span>
+        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.8</span>
         <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">ล่าสุด</span>
       </div>
       <div class="flex items-center gap-2">
@@ -2885,7 +2885,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                 <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">26 กันยายน 2569</span></p>
               </div>
             </div>
-            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.7</span>
+            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.8</span>
           </div>
 
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/70 text-xs">
@@ -2904,7 +2904,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       
       <!-- Modal Footer -->
       <div class="bg-slate-50 dark:bg-slate-800/80 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between flex-shrink-0">
-        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.7</span></span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.8</span></span>
         <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold transition" data-i18n="btn_close">
           ปิดหน้าต่าง
         </button>
@@ -6058,7 +6058,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.5.7";
+    const APP_VERSION = "v5.5.8";
     const APP_BUILD_DATE = "26 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
@@ -12931,9 +12931,35 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       return false;
     }
 
+    function isAssistantDutyOnDateAndSlot(asst, dateStr, timeSlot) {
+      if (!asst) return false;
+      const asstObj = (typeof asst === "string") ? (assistants || []).find(a => a.id === asst) : asst;
+      if (!asstObj || asstObj.active === false || asstObj.canMassage === false) return false;
+      if (!dateStr || !timeSlot) return true;
+      if (isAssistantOnLeaveOnDate(asstObj.id, dateStr)) return false;
+
+      // 1. Check date-specific duty roster (assistantDutyRosters)
+      if (typeof assistantDutyRosters !== "undefined" && assistantDutyRosters[dateStr] && assistantDutyRosters[dateStr][asstObj.id]) {
+        const entry = (typeof normalizeAssistantRosterEntry === "function")
+          ? normalizeAssistantRosterEntry(assistantDutyRosters[dateStr][asstObj.id])
+          : assistantDutyRosters[dateStr][asstObj.id];
+        if (entry.isExplicitlyEmpty || entry.shiftType === "off") return false;
+        if (Array.isArray(entry.slots)) {
+          return entry.slots.includes(timeSlot);
+        }
+      }
+
+      // 2. Fallback to assistant's default shiftType / slots
+      if (asstObj.shiftType === "off") return false;
+      const defaultSlots = (typeof getAssistantWorkSlots === "function")
+        ? getAssistantWorkSlots(asstObj)
+        : (Array.isArray(asstObj.slots) ? asstObj.slots : ALL_WORKING_SLOTS);
+      return defaultSlots.includes(timeSlot);
+    }
+
     function getAvailableAssistantsForSlot(dateStr, timeSlot, checkTwoSlots = false, excludeAppointmentId = null) {
       if (!dateStr) {
-        return (assistants || []).filter(a => a.active !== false);
+        return (assistants || []).filter(a => a.active !== false && a.canMassage !== false);
       }
 
       const slotsList = getSlotsForDate(dateStr);
@@ -12950,7 +12976,13 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         // 2. Must not be on leave for this specific date
         if (isAssistantOnLeaveOnDate(asst.id, dateStr)) return false;
 
-        // 3. Check if busy in any appointment on the required slot(s)
+        // 3. Must be scheduled on duty for the required slot(s)
+        if (requiredSlots.length > 0) {
+          const onDuty = requiredSlots.every(s => isAssistantDutyOnDateAndSlot(asst, dateStr, s));
+          if (!onDuty) return false;
+        }
+
+        // 4. Check if busy in any appointment on the required slot(s)
         const isOccupied = (appointments || []).some(apt => {
           if (excludeAppointmentId && apt.id === excludeAppointmentId) return false;
           if (apt.bookDate === dateStr && (apt.assistantId === asst.id || (apt.assistantNick && apt.assistantNick === asst.nickname))) {
@@ -13032,7 +13064,19 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           };
         }
 
-        // 1.3 Appointment Collision / Double-Booking Check
+        // 1.4 Specific Duty Slot Check (if roster matrix or specific shifts are set)
+        if (reqSlots.some(s => !isAssistantDutyOnDateAndSlot(asst, bookDate, s))) {
+          const dateFormatted = (typeof formatThaiDateShort === "function") ? formatThaiDateShort(bookDate) : bookDate;
+          return {
+            hasConflict: true,
+            type: 'off_shift',
+            title: `ผู้ช่วยฯ ${asstNick} ไม่ได้เข้าเวรในรอบ ${reqSlots.join(", ")} น.`,
+            desc: `ผู้ช่วยแพทย์ ${asstNick} ไม่ได้เปิดรอบเข้าเวรในช่วงเวลาดังกล่าวประจำวันที่ ${dateFormatted} กรุณาเลือกรอบเวลาที่เข้าเวรหรือเลือกผู้ช่วยแพทย์ท่านอื่น`,
+            asst
+          };
+        }
+
+        // 1.5 Appointment Collision / Double-Booking Check
         const conflictingApt = (appointments || []).find(apt => {
           if (excludeAppointmentId && apt.id === excludeAppointmentId) return false;
           if (apt.bookDate !== bookDate) return false;
@@ -25957,7 +26001,6 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       const femaleAssts = sortAssistantsByCheckIn(activeAssts.filter(a => a.gender === 'female'));
       const maleAssts = sortAssistantsByCheckIn(activeAssts.filter(a => a.gender === 'male'));
 
-      // Helper to count available slots for an assistant
       function getAssistantFreeSlotCount(asst) {
         if (!asst || asst.active === false || asst.canMassage === false) return 0;
         const isOff = (typeof isAssistantOnLeaveOnDate === "function")
@@ -25969,6 +26012,11 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         slots.forEach(slot => {
           const slotConf = getSlotConfigForDate(dateVal, slot);
           if (!slotConf.enabled) return;
+          const isOnDuty = (typeof isAssistantDutyOnDateAndSlot === "function")
+            ? isAssistantDutyOnDateAndSlot(asst, dateVal, slot)
+            : true;
+          if (!isOnDuty) return;
+
           const isOccupied = appointments.some(apt => {
             if (apt.bookDate === dateVal && (apt.assistantId === asst.id || (apt.assistantNick && apt.assistantNick === asst.nickname))) {
               if (apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
@@ -26247,6 +26295,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
             `;
           }
 
+          const isOnDuty = (typeof isAssistantDutyOnDateAndSlot === "function")
+            ? isAssistantDutyOnDateAndSlot(asst, dateVal, slot)
+            : true;
+
           const isOccupied = appointments.some(apt => {
             if (apt.bookDate === dateVal && (apt.assistantId === asst.id || (apt.assistantNick && apt.assistantNick === asst.nickname))) {
               if (apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
@@ -26261,7 +26313,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           const isGenderFull = isMale ? (genderAvail.maleFreeCount <= 0) : (genderAvail.femaleFreeCount <= 0);
 
           const isSelected = (wizardBookingData.timeSlot === slot && wizardBookingData.assistantId === asst.id);
-          const isAvailable = !isOff && !isOccupied && !isGenderFull;
+          const isAvailable = !isOff && isOnDuty && !isOccupied && !isGenderFull;
 
           let cardClass = "";
           let statusLabel = "ว่าง";
@@ -26272,6 +26324,9 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           } else if (isOff) {
             cardClass = "bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed";
             statusLabel = "ลาเวร";
+          } else if (!isOnDuty) {
+            cardClass = "bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed";
+            statusLabel = "นอกเวร";
           } else if (isOccupied || isGenderFull) {
             cardClass = "bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-900/50 cursor-not-allowed";
             statusLabel = isOccupied ? "ติดนัด" : "เต็ม";
@@ -26282,16 +26337,18 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
           const toolTip = isOff
             ? `${escapeHtml(asst.nickname || asst.name)} ลาเวร / พัก ในวันที่เลือก`
-            : isOccupied 
-              ? 'ติดนัดหมาย' 
-              : isGenderFull 
-                ? `คิวผู้ช่วยแพทย์${isMale ? 'ชาย' : 'หญิง'}ในรอบนี้เต็มแล้ว` 
-                : `คลิกเพื่อเลือกรอบเวลานี้กับ ${escapeHtml(asst.nickname || asst.name)}`;
+            : !isOnDuty
+              ? `${escapeHtml(asst.nickname || asst.name)} ไม่ได้เข้าเวรในรอบ ${slot} น.`
+              : isOccupied 
+                ? 'ติดนัดหมาย' 
+                : isGenderFull 
+                  ? `คิวผู้ช่วยแพทย์${isMale ? 'ชาย' : 'หญิง'}ในรอบนี้เต็มแล้ว` 
+                  : `คลิกเพื่อเลือกรอบเวลานี้กับ ${escapeHtml(asst.nickname || asst.name)}`;
 
           return `
             <div class="text-center p-1 sm:p-1.5 rounded-lg text-xs font-semibold transition transform ${cardClass}" onclick="selectWizardSlotClassic('${slot}', '${asst.id}', ${isAvailable})" title="${toolTip}">
               <div class="font-bold text-[11px] sm:text-xs font-mono">${slot}</div>
-              <div class="text-[9px] sm:text-[9.5px] ${isSelected ? 'text-amber-200 font-bold' : (isOff || isOccupied || isGenderFull) ? 'text-slate-400 dark:text-slate-500' : 'font-normal'}">${statusLabel}</div>
+              <div class="text-[9px] sm:text-[9.5px] ${isSelected ? 'text-amber-200 font-bold' : (isOff || !isOnDuty || isOccupied || isGenderFull) ? 'text-slate-400 dark:text-slate-500' : 'font-normal'}">${statusLabel}</div>
             </div>
           `;
         }).join("");

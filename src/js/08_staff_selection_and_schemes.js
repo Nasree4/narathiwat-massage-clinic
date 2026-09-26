@@ -205,9 +205,35 @@
       return false;
     }
 
+    function isAssistantDutyOnDateAndSlot(asst, dateStr, timeSlot) {
+      if (!asst) return false;
+      const asstObj = (typeof asst === "string") ? (assistants || []).find(a => a.id === asst) : asst;
+      if (!asstObj || asstObj.active === false || asstObj.canMassage === false) return false;
+      if (!dateStr || !timeSlot) return true;
+      if (isAssistantOnLeaveOnDate(asstObj.id, dateStr)) return false;
+
+      // 1. Check date-specific duty roster (assistantDutyRosters)
+      if (typeof assistantDutyRosters !== "undefined" && assistantDutyRosters[dateStr] && assistantDutyRosters[dateStr][asstObj.id]) {
+        const entry = (typeof normalizeAssistantRosterEntry === "function")
+          ? normalizeAssistantRosterEntry(assistantDutyRosters[dateStr][asstObj.id])
+          : assistantDutyRosters[dateStr][asstObj.id];
+        if (entry.isExplicitlyEmpty || entry.shiftType === "off") return false;
+        if (Array.isArray(entry.slots)) {
+          return entry.slots.includes(timeSlot);
+        }
+      }
+
+      // 2. Fallback to assistant's default shiftType / slots
+      if (asstObj.shiftType === "off") return false;
+      const defaultSlots = (typeof getAssistantWorkSlots === "function")
+        ? getAssistantWorkSlots(asstObj)
+        : (Array.isArray(asstObj.slots) ? asstObj.slots : ALL_WORKING_SLOTS);
+      return defaultSlots.includes(timeSlot);
+    }
+
     function getAvailableAssistantsForSlot(dateStr, timeSlot, checkTwoSlots = false, excludeAppointmentId = null) {
       if (!dateStr) {
-        return (assistants || []).filter(a => a.active !== false);
+        return (assistants || []).filter(a => a.active !== false && a.canMassage !== false);
       }
 
       const slotsList = getSlotsForDate(dateStr);
@@ -224,7 +250,13 @@
         // 2. Must not be on leave for this specific date
         if (isAssistantOnLeaveOnDate(asst.id, dateStr)) return false;
 
-        // 3. Check if busy in any appointment on the required slot(s)
+        // 3. Must be scheduled on duty for the required slot(s)
+        if (requiredSlots.length > 0) {
+          const onDuty = requiredSlots.every(s => isAssistantDutyOnDateAndSlot(asst, dateStr, s));
+          if (!onDuty) return false;
+        }
+
+        // 4. Check if busy in any appointment on the required slot(s)
         const isOccupied = (appointments || []).some(apt => {
           if (excludeAppointmentId && apt.id === excludeAppointmentId) return false;
           if (apt.bookDate === dateStr && (apt.assistantId === asst.id || (apt.assistantNick && apt.assistantNick === asst.nickname))) {
@@ -306,7 +338,19 @@
           };
         }
 
-        // 1.3 Appointment Collision / Double-Booking Check
+        // 1.4 Specific Duty Slot Check (if roster matrix or specific shifts are set)
+        if (reqSlots.some(s => !isAssistantDutyOnDateAndSlot(asst, bookDate, s))) {
+          const dateFormatted = (typeof formatThaiDateShort === "function") ? formatThaiDateShort(bookDate) : bookDate;
+          return {
+            hasConflict: true,
+            type: 'off_shift',
+            title: `ผู้ช่วยฯ ${asstNick} ไม่ได้เข้าเวรในรอบ ${reqSlots.join(", ")} น.`,
+            desc: `ผู้ช่วยแพทย์ ${asstNick} ไม่ได้เปิดรอบเข้าเวรในช่วงเวลาดังกล่าวประจำวันที่ ${dateFormatted} กรุณาเลือกรอบเวลาที่เข้าเวรหรือเลือกผู้ช่วยแพทย์ท่านอื่น`,
+            asst
+          };
+        }
+
+        // 1.5 Appointment Collision / Double-Booking Check
         const conflictingApt = (appointments || []).find(apt => {
           if (excludeAppointmentId && apt.id === excludeAppointmentId) return false;
           if (apt.bookDate !== bookDate) return false;

@@ -461,7 +461,6 @@
       const femaleAssts = sortAssistantsByCheckIn(activeAssts.filter(a => a.gender === 'female'));
       const maleAssts = sortAssistantsByCheckIn(activeAssts.filter(a => a.gender === 'male'));
 
-      // Helper to count available slots for an assistant
       function getAssistantFreeSlotCount(asst) {
         if (!asst || asst.active === false || asst.canMassage === false) return 0;
         const isOff = (typeof isAssistantOnLeaveOnDate === "function")
@@ -473,6 +472,11 @@
         slots.forEach(slot => {
           const slotConf = getSlotConfigForDate(dateVal, slot);
           if (!slotConf.enabled) return;
+          const isOnDuty = (typeof isAssistantDutyOnDateAndSlot === "function")
+            ? isAssistantDutyOnDateAndSlot(asst, dateVal, slot)
+            : true;
+          if (!isOnDuty) return;
+
           const isOccupied = appointments.some(apt => {
             if (apt.bookDate === dateVal && (apt.assistantId === asst.id || (apt.assistantNick && apt.assistantNick === asst.nickname))) {
               if (apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
@@ -751,6 +755,10 @@
             `;
           }
 
+          const isOnDuty = (typeof isAssistantDutyOnDateAndSlot === "function")
+            ? isAssistantDutyOnDateAndSlot(asst, dateVal, slot)
+            : true;
+
           const isOccupied = appointments.some(apt => {
             if (apt.bookDate === dateVal && (apt.assistantId === asst.id || (apt.assistantNick && apt.assistantNick === asst.nickname))) {
               if (apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
@@ -765,7 +773,7 @@
           const isGenderFull = isMale ? (genderAvail.maleFreeCount <= 0) : (genderAvail.femaleFreeCount <= 0);
 
           const isSelected = (wizardBookingData.timeSlot === slot && wizardBookingData.assistantId === asst.id);
-          const isAvailable = !isOff && !isOccupied && !isGenderFull;
+          const isAvailable = !isOff && isOnDuty && !isOccupied && !isGenderFull;
 
           let cardClass = "";
           let statusLabel = "ว่าง";
@@ -776,6 +784,9 @@
           } else if (isOff) {
             cardClass = "bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed";
             statusLabel = "ลาเวร";
+          } else if (!isOnDuty) {
+            cardClass = "bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed";
+            statusLabel = "นอกเวร";
           } else if (isOccupied || isGenderFull) {
             cardClass = "bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-900/50 cursor-not-allowed";
             statusLabel = isOccupied ? "ติดนัด" : "เต็ม";
@@ -786,16 +797,18 @@
 
           const toolTip = isOff
             ? `${escapeHtml(asst.nickname || asst.name)} ลาเวร / พัก ในวันที่เลือก`
-            : isOccupied 
-              ? 'ติดนัดหมาย' 
-              : isGenderFull 
-                ? `คิวผู้ช่วยแพทย์${isMale ? 'ชาย' : 'หญิง'}ในรอบนี้เต็มแล้ว` 
-                : `คลิกเพื่อเลือกรอบเวลานี้กับ ${escapeHtml(asst.nickname || asst.name)}`;
+            : !isOnDuty
+              ? `${escapeHtml(asst.nickname || asst.name)} ไม่ได้เข้าเวรในรอบ ${slot} น.`
+              : isOccupied 
+                ? 'ติดนัดหมาย' 
+                : isGenderFull 
+                  ? `คิวผู้ช่วยแพทย์${isMale ? 'ชาย' : 'หญิง'}ในรอบนี้เต็มแล้ว` 
+                  : `คลิกเพื่อเลือกรอบเวลานี้กับ ${escapeHtml(asst.nickname || asst.name)}`;
 
           return `
             <div class="text-center p-1 sm:p-1.5 rounded-lg text-xs font-semibold transition transform ${cardClass}" onclick="selectWizardSlotClassic('${slot}', '${asst.id}', ${isAvailable})" title="${toolTip}">
               <div class="font-bold text-[11px] sm:text-xs font-mono">${slot}</div>
-              <div class="text-[9px] sm:text-[9.5px] ${isSelected ? 'text-amber-200 font-bold' : (isOff || isOccupied || isGenderFull) ? 'text-slate-400 dark:text-slate-500' : 'font-normal'}">${statusLabel}</div>
+              <div class="text-[9px] sm:text-[9.5px] ${isSelected ? 'text-amber-200 font-bold' : (isOff || !isOnDuty || isOccupied || isGenderFull) ? 'text-slate-400 dark:text-slate-500' : 'font-normal'}">${statusLabel}</div>
             </div>
           `;
         }).join("");
