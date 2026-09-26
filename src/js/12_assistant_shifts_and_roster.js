@@ -2517,6 +2517,19 @@
 
     
     // ==================== ASSISTANT QUEUE ROTATION & RANKING SYSTEM ====================
+    let currentRosterGenderTab = "all"; // "all" | "male" | "female"
+    let currentRosterTableFilter = "all"; // "all" | "male" | "female"
+
+    function setRosterGenderTab(tab) {
+      currentRosterGenderTab = tab || "all";
+      renderAssistantRosterMatrix();
+    }
+
+    function setRosterTableFilter(filter) {
+      currentRosterTableFilter = filter || "all";
+      renderAssistantRosterMatrix();
+    }
+
     function computeDailyAssistantQueues(dateStr) {
       if (!dateStr) dateStr = (typeof currentRosterDate !== "undefined" && currentRosterDate) ? currentRosterDate : getTodayDateString();
       const rosterObj = (typeof assistantDutyRosters !== "undefined" && assistantDutyRosters[dateStr]) ? assistantDutyRosters[dateStr] : {};
@@ -2556,7 +2569,8 @@
         };
         const entry = normalizeAssistantRosterEntry(rosterObj[asstId]);
         const checkedSlots = entry.slots || [];
-        const checkInTime = (entry.checkInTime || "08:00").trim().replace(" น.", "");
+        const hasCheckInTime = Boolean(entry.checkInTime && entry.checkInTime.trim() !== "" && entry.checkInTime !== "--:--");
+        const checkInTime = hasCheckInTime ? entry.checkInTime.trim().replace(" น.", "") : "99:99";
         const isBeforeCutoff = checkInTime <= "08:32";
 
         // Morning appointments for this assistant (08:00 - 12:00)
@@ -2590,7 +2604,8 @@
         return {
           asstId,
           asst,
-          checkInTime,
+          checkInTime: hasCheckInTime ? checkInTime : "--:--",
+          hasCheckInTime,
           isBeforeCutoff,
           morningCaseCount,
           afternoonCaseCount,
@@ -2608,7 +2623,7 @@
       // 1. Afternoon Queue:
       // Group A: Check-in <= 08:32 (มาก่อน 08:32 น.) -> sort by morningCaseCount ASC (น้อยไปมาก), checkInTime ASC
       const groupOnTime = statsList
-        .filter(s => s.isBeforeCutoff)
+        .filter(s => s.hasCheckInTime && s.isBeforeCutoff)
         .sort((a, b) => {
           if (a.morningCaseCount !== b.morningCaseCount) return a.morningCaseCount - b.morningCaseCount;
           if (a.checkInTime !== b.checkInTime) return a.checkInTime.localeCompare(b.checkInTime);
@@ -2617,23 +2632,39 @@
 
       // Group B: Check-in > 08:32 (มาหลัง 08:32 น. ต่อคิวท้าย) -> sort by morningCaseCount ASC, checkInTime ASC
       const groupLate = statsList
-        .filter(s => !s.isBeforeCutoff)
+        .filter(s => s.hasCheckInTime && !s.isBeforeCutoff)
         .sort((a, b) => {
           if (a.morningCaseCount !== b.morningCaseCount) return a.morningCaseCount - b.morningCaseCount;
           if (a.checkInTime !== b.checkInTime) return a.checkInTime.localeCompare(b.checkInTime);
           return (a.asst.nickname || a.asst.name).localeCompare(b.asst.nickname || b.asst.name);
         });
 
-      const afternoonQueue = [...groupOnTime, ...groupLate].map((item, idx) => ({
+      // Group C: Not yet checked in
+      const groupNotCheckedIn = statsList
+        .filter(s => !s.hasCheckInTime)
+        .sort((a, b) => (a.asst.nickname || a.asst.name).localeCompare(b.asst.nickname || b.asst.name));
+
+      const afternoonQueue = [...groupOnTime, ...groupLate, ...groupNotCheckedIn].map((item, idx) => ({
         ...item,
         afternoonRank: idx + 1,
         isLateGroup: !item.isBeforeCutoff
       }));
 
-      // Update statsMap with afternoonRank
+      // Calculate gender-specific ranks for afternoonQueue
+      let maleAfternoonCount = 0;
+      let femaleAfternoonCount = 0;
       afternoonQueue.forEach(item => {
+        const isMale = (item.asst && item.asst.gender === "male");
+        if (isMale) {
+          maleAfternoonCount++;
+          item.afternoonGenderRank = maleAfternoonCount;
+        } else {
+          femaleAfternoonCount++;
+          item.afternoonGenderRank = femaleAfternoonCount;
+        }
         if (statsMap[item.asstId]) {
           statsMap[item.asstId].afternoonRank = item.afternoonRank;
+          statsMap[item.asstId].afternoonGenderRank = item.afternoonGenderRank;
           statsMap[item.asstId].isLateGroup = item.isLateGroup;
         }
       });
@@ -2653,10 +2684,21 @@
           otRank: idx + 1
         }));
 
-      // Update statsMap with otRank
+      // Calculate gender-specific ranks for otQueue
+      let maleOtCount = 0;
+      let femaleOtCount = 0;
       otQueue.forEach(item => {
+        const isMale = (item.asst && item.asst.gender === "male");
+        if (isMale) {
+          maleOtCount++;
+          item.otGenderRank = maleOtCount;
+        } else {
+          femaleOtCount++;
+          item.otGenderRank = femaleOtCount;
+        }
         if (statsMap[item.asstId]) {
           statsMap[item.asstId].otRank = item.otRank;
+          statsMap[item.asstId].otGenderRank = item.otGenderRank;
         }
       });
 
@@ -2679,6 +2721,43 @@
         grid.classList.add("hidden");
         if (txt) txt.textContent = "👁️ แสดงสรุป";
       }
+    }
+
+    function stampAssistantCheckIn(asstId) {
+      if (!asstId) return;
+      if (!assistantDutyRosters[currentRosterDate]) assistantDutyRosters[currentRosterDate] = {};
+      
+      const now = new Date();
+      const hrs = String(now.getHours()).padStart(2, '0');
+      const mins = String(now.getMinutes()).padStart(2, '0');
+      const currentTime = `${hrs}:${mins}`;
+
+      const asst = (assistants || []).find(a => a.id === asstId);
+      const defaultSlots = asst ? getAssistantWorkSlots(asst) : [];
+      const existing = assistantDutyRosters[currentRosterDate][asstId] || {
+        slots: defaultSlots.length > 0 ? [...defaultSlots] : [...getEffectiveSlotsForRoster(currentRosterDate)],
+        shiftType: (asst?.shiftType && asst.shiftType !== 'off') ? asst.shiftType : 'full',
+        isExplicitlyEmpty: false
+      };
+
+      existing.checkInTime = currentTime;
+      assistantDutyRosters[currentRosterDate][asstId] = existing;
+      lastRosterLocalEditTime = Date.now();
+
+      saveAssistantRoster(currentRosterDate, false);
+      renderAssistantRosterMatrix();
+
+      const asstName = asst ? asst.nickname || asst.name : asstId;
+      showToast(`เช็คชื่อ ${asstName} เข้างานเรียบร้อย (เวลา ${currentTime} น.) ⏱️`, "success");
+    }
+
+    function clearAssistantCheckIn(asstId) {
+      if (!assistantDutyRosters[currentRosterDate] || !assistantDutyRosters[currentRosterDate][asstId]) return;
+      assistantDutyRosters[currentRosterDate][asstId].checkInTime = "";
+      lastRosterLocalEditTime = Date.now();
+      saveAssistantRoster(currentRosterDate, false);
+      renderAssistantRosterMatrix();
+      showToast("ล้างเวลาเช็คชื่อเรียบร้อย", "info");
     }
 
     function renderAssistantRosterMatrix() {
@@ -2719,7 +2798,7 @@
         badgeInfo.textContent = isToday ? "🟢 ประจำวันนี้" : `📅 ${currentRosterDate}`;
       }
 
-      // 1. Auto-populate all active assistants except those on leave for currentRosterDate
+      // 1. Auto-populate all active assistants except those on leave for currentRosterDate (เปิดนวด และไม่ได้ตรงกับวันลา)
       if (!assistantDutyRosters[currentRosterDate]) {
         assistantDutyRosters[currentRosterDate] = {};
       }
@@ -2735,7 +2814,7 @@
         if (!rosterObj[a.id]) {
           const defaultSlots = getAssistantWorkSlots(a);
           rosterObj[a.id] = {
-            checkInTime: "08:00 น.",
+            checkInTime: "",
             slots: defaultSlots.length > 0 ? [...defaultSlots] : [...effectiveSlots],
             shiftType: (a.shiftType && a.shiftType !== 'off') ? a.shiftType : 'full',
             isExplicitlyEmpty: false
@@ -2759,6 +2838,32 @@
         const bAsst = (assistants || []).find(b => b.id === bId);
         return (aAsst?.nickname || aAsst?.name || "").localeCompare(bAsst?.nickname || bAsst?.name || "", "th");
       });
+
+      // Apply Table Filter (all / male / female)
+      let displayAsstIds = rosterAsstIds;
+      if (currentRosterTableFilter === "male") {
+        displayAsstIds = rosterAsstIds.filter(id => {
+          const a = (assistants || []).find(x => x.id === id);
+          return a && a.gender === "male";
+        });
+      } else if (currentRosterTableFilter === "female") {
+        displayAsstIds = rosterAsstIds.filter(id => {
+          const a = (assistants || []).find(x => x.id === id);
+          return a && a.gender !== "male";
+        });
+      }
+
+      // Update Table Filter UI buttons
+      const btnFilterAll = document.getElementById("tab-roster-filter-all");
+      const btnFilterMale = document.getElementById("tab-roster-filter-male");
+      const btnFilterFemale = document.getElementById("tab-roster-filter-female");
+      if (btnFilterAll && btnFilterMale && btnFilterFemale) {
+        const activeTabCls = "px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white font-bold shadow-2xs transition cursor-pointer";
+        const inactiveTabCls = "px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-semibold transition cursor-pointer flex items-center gap-1";
+        btnFilterAll.className = currentRosterTableFilter === "all" ? activeTabCls : inactiveTabCls;
+        btnFilterMale.className = currentRosterTableFilter === "male" ? "px-2.5 py-1 rounded-lg bg-blue-600 text-white font-bold shadow-2xs transition cursor-pointer flex items-center gap-1" : inactiveTabCls;
+        btnFilterFemale.className = currentRosterTableFilter === "female" ? "px-2.5 py-1 rounded-lg bg-rose-600 text-white font-bold shadow-2xs transition cursor-pointer flex items-center gap-1" : inactiveTabCls;
+      }
 
       // 2. Populate Dropdown with Remaining Active Assistants (not on leave & can massage)
       if (selectEl) {
@@ -2842,7 +2947,7 @@
           <tr class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold border-b border-slate-200 dark:border-slate-700 sticky top-0 z-20 shadow-2xs text-[11px] sm:text-xs">
             <th class="py-2.5 px-1 w-7 min-w-[28px] text-center text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400">#</th>
             <th class="py-2.5 px-2 min-w-[130px] sm:min-w-[145px] text-left font-black text-slate-800 dark:text-slate-100">ผู้ช่วยแพทย์แผนไทย</th>
-            <th class="py-2.5 px-1.5 min-w-[96px] sm:min-w-[110px] w-28 text-center border-l border-slate-200 dark:border-slate-700 font-black text-emerald-800 dark:text-emerald-300">
+            <th class="py-2.5 px-1.5 min-w-[100px] sm:min-w-[115px] w-32 text-center border-l border-slate-200 dark:border-slate-700 font-black text-emerald-800 dark:text-emerald-300">
               <div class="flex items-center justify-center gap-1">
                 <i data-lucide="clock" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
                 <span>เวลาที่มา</span>
@@ -2865,8 +2970,8 @@
             <th class="py-2.5 px-1 w-14 sm:w-16 min-w-[50px] text-center border-l border-slate-200 dark:border-slate-700 text-[10.5px] sm:text-xs font-bold text-amber-800 dark:text-amber-300" title="ยอดเคสจริงที่ทำในรอบเช้า 08:00 - 12:00 น.">ยอดเช้า</th>
             <th class="py-2.5 px-1 w-14 sm:w-16 min-w-[50px] text-center border-l border-slate-200 dark:border-slate-700 text-[10.5px] sm:text-xs font-bold text-purple-800 dark:text-purple-300" title="ยอดเคสจริงที่ทำในรอบ 13:00 - 15:00 น.">ยอดบ่าย</th>
             <th class="py-2.5 px-1 w-14 sm:w-16 min-w-[50px] text-center border-l border-slate-200 dark:border-slate-700 text-[10.5px] sm:text-xs font-black text-emerald-800 dark:text-emerald-300">รวมรอบ</th>
-            <th class="py-2.5 px-1 w-14 sm:w-16 min-w-[50px] text-center border-l border-slate-200 dark:border-slate-700 text-[10.5px] sm:text-xs font-black text-amber-700 dark:text-amber-300" title="ลำดับคิวรอบบ่าย (มาก่อน 08:32 น. ได้สิทธิ์ก่อน เรียงยอดเช้าน้อยไปมาก)">คิวบ่าย</th>
-            <th class="py-2.5 px-1 w-14 sm:w-16 min-w-[50px] text-center border-l border-slate-200 dark:border-slate-700 text-[10.5px] sm:text-xs font-black text-purple-700 dark:text-purple-300" title="ลำดับคิวนอกเวลา (เรียงยอดบ่าย 13-15 น้อยไปมาก เฉพาะคนอยู่เวร OT)">คิว OT</th>
+            <th class="py-2.5 px-1 w-16 sm:w-20 min-w-[58px] text-center border-l border-slate-200 dark:border-slate-700 text-[10.5px] sm:text-xs font-black text-amber-700 dark:text-amber-300" title="ลำดับคิวรอบบ่ายแยกตามเพศ (มาก่อน 08:32 น. ได้สิทธิ์ก่อน เรียงยอดเช้าน้อยไปมาก)">คิวบ่าย</th>
+            <th class="py-2.5 px-1 w-16 sm:w-20 min-w-[58px] text-center border-l border-slate-200 dark:border-slate-700 text-[10.5px] sm:text-xs font-black text-purple-700 dark:text-purple-300" title="ลำดับคิวนอกเวลาแยกตามเพศ (เรียงยอดบ่าย 13-15 น้อยไปมาก เฉพาะคนอยู่เวร OT)">คิว OT</th>
             <th class="py-2.5 px-1 w-14 sm:w-16 min-w-[50px] text-center border-l border-slate-200 dark:border-slate-700 text-[10.5px] sm:text-xs font-bold text-slate-600 dark:text-slate-400">จัดการ</th>
           </tr>
         </thead>
@@ -2875,7 +2980,7 @@
       // Build TBODY
       let tbodyHtml = `<tbody class="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900 text-xs">`;
 
-      rosterAsstIds.forEach((asstId, idx) => {
+      displayAsstIds.forEach((asstId, idx) => {
         const asst = (assistants || []).find(a => a.id === asstId) || {
           id: asstId,
           name: asstId,
@@ -2887,7 +2992,6 @@
         const entry = normalizeAssistantRosterEntry(rosterObj[asstId], effectiveSlots);
         const shiftSlots = getAssistantWorkSlots(asst);
         let checkedSlots = entry.slots;
-        // If slots is empty and hasn't been explicitly cleared to empty/leave by user, initialize from shift schedule
         if (!Array.isArray(checkedSlots) || (checkedSlots.length === 0 && entry.isExplicitlyEmpty !== true && entry.shiftType !== 'off')) {
           checkedSlots = [...shiftSlots];
           entry.slots = checkedSlots;
@@ -2900,8 +3004,11 @@
           morningCaseCount: 0,
           afternoonCaseCount: 0,
           afternoonRank: "-",
+          afternoonGenderRank: "-",
           otRank: "-",
+          otGenderRank: "-",
           isBeforeCutoff: true,
+          hasCheckInTime: false,
           isOtDuty: false
         };
 
@@ -2910,15 +3017,60 @@
           ? `<span class="px-1 py-0.2 rounded text-[9.5px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60">👨 ชาย</span>`
           : `<span class="px-1 py-0.2 rounded text-[9.5px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/60">👩 หญิง</span>`;
 
-        const checkInBadge = stat.isBeforeCutoff
-          ? `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9.5px] font-extrabold bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/90 shadow-2xs">🟢 &lt;08:32</span>`
-          : `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9.5px] font-extrabold bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-200 border border-amber-300/90 shadow-2xs">🟡 &gt;08:32</span>`;
+        const hasCheckIn = Boolean(entry.checkInTime && entry.checkInTime.trim() !== "" && entry.checkInTime !== "--:--");
+        const cleanCheckInTime = hasCheckIn ? entry.checkInTime.trim().replace(" น.", "") : "";
 
-        const afternoonMedal = stat.afternoonRank === 1 ? '🥇 #1' : stat.afternoonRank === 2 ? '🥈 #2' : stat.afternoonRank === 3 ? '🥉 #3' : `#${stat.afternoonRank}`;
-        const afternoonRankBadge = `<span class="inline-block px-1.5 py-0.5 rounded-lg text-xs font-extrabold ${stat.afternoonRank <= 3 ? 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/80 dark:text-amber-200' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200'}">${afternoonMedal}</span>`;
+        const checkInBadge = hasCheckIn 
+          ? (stat.isBeforeCutoff
+              ? `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9.5px] font-extrabold bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/90 shadow-2xs">🟢 &lt;08:32</span>`
+              : `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9.5px] font-extrabold bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-200 border border-amber-300/90 shadow-2xs">🟡 &gt;08:32</span>`)
+          : `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9.5px] font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">⚪ ยังไม่เช็ค</span>`;
+
+        let timeColHtml = "";
+        if (!hasCheckIn) {
+          timeColHtml = `
+            <div class="flex flex-col items-center justify-center gap-0.5">
+              <button type="button" onclick="stampAssistantCheckIn('${asstId}')" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-bold text-xs shadow-xs transition cursor-pointer" title="กดเพื่อ Stamp เวลาเข้างานทันที">
+                <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                <span>Check in</span>
+              </button>
+              <div>${checkInBadge}</div>
+            </div>
+          `;
+        } else {
+          timeColHtml = `
+            <div class="flex flex-col items-center justify-center gap-0.5">
+              <div class="inline-flex items-center justify-center bg-emerald-50/90 dark:bg-slate-800 px-1.5 py-0.5 rounded-lg border border-emerald-400/90 dark:border-emerald-600 shadow-2xs transition group" title="เวลาที่เช็คชื่อเข้างาน (คลิกเพื่อแก้ไขเวลา)">
+                <input type="time" 
+                  value="${cleanCheckInTime}" 
+                  onchange="updateAssistantCheckInTime('${asstId}', this.value)"
+                  class="bg-transparent font-mono text-xs sm:text-sm font-black text-emerald-950 dark:text-emerald-200 outline-none cursor-pointer text-center w-[64px] sm:w-[70px] tracking-wide"
+                  title="เวลาที่เช็คชื่อเข้างาน">
+                <span class="text-[10px] text-emerald-800 dark:text-emerald-300 font-extrabold mr-1 shrink-0 select-none">น.</span>
+                <button type="button" onclick="stampAssistantCheckIn('${asstId}')" class="p-0.5 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-300 transition cursor-pointer" title="Stamp เวลาปัจจุบันใหม่">
+                  <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                </button>
+                <button type="button" onclick="clearAssistantCheckIn('${asstId}')" class="p-0.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer" title="ล้างการเช็คอิน">
+                  <i data-lucide="x" class="w-3 h-3"></i>
+                </button>
+              </div>
+              <div>${checkInBadge}</div>
+            </div>
+          `;
+        }
+
+        const afternoonRankMedal = isMale
+          ? (stat.afternoonGenderRank === 1 ? '🥇 ชาย #1' : stat.afternoonGenderRank === 2 ? '🥈 ชาย #2' : stat.afternoonGenderRank === 3 ? '🥉 ชาย #3' : `👨 #${stat.afternoonGenderRank || '-'}`)
+          : (stat.afternoonGenderRank === 1 ? '🥇 หญิง #1' : stat.afternoonGenderRank === 2 ? '🥈 หญิง #2' : stat.afternoonGenderRank === 3 ? '🥉 หญิง #3' : `👩 #${stat.afternoonGenderRank || '-'}`);
+
+        const afternoonRankBadge = `<span class="inline-block px-1.5 py-0.5 rounded-lg text-xs font-extrabold ${stat.afternoonGenderRank <= 3 ? (isMale ? 'bg-blue-100 text-blue-900 border border-blue-300 dark:bg-blue-950 dark:text-blue-200' : 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/80 dark:text-amber-200') : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200'}">${afternoonRankMedal}</span>`;
+
+        const otMedal = isMale
+          ? (stat.otGenderRank === 1 ? '🌙 👨 #1' : `🌙 👨 #${stat.otGenderRank || '-'}`)
+          : (stat.otGenderRank === 1 ? '🌙 👩 #1' : `🌙 👩 #${stat.otGenderRank || '-'}`);
 
         const otRankBadge = stat.isOtDuty
-          ? `<span class="inline-block px-1.5 py-0.5 rounded-lg text-xs font-black bg-purple-100 text-purple-900 dark:bg-purple-950/80 dark:text-purple-200 border border-purple-300 dark:border-purple-800">🌙 #${stat.otRank || '-'}</span>`
+          ? `<span class="inline-block px-1.5 py-0.5 rounded-lg text-xs font-black bg-purple-100 text-purple-900 dark:bg-purple-950/80 dark:text-purple-200 border border-purple-300 dark:border-purple-800">${otMedal}</span>`
           : `<span class="text-slate-300 dark:text-slate-600 font-bold">-</span>`;
 
         tbodyHtml += `
@@ -2938,18 +3090,8 @@
                 </div>
               </div>
             </td>
-            <td class="py-1.5 px-1.5 text-center border-l border-slate-100 dark:border-slate-800 min-w-[96px] sm:min-w-[110px]">
-              <div class="flex flex-col items-center justify-center gap-0.5">
-                <div class="inline-flex items-center justify-center bg-emerald-50/90 dark:bg-slate-800 hover:bg-emerald-100/80 dark:hover:bg-slate-750 px-1.5 py-0.5 rounded-lg border border-emerald-400/90 dark:border-emerald-600 shadow-2xs transition group cursor-pointer" title="เวลาที่เช็คชื่อเข้างาน (คลิกเพื่อแก้ไขเวลา)">
-                  <input type="time" 
-                    value="${entry.checkInTime || getCurrentTimeString()}" 
-                    onchange="updateAssistantCheckInTime('${asstId}', this.value)"
-                    class="bg-transparent font-mono text-xs sm:text-sm font-black text-emerald-950 dark:text-emerald-200 outline-none cursor-pointer text-center w-[74px] sm:w-[80px] tracking-wide"
-                    title="เวลาที่เช็คชื่อเข้างาน (คลิกเพื่อแก้ไขเวลา)">
-                  <span class="text-[11px] text-emerald-800 dark:text-emerald-300 font-extrabold ml-0.5 shrink-0 select-none">น.</span>
-                </div>
-                <div>${checkInBadge}</div>
-              </div>
+            <td class="py-1.5 px-1.5 text-center border-l border-slate-100 dark:border-slate-800 min-w-[100px] sm:min-w-[115px]">
+              ${timeColHtml}
             </td>
         `;
 
@@ -3056,23 +3198,60 @@
       table.innerHTML = theadHtml + tbodyHtml + tfootHtml;
 
       if (statsPill) {
-        statsPill.innerHTML = `ผู้ช่วยมาปฏิบัติงาน: <span class="text-emerald-700 dark:text-emerald-400 font-black">${rosterAsstIds.length}</span> ท่าน • รวมทั้งหมด <span class="text-purple-700 dark:text-purple-400 font-black">${totalDailyRounds}</span> รอบนวด`;
+        statsPill.innerHTML = `ผู้ช่วยมาปฏิบัติงาน: <span class="text-emerald-700 dark:text-emerald-400 font-black">${displayAsstIds.length}</span> / ${rosterAsstIds.length} ท่าน • รวมทั้งหมด <span class="text-purple-700 dark:text-purple-400 font-black">${totalDailyRounds}</span> รอบนวด`;
       }
 
       // Render Visual Queue Ranking Cards
       const afternoonListEl = document.getElementById("roster-queue-afternoon-list");
       const otListEl = document.getElementById("roster-queue-ot-list");
 
+      // Update Gender Tab Buttons UI in summary section
+      const btnTabAll = document.getElementById("tab-roster-gender-all");
+      const btnTabMale = document.getElementById("tab-roster-gender-male");
+      const btnTabFemale = document.getElementById("tab-roster-gender-female");
+      if (btnTabAll && btnTabMale && btnTabFemale) {
+        const activeTabClass = "px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white font-bold shadow-2xs transition cursor-pointer";
+        const inactiveTabClass = "px-2.5 py-1 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-semibold transition cursor-pointer flex items-center gap-1";
+        btnTabAll.className = currentRosterGenderTab === "all" ? activeTabClass : inactiveTabClass;
+        btnTabMale.className = currentRosterGenderTab === "male" ? "px-2.5 py-1 rounded-lg bg-blue-600 text-white font-bold shadow-2xs transition cursor-pointer flex items-center gap-1" : inactiveTabClass;
+        btnTabFemale.className = currentRosterGenderTab === "female" ? "px-2.5 py-1 rounded-lg bg-rose-600 text-white font-bold shadow-2xs transition cursor-pointer flex items-center gap-1" : inactiveTabClass;
+      }
+
+      // Filter queues for display based on gender tab
+      let dispAfternoonQueue = afternoonQueue;
+      let dispOtQueue = otQueue;
+      if (currentRosterGenderTab === "male") {
+        dispAfternoonQueue = afternoonQueue.filter(q => q.asst && q.asst.gender === "male");
+        dispOtQueue = otQueue.filter(q => q.asst && q.asst.gender === "male");
+      } else if (currentRosterGenderTab === "female") {
+        dispAfternoonQueue = afternoonQueue.filter(q => !q.asst || q.asst.gender !== "male");
+        dispOtQueue = otQueue.filter(q => !q.asst || q.asst.gender !== "male");
+      }
+
       if (afternoonListEl) {
-        if (afternoonQueue.length === 0) {
-          afternoonListEl.innerHTML = `<div class="py-4 text-center text-xs text-slate-400">ยังไม่มีข้อมูลการเช็คชื่อผู้ช่วยฯ</div>`;
+        if (dispAfternoonQueue.length === 0) {
+          afternoonListEl.innerHTML = `<div class="py-4 text-center text-xs text-slate-400">ยังไม่มีข้อมูลการเช็คชื่อผู้ช่วยฯ ${currentRosterGenderTab === 'male' ? '(ชาย)' : (currentRosterGenderTab === 'female' ? '(หญิง)' : '')}</div>`;
         } else {
-          afternoonListEl.innerHTML = afternoonQueue.map(q => {
-            const medal = q.afternoonRank === 1 ? '🥇 คิวที่ 1' : q.afternoonRank === 2 ? '🥈 คิวที่ 2' : q.afternoonRank === 3 ? '🥉 คิวที่ 3' : `คิวที่ ${q.afternoonRank}`;
-            const badgeBg = q.afternoonRank === 1 ? 'bg-amber-500 text-white shadow-xs' : q.afternoonRank === 2 ? 'bg-slate-400 text-white' : q.afternoonRank === 3 ? 'bg-amber-700 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700';
-            const timingText = q.isBeforeCutoff
-              ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/80">🟢 มา ${q.checkInTime} น. (ก่อน 08:32)</span>`
-              : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/80">🟡 มา ${q.checkInTime} น. (ต่อท้าย)</span>`;
+          afternoonListEl.innerHTML = dispAfternoonQueue.map(q => {
+            const isMale = q.asst.gender === "male";
+            const rankNum = currentRosterGenderTab === "all" ? q.afternoonRank : (q.afternoonGenderRank || q.afternoonRank);
+            const rankLabel = currentRosterGenderTab === "all"
+              ? (q.afternoonRank === 1 ? '🥇 คิวที่ 1' : q.afternoonRank === 2 ? '🥈 คิวที่ 2' : q.afternoonRank === 3 ? '🥉 คิวที่ 3' : `คิวที่ ${q.afternoonRank}`)
+              : (isMale
+                  ? (rankNum === 1 ? '🥇 ชาย คิวที่ 1' : rankNum === 2 ? '🥈 ชาย คิวที่ 2' : rankNum === 3 ? '🥉 ชาย คิวที่ 3' : `👨 ชาย คิวที่ ${rankNum}`)
+                  : (rankNum === 1 ? '🥇 หญิง คิวที่ 1' : rankNum === 2 ? '🥈 หญิง คิวที่ 2' : rankNum === 3 ? '🥉 หญิง คิวที่ 3' : `👩 หญิง คิวที่ ${rankNum}`));
+
+            const badgeBg = rankNum === 1 ? (isMale ? 'bg-blue-600 text-white shadow-xs' : 'bg-amber-500 text-white shadow-xs') : rankNum === 2 ? 'bg-slate-400 text-white' : rankNum === 3 ? 'bg-amber-700 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700';
+
+            const genderBadge = isMale
+              ? `<span class="px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60">👨 ชาย</span>`
+              : `<span class="px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/60">👩 หญิง</span>`;
+
+            const timingText = q.hasCheckInTime
+              ? (q.isBeforeCutoff
+                  ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/80">🟢 มา ${q.checkInTime} น. (ก่อน 08:32)</span>`
+                  : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/80">🟡 มา ${q.checkInTime} น. (ต่อท้าย)</span>`)
+              : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">⚪ ยังไม่เช็ค</span>`;
             
             const dutyText = q.isAfternoonDuty
               ? `<span class="text-[10.5px] text-emerald-700 dark:text-emerald-400 font-bold">🌤️ เข้าเวรบ่าย</span>`
@@ -3081,10 +3260,11 @@
             return `
               <div class="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 shadow-2xs hover:border-amber-400 transition">
                 <div class="flex items-center space-x-2.5 min-w-0">
-                  <span class="px-2 py-1 rounded-lg text-xs font-black shrink-0 ${badgeBg}">${medal}</span>
+                  <span class="px-2 py-1 rounded-lg text-xs font-black shrink-0 ${badgeBg}">${rankLabel}</span>
                   <div class="min-w-0">
                     <div class="flex items-center gap-1.5 flex-wrap">
                       <span class="font-extrabold text-xs text-slate-800 dark:text-slate-100">${escapeHtml(q.asst.nickname || q.asst.name)}</span>
+                      ${genderBadge}
                       ${timingText}
                     </div>
                     <div class="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5">${dutyText} • ยอดรวมทั้งวัน: ${q.totalCaseCount} เคส</div>
@@ -3102,23 +3282,33 @@
       }
 
       if (otListEl) {
-        if (otQueue.length === 0) {
-          otListEl.innerHTML = `<div class="py-4 text-center text-xs text-slate-400">ไม่มีผู้ช่วยแพทย์แผนไทยที่ลงเวลาอยู่เวรนอกเวลา (17:00 - 19:00 น.)</div>`;
+        if (dispOtQueue.length === 0) {
+          otListEl.innerHTML = `<div class="py-4 text-center text-xs text-slate-400">ไม่มีผู้ช่วยแพทย์แผนไทยที่ลงเวลาอยู่เวรนอกเวลา ${currentRosterGenderTab === 'male' ? '(ชาย)' : (currentRosterGenderTab === 'female' ? '(หญิง)' : '')}</div>`;
         } else {
-          otListEl.innerHTML = otQueue.map(q => {
-            const medal = `🌙 OT คิวที่ ${q.otRank}`;
-            const badgeBg = q.otRank === 1 ? 'bg-purple-600 text-white shadow-xs' : 'bg-purple-100 text-purple-900 dark:bg-purple-950/80 dark:text-purple-300 border border-purple-300 dark:border-purple-800';
+          otListEl.innerHTML = dispOtQueue.map(q => {
+            const isMale = q.asst.gender === "male";
+            const rankNum = currentRosterGenderTab === "all" ? q.otRank : (q.otGenderRank || q.otRank);
+            const rankLabel = currentRosterGenderTab === "all"
+              ? `🌙 OT คิวที่ ${q.otRank}`
+              : (isMale ? `🌙 👨 ชาย OT คิวที่ ${rankNum}` : `🌙 👩 หญิง OT คิวที่ ${rankNum}`);
+
+            const badgeBg = rankNum === 1 ? 'bg-purple-600 text-white shadow-xs' : 'bg-purple-100 text-purple-900 dark:bg-purple-950/80 dark:text-purple-300 border border-purple-300 dark:border-purple-800';
+
+            const genderBadge = isMale
+              ? `<span class="px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60">👨 ชาย</span>`
+              : `<span class="px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/60">👩 หญิง</span>`;
 
             return `
               <div class="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 shadow-2xs hover:border-purple-400 transition">
                 <div class="flex items-center space-x-2.5 min-w-0">
-                  <span class="px-2 py-1 rounded-lg text-xs font-black shrink-0 ${badgeBg}">${medal}</span>
+                  <span class="px-2 py-1 rounded-lg text-xs font-black shrink-0 ${badgeBg}">${rankLabel}</span>
                   <div class="min-w-0">
                     <div class="flex items-center gap-1.5 flex-wrap">
                       <span class="font-extrabold text-xs text-slate-800 dark:text-slate-100">${escapeHtml(q.asst.nickname || q.asst.name)}</span>
+                      ${genderBadge}
                       <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800">🟣 เวรนอกเวลา</span>
                     </div>
-                    <div class="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5">เวลามา: ${q.checkInTime} น. • รวมทั้งวัน: ${q.totalCaseCount} เคส</div>
+                    <div class="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5">${q.hasCheckInTime ? `เวลามา: ${q.checkInTime} น.` : 'ยังไม่เช็คชื่อ'} • รวมทั้งวัน: ${q.totalCaseCount} เคส</div>
                   </div>
                 </div>
                 <div class="text-right shrink-0 pl-2">
