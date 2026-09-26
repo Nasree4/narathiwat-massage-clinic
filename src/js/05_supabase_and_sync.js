@@ -319,8 +319,13 @@
           assistants = assistants.map(a => {
             const cloudAsst = cloudMap.get(a.id);
             if (cloudAsst) {
+              const canMassageVal = (cloudAsst.canMassage !== undefined) 
+                ? (cloudAsst.canMassage !== false) 
+                : ((cloudAsst.can_massage !== undefined) ? (cloudAsst.can_massage !== false) : (a.canMassage !== false));
               return {
                 ...a,
+                canMassage: canMassageVal,
+                can_massage: canMassageVal,
                 shiftType: cloudAsst.shiftType || a.shiftType,
                 slots: Array.isArray(cloudAsst.slots) ? cloudAsst.slots : a.slots,
                 active: cloudAsst.active !== undefined ? cloudAsst.active : a.active
@@ -328,6 +333,7 @@
             }
             return a;
           });
+          assistants = deduplicateAssistants(assistants);
           try { localStorage.setItem("ttm_assistants", JSON.stringify(assistants)); } catch(e) {}
           if (typeof populateAssistantsDropdown === "function") {
             populateAssistantsDropdown("new-assistant-select");
@@ -868,10 +874,18 @@
         if (deletedIds.has(newRec.id)) return;
 
         const idx = assistants.findIndex(a => a.id === newRec.id);
+        const canMassageVal = (newRec.can_massage !== undefined && newRec.can_massage !== null) 
+          ? (newRec.can_massage !== false)
+          : ((newRec.canMassage !== undefined && newRec.canMassage !== null)
+            ? (newRec.canMassage !== false)
+            : true);
+
         if (idx !== -1) {
           assistants[idx] = {
             ...assistants[idx],
             ...newRec,
+            canMassage: canMassageVal,
+            can_massage: canMassageVal,
             active: newRec.active !== false,
             shiftType: assistants[idx].shiftType || (newRec.active !== false ? 'full' : 'off'),
             slots: assistants[idx].slots || (newRec.active !== false ? [...ALL_WORKING_SLOTS] : [])
@@ -879,6 +893,8 @@
         } else {
           assistants.push({
             ...newRec,
+            canMassage: canMassageVal,
+            can_massage: canMassageVal,
             active: newRec.active !== false,
             shiftType: newRec.active !== false ? 'full' : 'off',
             slots: newRec.active !== false ? [...ALL_WORKING_SLOTS] : []
@@ -1161,9 +1177,19 @@
             const localMap = new Map((assistants || []).map(a => [a.id, a]));
             const cloudMapped = validCloudAssts.map(a => {
               const local = localMap.get(a.id);
+              const cloudCanMassage = (a.canMassage !== undefined && a.canMassage !== null)
+                ? (a.canMassage !== false)
+                : ((a.can_massage !== undefined && a.can_massage !== null)
+                  ? (a.can_massage !== false)
+                  : null);
+              const localCanMassage = (local && local.canMassage !== undefined) ? local.canMassage !== false : null;
+              const finalCanMassage = cloudCanMassage !== null ? cloudCanMassage : (localCanMassage !== null ? localCanMassage : true);
+
               return {
                 ...a,
                 active: a.active !== false,
+                canMassage: finalCanMassage,
+                can_massage: finalCanMassage,
                 shiftType: (local && local.shiftType) || (a.active !== false ? 'full' : 'off'),
                 slots: (local && Array.isArray(local.slots)) ? local.slots : (a.active !== false ? [...ALL_WORKING_SLOTS] : [])
               };
@@ -1241,8 +1267,12 @@
               else if (c.scope === "roster") assistantDutyRosters[c.config_key] = c.slots_json;
               else if (c.scope === "assistants" && c.config_key === "master_list" && Array.isArray(c.slots_json) && c.slots_json.length > 0) {
                 // Merge master shift configs from cloud & deduplicate
-                const cloudMaster = c.slots_json;
-                const combined = [...(assistants || []), ...cloudMaster];
+                const cloudMaster = c.slots_json.map(a => ({
+                  ...a,
+                  canMassage: (a.canMassage !== undefined ? a.canMassage !== false : (a.can_massage !== undefined ? a.can_massage !== false : true)),
+                  can_massage: (a.canMassage !== undefined ? a.canMassage !== false : (a.can_massage !== undefined ? a.can_massage !== false : true))
+                }));
+                const combined = [...cloudMaster, ...(assistants || [])];
                 assistants = deduplicateAssistants(combined);
                 try { localStorage.setItem("ttm_assistants", JSON.stringify(assistants)); } catch(e) {}
               }

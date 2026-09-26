@@ -1688,6 +1688,8 @@
       const safeAssistants = (assistants || []).map(a => ({
         id: a.id, name: a.name, nickname: a.nickname, gender: a.gender,
         phone: a.phone, email: a.email, role: a.role, active: a.active !== false,
+        canMassage: a.canMassage !== false,
+        can_massage: a.canMassage !== false,
         shiftType: a.shiftType || (a.active !== false ? 'full' : 'off'),
         slots: Array.isArray(a.slots) ? a.slots : (a.active !== false ? [...ALL_WORKING_SLOTS] : []),
         created_at: a.created_at

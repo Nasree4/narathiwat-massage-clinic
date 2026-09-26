@@ -771,9 +771,9 @@
           <h1 class="text-sm sm:text-base md:text-lg font-bold leading-tight tracking-wide flex items-center gap-1 sm:gap-1.5 flex-wrap">
             <span data-i18n="app_title">คลินิกการแพทย์แผนไทย</span>
             <span class="text-[10px] sm:text-[11px] font-normal px-2 py-0.5 bg-herbal-800/80 text-herbal-200 rounded-full border border-herbal-600 hidden sm:inline-block" data-i18n="service_status">เปิดบริการปกติ</span>
-            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.3 (คลิกเพื่อตรวจสอบการอัปเดต)">
+            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.4 (คลิกเพื่อตรวจสอบการอัปเดต)">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span id="app-header-version-tag">v5.5.3</span>
+              <span id="app-header-version-tag">v5.5.4</span>
             </button>
           </h1>
           <p class="text-[11px] sm:text-xs text-herbal-200 font-light" data-i18n="app_hospital">
@@ -2644,7 +2644,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="font-medium text-slate-700 dark:text-slate-300">คลินิกการแพทย์แผนไทย รพ.นราธิวาสราชนครินทร์</span>
         <span class="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
-        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.3</span>
+        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.4</span>
         <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">ล่าสุด</span>
       </div>
       <div class="flex items-center gap-2">
@@ -2870,7 +2870,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                 <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">26 กันยายน 2569</span></p>
               </div>
             </div>
-            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.3</span>
+            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.4</span>
           </div>
 
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/70 text-xs">
@@ -2889,7 +2889,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       
       <!-- Modal Footer -->
       <div class="bg-slate-50 dark:bg-slate-800/80 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between flex-shrink-0">
-        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.3</span></span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.4</span></span>
         <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold transition" data-i18n="btn_close">
           ปิดหน้าต่าง
         </button>
@@ -6009,7 +6009,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.5.3";
+    const APP_VERSION = "v5.5.4";
     const APP_BUILD_DATE = "26 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
@@ -6184,6 +6184,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
             if (asst.slots && Array.isArray(asst.slots) && asst.slots.length > 0) existing.slots = asst.slots;
             if (asst.shiftType && !existing.shiftType) existing.shiftType = asst.shiftType;
             if (asst.active !== undefined && existing.active === undefined) existing.active = asst.active;
+            if (asst.canMassage !== undefined) existing.canMassage = asst.canMassage !== false;
+            else if (asst.can_massage !== undefined) existing.canMassage = asst.can_massage !== false;
           }
           continue;
         }
@@ -6196,8 +6198,12 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           if (asst.slots && Array.isArray(asst.slots) && asst.slots.length > 0) existing.slots = asst.slots;
           if (asst.shiftType && !existing.shiftType) existing.shiftType = asst.shiftType;
           if (asst.active !== undefined && existing.active === undefined) existing.active = asst.active;
+          if (asst.canMassage !== undefined) existing.canMassage = asst.canMassage !== false;
+          else if (asst.can_massage !== undefined) existing.canMassage = asst.can_massage !== false;
           continue;
         }
+
+        const canMassageVal = (asst.canMassage !== undefined ? asst.canMassage !== false : (asst.can_massage !== undefined ? asst.can_massage !== false : true));
 
         const cleaned = {
           ...asst,
@@ -6209,6 +6215,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           phone: asst.phone || "",
           email: asst.email || "",
           active: asst.active !== false,
+          canMassage: canMassageVal,
+          can_massage: canMassageVal,
           shiftType: (asst.shiftType && asst.shiftType !== 'off') ? asst.shiftType : 'full',
           slots: Array.isArray(asst.slots) && asst.slots.length > 0 ? asst.slots : [...(typeof ALL_WORKING_SLOTS !== 'undefined' ? ALL_WORKING_SLOTS : ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"])],
           created_at: asst.created_at || new Date().toISOString()
@@ -8824,8 +8832,13 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           assistants = assistants.map(a => {
             const cloudAsst = cloudMap.get(a.id);
             if (cloudAsst) {
+              const canMassageVal = (cloudAsst.canMassage !== undefined) 
+                ? (cloudAsst.canMassage !== false) 
+                : ((cloudAsst.can_massage !== undefined) ? (cloudAsst.can_massage !== false) : (a.canMassage !== false));
               return {
                 ...a,
+                canMassage: canMassageVal,
+                can_massage: canMassageVal,
                 shiftType: cloudAsst.shiftType || a.shiftType,
                 slots: Array.isArray(cloudAsst.slots) ? cloudAsst.slots : a.slots,
                 active: cloudAsst.active !== undefined ? cloudAsst.active : a.active
@@ -8833,6 +8846,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
             }
             return a;
           });
+          assistants = deduplicateAssistants(assistants);
           try { localStorage.setItem("ttm_assistants", JSON.stringify(assistants)); } catch(e) {}
           if (typeof populateAssistantsDropdown === "function") {
             populateAssistantsDropdown("new-assistant-select");
@@ -9373,10 +9387,18 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         if (deletedIds.has(newRec.id)) return;
 
         const idx = assistants.findIndex(a => a.id === newRec.id);
+        const canMassageVal = (newRec.can_massage !== undefined && newRec.can_massage !== null) 
+          ? (newRec.can_massage !== false)
+          : ((newRec.canMassage !== undefined && newRec.canMassage !== null)
+            ? (newRec.canMassage !== false)
+            : true);
+
         if (idx !== -1) {
           assistants[idx] = {
             ...assistants[idx],
             ...newRec,
+            canMassage: canMassageVal,
+            can_massage: canMassageVal,
             active: newRec.active !== false,
             shiftType: assistants[idx].shiftType || (newRec.active !== false ? 'full' : 'off'),
             slots: assistants[idx].slots || (newRec.active !== false ? [...ALL_WORKING_SLOTS] : [])
@@ -9384,6 +9406,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         } else {
           assistants.push({
             ...newRec,
+            canMassage: canMassageVal,
+            can_massage: canMassageVal,
             active: newRec.active !== false,
             shiftType: newRec.active !== false ? 'full' : 'off',
             slots: newRec.active !== false ? [...ALL_WORKING_SLOTS] : []
@@ -9666,9 +9690,19 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
             const localMap = new Map((assistants || []).map(a => [a.id, a]));
             const cloudMapped = validCloudAssts.map(a => {
               const local = localMap.get(a.id);
+              const cloudCanMassage = (a.canMassage !== undefined && a.canMassage !== null)
+                ? (a.canMassage !== false)
+                : ((a.can_massage !== undefined && a.can_massage !== null)
+                  ? (a.can_massage !== false)
+                  : null);
+              const localCanMassage = (local && local.canMassage !== undefined) ? local.canMassage !== false : null;
+              const finalCanMassage = cloudCanMassage !== null ? cloudCanMassage : (localCanMassage !== null ? localCanMassage : true);
+
               return {
                 ...a,
                 active: a.active !== false,
+                canMassage: finalCanMassage,
+                can_massage: finalCanMassage,
                 shiftType: (local && local.shiftType) || (a.active !== false ? 'full' : 'off'),
                 slots: (local && Array.isArray(local.slots)) ? local.slots : (a.active !== false ? [...ALL_WORKING_SLOTS] : [])
               };
@@ -9746,8 +9780,12 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
               else if (c.scope === "roster") assistantDutyRosters[c.config_key] = c.slots_json;
               else if (c.scope === "assistants" && c.config_key === "master_list" && Array.isArray(c.slots_json) && c.slots_json.length > 0) {
                 // Merge master shift configs from cloud & deduplicate
-                const cloudMaster = c.slots_json;
-                const combined = [...(assistants || []), ...cloudMaster];
+                const cloudMaster = c.slots_json.map(a => ({
+                  ...a,
+                  canMassage: (a.canMassage !== undefined ? a.canMassage !== false : (a.can_massage !== undefined ? a.can_massage !== false : true)),
+                  can_massage: (a.canMassage !== undefined ? a.canMassage !== false : (a.can_massage !== undefined ? a.can_massage !== false : true))
+                }));
+                const combined = [...cloudMaster, ...(assistants || [])];
                 assistants = deduplicateAssistants(combined);
                 try { localStorage.setItem("ttm_assistants", JSON.stringify(assistants)); } catch(e) {}
               }
@@ -19613,6 +19651,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       const safeAssistants = (assistants || []).map(a => ({
         id: a.id, name: a.name, nickname: a.nickname, gender: a.gender,
         phone: a.phone, email: a.email, role: a.role, active: a.active !== false,
+        canMassage: a.canMassage !== false,
+        can_massage: a.canMassage !== false,
         shiftType: a.shiftType || (a.active !== false ? 'full' : 'off'),
         slots: Array.isArray(a.slots) ? a.slots : (a.active !== false ? [...ALL_WORKING_SLOTS] : []),
         created_at: a.created_at

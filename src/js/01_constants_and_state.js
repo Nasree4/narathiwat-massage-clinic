@@ -7,7 +7,7 @@
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.5.3";
+    const APP_VERSION = "v5.5.4";
     const APP_BUILD_DATE = "26 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
@@ -182,6 +182,8 @@
             if (asst.slots && Array.isArray(asst.slots) && asst.slots.length > 0) existing.slots = asst.slots;
             if (asst.shiftType && !existing.shiftType) existing.shiftType = asst.shiftType;
             if (asst.active !== undefined && existing.active === undefined) existing.active = asst.active;
+            if (asst.canMassage !== undefined) existing.canMassage = asst.canMassage !== false;
+            else if (asst.can_massage !== undefined) existing.canMassage = asst.can_massage !== false;
           }
           continue;
         }
@@ -194,8 +196,12 @@
           if (asst.slots && Array.isArray(asst.slots) && asst.slots.length > 0) existing.slots = asst.slots;
           if (asst.shiftType && !existing.shiftType) existing.shiftType = asst.shiftType;
           if (asst.active !== undefined && existing.active === undefined) existing.active = asst.active;
+          if (asst.canMassage !== undefined) existing.canMassage = asst.canMassage !== false;
+          else if (asst.can_massage !== undefined) existing.canMassage = asst.can_massage !== false;
           continue;
         }
+
+        const canMassageVal = (asst.canMassage !== undefined ? asst.canMassage !== false : (asst.can_massage !== undefined ? asst.can_massage !== false : true));
 
         const cleaned = {
           ...asst,
@@ -207,6 +213,8 @@
           phone: asst.phone || "",
           email: asst.email || "",
           active: asst.active !== false,
+          canMassage: canMassageVal,
+          can_massage: canMassageVal,
           shiftType: (asst.shiftType && asst.shiftType !== 'off') ? asst.shiftType : 'full',
           slots: Array.isArray(asst.slots) && asst.slots.length > 0 ? asst.slots : [...(typeof ALL_WORKING_SLOTS !== 'undefined' ? ALL_WORKING_SLOTS : ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"])],
           created_at: asst.created_at || new Date().toISOString()
