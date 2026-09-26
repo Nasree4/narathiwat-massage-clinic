@@ -10,12 +10,7 @@
       const asst = assistants.find(a => a.id === asstId);
       if (!asst) return;
 
-      if (shiftType !== 'off') {
-        asst.shiftType = shiftType;
-      }
-      asst.active = true;
-
-      const targetDate = (typeof currentRosterDate !== "undefined" && currentRosterDate) ? currentRosterDate : (typeof getTodayDateString === "function" ? getTodayDateString() : "");
+      const targetDate = document.getElementById("manage-selected-date")?.value || (typeof currentRosterDate !== "undefined" && currentRosterDate) || (typeof getTodayDateString === "function" ? getTodayDateString() : "");
       const isToday = (typeof getTodayDateString === "function" && targetDate === getTodayDateString());
       const isLeave = (shiftType === 'off');
 
@@ -32,13 +27,17 @@
 
       if (isToday) {
         asst.slots = isLeave ? [] : slots;
+        if (!isLeave) {
+          asst.shiftType = shiftType;
+        }
       }
+      asst.active = true;
 
       // Synchronize active date roster if assistant is in the roster matrix
       if (typeof assistantDutyRosters !== "undefined" && targetDate) {
         if (!assistantDutyRosters[targetDate]) assistantDutyRosters[targetDate] = {};
         assistantDutyRosters[targetDate][asstId] = {
-          slots: isLeave ? [] : slots,
+          slots: isLeave ? [] : [...slots],
           checkInTime: isLeave ? "" : "08:00 น.",
           shiftType: shiftType,
           isExplicitlyEmpty: isLeave
@@ -132,11 +131,12 @@
         if (supabaseClient) {
           try {
             await supabaseClient.from("slot_configs").upsert({
+              id: "roster_" + targetDate,
               config_key: targetDate,
               scope: "roster",
               slots_json: assistantDutyRosters[targetDate],
               updated_at: new Date().toISOString()
-            });
+            }, { onConflict: "id" });
           } catch(err) {
             console.warn("Supabase bulk roster save error:", err);
           }
@@ -1424,11 +1424,12 @@
           if (supabaseClient) {
             try {
               await supabaseClient.from("slot_configs").upsert({
+                id: "roster_" + d,
                 config_key: d,
                 scope: "roster",
                 slots_json: assistantDutyRosters[d],
                 updated_at: new Date().toISOString()
-              });
+              }, { onConflict: "id" });
             } catch(err) {
               console.warn("Supabase roster save error for " + d, err);
             }
@@ -2356,14 +2357,23 @@
 
     function normalizeAssistantRosterEntry(entry, defaultSlots = []) {
       if (!entry) {
-        return { checkInTime: getCurrentTimeString(), slots: [] };
+        return { checkInTime: "", slots: [], shiftType: "off", isExplicitlyEmpty: true };
       }
       if (Array.isArray(entry)) {
-        return { checkInTime: "08:00", slots: entry };
+        const isOff = entry.length === 0;
+        return { 
+          checkInTime: isOff ? "" : "08:00 น.", 
+          slots: isOff ? [] : entry, 
+          shiftType: isOff ? "off" : "full", 
+          isExplicitlyEmpty: isOff 
+        };
       }
+      const isLeave = Boolean(entry.shiftType === "off" || entry.isExplicitlyEmpty === true || (Array.isArray(entry.slots) && entry.slots.length === 0 && entry.isExplicitlyEmpty !== false));
       return {
-        checkInTime: entry.checkInTime || getCurrentTimeString(),
-        slots: Array.isArray(entry.slots) ? entry.slots : []
+        checkInTime: entry.checkInTime || (isLeave ? "" : "08:00 น."),
+        slots: isLeave ? [] : (Array.isArray(entry.slots) ? entry.slots : (Array.isArray(defaultSlots) ? defaultSlots : [])),
+        shiftType: isLeave ? "off" : (entry.shiftType || "full"),
+        isExplicitlyEmpty: isLeave
       };
     }
 
@@ -2762,8 +2772,8 @@
         const entry = normalizeAssistantRosterEntry(rosterObj[asstId], effectiveSlots);
         const shiftSlots = getAssistantWorkSlots(asst);
         let checkedSlots = entry.slots;
-        // If slots is empty and hasn't been explicitly cleared to empty by user, initialize from shift schedule
-        if (!Array.isArray(checkedSlots) || (checkedSlots.length === 0 && entry.isExplicitlyEmpty !== true)) {
+        // If slots is empty and hasn't been explicitly cleared to empty/leave by user, initialize from shift schedule
+        if (!Array.isArray(checkedSlots) || (checkedSlots.length === 0 && entry.isExplicitlyEmpty !== true && entry.shiftType !== 'off')) {
           checkedSlots = [...shiftSlots];
           entry.slots = checkedSlots;
           rosterObj[asstId] = entry;
@@ -3222,8 +3232,12 @@
 
       if (curSlots.length === effectiveSlots.length) {
         entry.slots = [];
+        entry.isExplicitlyEmpty = true;
+        entry.shiftType = 'off';
       } else {
         entry.slots = [...effectiveSlots];
+        entry.isExplicitlyEmpty = false;
+        entry.shiftType = 'full';
       }
       assistantDutyRosters[currentRosterDate][asstId] = entry;
 

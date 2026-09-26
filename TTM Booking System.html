@@ -771,9 +771,9 @@
           <h1 class="text-sm sm:text-base md:text-lg font-bold leading-tight tracking-wide flex items-center gap-1 sm:gap-1.5 flex-wrap">
             <span data-i18n="app_title">คลินิกการแพทย์แผนไทย</span>
             <span class="text-[10px] sm:text-[11px] font-normal px-2 py-0.5 bg-herbal-800/80 text-herbal-200 rounded-full border border-herbal-600 hidden sm:inline-block" data-i18n="service_status">เปิดบริการปกติ</span>
-            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.4.6 (คลิกเพื่อตรวจสอบการอัปเดต)">
+            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.4.7 (คลิกเพื่อตรวจสอบการอัปเดต)">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span id="app-header-version-tag">v5.4.6</span>
+              <span id="app-header-version-tag">v5.4.7</span>
             </button>
           </h1>
           <p class="text-[11px] sm:text-xs text-herbal-200 font-light" data-i18n="app_hospital">
@@ -2638,7 +2638,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="font-medium text-slate-700 dark:text-slate-300">คลินิกการแพทย์แผนไทย รพ.นราธิวาสราชนครินทร์</span>
         <span class="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
-        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.4.6</span>
+        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.4.7</span>
         <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">ล่าสุด</span>
       </div>
       <div class="flex items-center gap-2">
@@ -2855,7 +2855,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                 <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">26 กันยายน 2569</span></p>
               </div>
             </div>
-            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.4.6</span>
+            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.4.7</span>
           </div>
 
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/70 text-xs">
@@ -2874,7 +2874,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       
       <!-- Modal Footer -->
       <div class="bg-slate-50 dark:bg-slate-800/80 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between flex-shrink-0">
-        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.4.6</span></span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.4.7</span></span>
         <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold transition" data-i18n="btn_close">
           ปิดหน้าต่าง
         </button>
@@ -5809,7 +5809,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.4.6";
+    const APP_VERSION = "v5.4.7";
     const APP_BUILD_DATE = "26 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
@@ -19296,12 +19296,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       const asst = assistants.find(a => a.id === asstId);
       if (!asst) return;
 
-      if (shiftType !== 'off') {
-        asst.shiftType = shiftType;
-      }
-      asst.active = true;
-
-      const targetDate = (typeof currentRosterDate !== "undefined" && currentRosterDate) ? currentRosterDate : (typeof getTodayDateString === "function" ? getTodayDateString() : "");
+      const targetDate = document.getElementById("manage-selected-date")?.value || (typeof currentRosterDate !== "undefined" && currentRosterDate) || (typeof getTodayDateString === "function" ? getTodayDateString() : "");
       const isToday = (typeof getTodayDateString === "function" && targetDate === getTodayDateString());
       const isLeave = (shiftType === 'off');
 
@@ -19318,13 +19313,17 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
       if (isToday) {
         asst.slots = isLeave ? [] : slots;
+        if (!isLeave) {
+          asst.shiftType = shiftType;
+        }
       }
+      asst.active = true;
 
       // Synchronize active date roster if assistant is in the roster matrix
       if (typeof assistantDutyRosters !== "undefined" && targetDate) {
         if (!assistantDutyRosters[targetDate]) assistantDutyRosters[targetDate] = {};
         assistantDutyRosters[targetDate][asstId] = {
-          slots: isLeave ? [] : slots,
+          slots: isLeave ? [] : [...slots],
           checkInTime: isLeave ? "" : "08:00 น.",
           shiftType: shiftType,
           isExplicitlyEmpty: isLeave
@@ -19418,11 +19417,12 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         if (supabaseClient) {
           try {
             await supabaseClient.from("slot_configs").upsert({
+              id: "roster_" + targetDate,
               config_key: targetDate,
               scope: "roster",
               slots_json: assistantDutyRosters[targetDate],
               updated_at: new Date().toISOString()
-            });
+            }, { onConflict: "id" });
           } catch(err) {
             console.warn("Supabase bulk roster save error:", err);
           }
@@ -20710,11 +20710,12 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           if (supabaseClient) {
             try {
               await supabaseClient.from("slot_configs").upsert({
+                id: "roster_" + d,
                 config_key: d,
                 scope: "roster",
                 slots_json: assistantDutyRosters[d],
                 updated_at: new Date().toISOString()
-              });
+              }, { onConflict: "id" });
             } catch(err) {
               console.warn("Supabase roster save error for " + d, err);
             }
@@ -21642,14 +21643,23 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
     function normalizeAssistantRosterEntry(entry, defaultSlots = []) {
       if (!entry) {
-        return { checkInTime: getCurrentTimeString(), slots: [] };
+        return { checkInTime: "", slots: [], shiftType: "off", isExplicitlyEmpty: true };
       }
       if (Array.isArray(entry)) {
-        return { checkInTime: "08:00", slots: entry };
+        const isOff = entry.length === 0;
+        return { 
+          checkInTime: isOff ? "" : "08:00 น.", 
+          slots: isOff ? [] : entry, 
+          shiftType: isOff ? "off" : "full", 
+          isExplicitlyEmpty: isOff 
+        };
       }
+      const isLeave = Boolean(entry.shiftType === "off" || entry.isExplicitlyEmpty === true || (Array.isArray(entry.slots) && entry.slots.length === 0 && entry.isExplicitlyEmpty !== false));
       return {
-        checkInTime: entry.checkInTime || getCurrentTimeString(),
-        slots: Array.isArray(entry.slots) ? entry.slots : []
+        checkInTime: entry.checkInTime || (isLeave ? "" : "08:00 น."),
+        slots: isLeave ? [] : (Array.isArray(entry.slots) ? entry.slots : (Array.isArray(defaultSlots) ? defaultSlots : [])),
+        shiftType: isLeave ? "off" : (entry.shiftType || "full"),
+        isExplicitlyEmpty: isLeave
       };
     }
 
@@ -22048,8 +22058,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         const entry = normalizeAssistantRosterEntry(rosterObj[asstId], effectiveSlots);
         const shiftSlots = getAssistantWorkSlots(asst);
         let checkedSlots = entry.slots;
-        // If slots is empty and hasn't been explicitly cleared to empty by user, initialize from shift schedule
-        if (!Array.isArray(checkedSlots) || (checkedSlots.length === 0 && entry.isExplicitlyEmpty !== true)) {
+        // If slots is empty and hasn't been explicitly cleared to empty/leave by user, initialize from shift schedule
+        if (!Array.isArray(checkedSlots) || (checkedSlots.length === 0 && entry.isExplicitlyEmpty !== true && entry.shiftType !== 'off')) {
           checkedSlots = [...shiftSlots];
           entry.slots = checkedSlots;
           rosterObj[asstId] = entry;
@@ -22508,8 +22518,12 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
       if (curSlots.length === effectiveSlots.length) {
         entry.slots = [];
+        entry.isExplicitlyEmpty = true;
+        entry.shiftType = 'off';
       } else {
         entry.slots = [...effectiveSlots];
+        entry.isExplicitlyEmpty = false;
+        entry.shiftType = 'full';
       }
       assistantDutyRosters[currentRosterDate][asstId] = entry;
 
