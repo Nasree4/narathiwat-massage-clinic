@@ -518,17 +518,26 @@
       const massageEntry = (apt.statusHistory || []).find(h => (h.status || "").startsWith("🟣") || ((h.status || "").includes("ห้อง") && !(h.status || "").startsWith("🔵") && !(h.status || "").includes("รอ")));
       const doneEntry = (apt.statusHistory || []).find(h => (h.status || "").includes("กลับบ้าน") || (h.status || "").includes("ส่งต่อ"));
 
-      // Real start timestamp priority: apt.treatmentStartTime -> massageEntry.timestamp
-      const startIso = apt.treatmentStartTime || (massageEntry ? massageEntry.timestamp : null);
-      if (!startIso) return "";
-
-      const startD = new Date(startIso);
-      if (isNaN(startD.getTime())) return "";
-      const sH = String(startD.getHours()).padStart(2, '0');
-      const sM = String(startD.getMinutes()).padStart(2, '0');
-      const startTimeStr = `${sH}.${sM} น.`;
-
+      const isMassaging = (apt.status || "").startsWith("🟣") || ((apt.status || "").includes("ห้อง") && !(apt.status || "").startsWith("🔵") && !(apt.status || "").includes("รอ"));
       const isDone = (apt.status || "").includes("กลับบ้าน") || (apt.status || "").includes("ส่งต่อ") || Boolean(doneEntry);
+
+      // If currently massaging and treatmentStartTime is not set, initialize it with real action timestamp
+      if (isMassaging && !apt.treatmentStartTime) {
+        apt.treatmentStartTime = massageEntry ? massageEntry.timestamp : new Date().toISOString();
+      }
+
+      // Real start timestamp priority: apt.treatmentStartTime -> massageEntry.timestamp
+      let startIso = apt.treatmentStartTime || (massageEntry ? massageEntry.timestamp : null);
+      if (!startIso && !isDone) return "";
+
+      let startTimeStr = "-";
+      let startD = startIso ? new Date(startIso) : null;
+      if (startD && !isNaN(startD.getTime())) {
+        const sH = String(startD.getHours()).padStart(2, '0');
+        const sM = String(startD.getMinutes()).padStart(2, '0');
+        startTimeStr = `${sH}.${sM} น.`;
+      }
+
       const endIso = apt.treatmentEndTime || (doneEntry ? doneEntry.timestamp : null);
 
       if (isDone) {
@@ -551,7 +560,7 @@
         `;
       } else {
         const durationMin = (apt.slotsOccupied && apt.slotsOccupied.length > 1) ? 120 : 60;
-        const expD = new Date(startD.getTime() + durationMin * 60000);
+        const expD = new Date((startD ? startD.getTime() : Date.now()) + durationMin * 60000);
         const expH = String(expD.getHours()).padStart(2, '0');
         const expM = String(expD.getMinutes()).padStart(2, '0');
         const expEndTimeStr = `${expH}.${expM} น.`;
@@ -560,7 +569,7 @@
             <i data-lucide="play" class="w-3 h-3 text-purple-700 dark:text-purple-300 shrink-0"></i>
             <span>เริ่ม ${startTimeStr}</span>
           </span>
-          <span class="inline-flex items-center gap-1 text-[11px] font-black text-amber-950 dark:text-amber-100 bg-amber-100 dark:bg-amber-950 px-2 py-0.5 rounded-md border border-amber-400 dark:border-amber-600 shadow-2xs whitespace-nowrap" title="คาดว่าจะสิ้นสุดการนวด">
+          <span class="inline-flex items-center gap-1 text-[11px] font-black text-amber-950 dark:text-amber-100 bg-amber-100 dark:bg-amber-950 px-2 py-0.5 rounded-md border border-amber-400 dark:border-amber-600 shadow-2xs whitespace-nowrap" title="คาดว่าจะสิ้นสุดการนวด (คำนวณจากเวลาเริ่มจริง)">
             <i data-lucide="clock" class="w-3 h-3 text-amber-700 dark:text-amber-300 shrink-0"></i>
             <span>สิ้นสุด ~${expEndTimeStr}</span>
           </span>

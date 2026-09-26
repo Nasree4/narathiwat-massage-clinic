@@ -7,3 +7,6 @@ Password.txt
 Thumbs.db
 node_modules/
 *.bak
+
+.vercel
+.env*

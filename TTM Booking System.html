@@ -771,9 +771,9 @@
           <h1 class="text-sm sm:text-base md:text-lg font-bold leading-tight tracking-wide flex items-center gap-1 sm:gap-1.5 flex-wrap">
             <span data-i18n="app_title">คลินิกการแพทย์แผนไทย</span>
             <span class="text-[10px] sm:text-[11px] font-normal px-2 py-0.5 bg-herbal-800/80 text-herbal-200 rounded-full border border-herbal-600 hidden sm:inline-block" data-i18n="service_status">เปิดบริการปกติ</span>
-            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.4.5 (คลิกเพื่อตรวจสอบการอัปเดต)">
+            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.4.6 (คลิกเพื่อตรวจสอบการอัปเดต)">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span id="app-header-version-tag">v5.4.5</span>
+              <span id="app-header-version-tag">v5.4.6</span>
             </button>
           </h1>
           <p class="text-[11px] sm:text-xs text-herbal-200 font-light" data-i18n="app_hospital">
@@ -2638,7 +2638,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="font-medium text-slate-700 dark:text-slate-300">คลินิกการแพทย์แผนไทย รพ.นราธิวาสราชนครินทร์</span>
         <span class="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
-        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.4.5</span>
+        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.4.6</span>
         <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">ล่าสุด</span>
       </div>
       <div class="flex items-center gap-2">
@@ -2855,7 +2855,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                 <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">26 กันยายน 2569</span></p>
               </div>
             </div>
-            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.4.5</span>
+            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.4.6</span>
           </div>
 
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/70 text-xs">
@@ -2874,7 +2874,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       
       <!-- Modal Footer -->
       <div class="bg-slate-50 dark:bg-slate-800/80 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between flex-shrink-0">
-        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.4.5</span></span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.4.6</span></span>
         <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold transition" data-i18n="btn_close">
           ปิดหน้าต่าง
         </button>
@@ -5809,7 +5809,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.4.5";
+    const APP_VERSION = "v5.4.6";
     const APP_BUILD_DATE = "26 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
@@ -7079,17 +7079,26 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       const massageEntry = (apt.statusHistory || []).find(h => (h.status || "").startsWith("🟣") || ((h.status || "").includes("ห้อง") && !(h.status || "").startsWith("🔵") && !(h.status || "").includes("รอ")));
       const doneEntry = (apt.statusHistory || []).find(h => (h.status || "").includes("กลับบ้าน") || (h.status || "").includes("ส่งต่อ"));
 
-      // Real start timestamp priority: apt.treatmentStartTime -> massageEntry.timestamp
-      const startIso = apt.treatmentStartTime || (massageEntry ? massageEntry.timestamp : null);
-      if (!startIso) return "";
-
-      const startD = new Date(startIso);
-      if (isNaN(startD.getTime())) return "";
-      const sH = String(startD.getHours()).padStart(2, '0');
-      const sM = String(startD.getMinutes()).padStart(2, '0');
-      const startTimeStr = `${sH}.${sM} น.`;
-
+      const isMassaging = (apt.status || "").startsWith("🟣") || ((apt.status || "").includes("ห้อง") && !(apt.status || "").startsWith("🔵") && !(apt.status || "").includes("รอ"));
       const isDone = (apt.status || "").includes("กลับบ้าน") || (apt.status || "").includes("ส่งต่อ") || Boolean(doneEntry);
+
+      // If currently massaging and treatmentStartTime is not set, initialize it with real action timestamp
+      if (isMassaging && !apt.treatmentStartTime) {
+        apt.treatmentStartTime = massageEntry ? massageEntry.timestamp : new Date().toISOString();
+      }
+
+      // Real start timestamp priority: apt.treatmentStartTime -> massageEntry.timestamp
+      let startIso = apt.treatmentStartTime || (massageEntry ? massageEntry.timestamp : null);
+      if (!startIso && !isDone) return "";
+
+      let startTimeStr = "-";
+      let startD = startIso ? new Date(startIso) : null;
+      if (startD && !isNaN(startD.getTime())) {
+        const sH = String(startD.getHours()).padStart(2, '0');
+        const sM = String(startD.getMinutes()).padStart(2, '0');
+        startTimeStr = `${sH}.${sM} น.`;
+      }
+
       const endIso = apt.treatmentEndTime || (doneEntry ? doneEntry.timestamp : null);
 
       if (isDone) {
@@ -7112,7 +7121,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         `;
       } else {
         const durationMin = (apt.slotsOccupied && apt.slotsOccupied.length > 1) ? 120 : 60;
-        const expD = new Date(startD.getTime() + durationMin * 60000);
+        const expD = new Date((startD ? startD.getTime() : Date.now()) + durationMin * 60000);
         const expH = String(expD.getHours()).padStart(2, '0');
         const expM = String(expD.getMinutes()).padStart(2, '0');
         const expEndTimeStr = `${expH}.${expM} น.`;
@@ -7121,7 +7130,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
             <i data-lucide="play" class="w-3 h-3 text-purple-700 dark:text-purple-300 shrink-0"></i>
             <span>เริ่ม ${startTimeStr}</span>
           </span>
-          <span class="inline-flex items-center gap-1 text-[11px] font-black text-amber-950 dark:text-amber-100 bg-amber-100 dark:bg-amber-950 px-2 py-0.5 rounded-md border border-amber-400 dark:border-amber-600 shadow-2xs whitespace-nowrap" title="คาดว่าจะสิ้นสุดการนวด">
+          <span class="inline-flex items-center gap-1 text-[11px] font-black text-amber-950 dark:text-amber-100 bg-amber-100 dark:bg-amber-950 px-2 py-0.5 rounded-md border border-amber-400 dark:border-amber-600 shadow-2xs whitespace-nowrap" title="คาดว่าจะสิ้นสุดการนวด (คำนวณจากเวลาเริ่มจริง)">
             <i data-lucide="clock" class="w-3 h-3 text-amber-700 dark:text-amber-300 shrink-0"></i>
             <span>สิ้นสุด ~${expEndTimeStr}</span>
           </span>
