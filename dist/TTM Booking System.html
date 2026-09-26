@@ -771,9 +771,9 @@
           <h1 class="text-sm sm:text-base md:text-lg font-bold leading-tight tracking-wide flex items-center gap-1 sm:gap-1.5 flex-wrap">
             <span data-i18n="app_title">คลินิกการแพทย์แผนไทย</span>
             <span class="text-[10px] sm:text-[11px] font-normal px-2 py-0.5 bg-herbal-800/80 text-herbal-200 rounded-full border border-herbal-600 hidden sm:inline-block" data-i18n="service_status">เปิดบริการปกติ</span>
-            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.2 (คลิกเพื่อตรวจสอบการอัปเดต)">
+            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.3 (คลิกเพื่อตรวจสอบการอัปเดต)">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span id="app-header-version-tag">v5.5.2</span>
+              <span id="app-header-version-tag">v5.5.3</span>
             </button>
           </h1>
           <p class="text-[11px] sm:text-xs text-herbal-200 font-light" data-i18n="app_hospital">
@@ -1861,6 +1861,12 @@
                   <option value="staff">🩺 Staff</option>
                   <option value="admin">🛡️ Admin</option>
                 </select>
+
+                <select id="asst-filter-massage" onchange="renderManageShifts()" class="px-2.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-herbal-500 transition cursor-pointer">
+                  <option value="all">หน้าที่: ทั้งหมด</option>
+                  <option value="massage">💆 เฉพาะที่นวด</option>
+                  <option value="no_massage">🚫 ไม่ได้นวด (แอดมิน/อื่นๆ)</option>
+                </select>
               </div>
             </div>
 
@@ -2638,7 +2644,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="font-medium text-slate-700 dark:text-slate-300">คลินิกการแพทย์แผนไทย รพ.นราธิวาสราชนครินทร์</span>
         <span class="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
-        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.2</span>
+        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.3</span>
         <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">ล่าสุด</span>
       </div>
       <div class="flex items-center gap-2">
@@ -2864,7 +2870,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                 <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">26 กันยายน 2569</span></p>
               </div>
             </div>
-            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.2</span>
+            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.3</span>
           </div>
 
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/70 text-xs">
@@ -2883,7 +2889,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       
       <!-- Modal Footer -->
       <div class="bg-slate-50 dark:bg-slate-800/80 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between flex-shrink-0">
-        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.2</span></span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.3</span></span>
         <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold transition" data-i18n="btn_close">
           ปิดหน้าต่าง
         </button>
@@ -3601,6 +3607,23 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           </select>
         </div>
 
+        <div>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">หน้าที่การนวด (เปิดรับคิวจอง / ตารางจัดคิว)</label>
+          <div class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80">
+            <div class="flex items-center space-x-2">
+              <span class="text-lg" id="new-asst-can-massage-icon">💆</span>
+              <div>
+                <div class="text-xs font-bold text-slate-800 dark:text-slate-100" id="new-asst-can-massage-title">ปฏิบัติหน้าที่นวด</div>
+                <div class="text-[10.5px] text-slate-500 dark:text-slate-400" id="new-asst-can-massage-desc">เปิดให้คนไข้จองคิวและมีชื่อในตารางจัดคิวนวด</div>
+              </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer shrink-0">
+              <input type="checkbox" id="new-asst-can-massage" checked onchange="updateCanMassageToggleLabel('new')" class="sr-only peer">
+              <div class="w-10 h-5.5 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-600"></div>
+            </label>
+          </div>
+        </div>
+
         <div class="pt-2 flex items-center space-x-2">
           <button type="button" onclick="closeAddAssistantModal()" class="flex-1 py-2.5 bg-slate-100 dark:bg-slate-750 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-lg transition text-center cursor-pointer">
             ยกเลิก
@@ -3987,6 +4010,23 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
               <div>
                 <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Email (ใช้ล็อกอิน)</label>
                 <input type="email" id="modal-profile-email" placeholder="staff@ttm.clinic" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl outline-none bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-2 focus:ring-herbal-500">
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">หน้าที่การนวด (เปิดรับคิวจอง / ตารางจัดคิว)</label>
+              <div class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80">
+                <div class="flex items-center space-x-2">
+                  <span class="text-lg" id="modal-profile-can-massage-icon">💆</span>
+                  <div>
+                    <div class="text-xs font-bold text-slate-800 dark:text-slate-100" id="modal-profile-can-massage-title">ปฏิบัติหน้าที่นวด</div>
+                    <div class="text-[10.5px] text-slate-500 dark:text-slate-400" id="modal-profile-can-massage-desc">เปิดให้คนไข้จองคิวและมีชื่อในตารางจัดคิวนวด</div>
+                  </div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input type="checkbox" id="modal-profile-can-massage" checked onchange="updateCanMassageToggleLabel('edit')" class="sr-only peer">
+                  <div class="w-10 h-5.5 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
               </div>
             </div>
 
@@ -5969,7 +6009,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.5.2";
+    const APP_VERSION = "v5.5.3";
     const APP_BUILD_DATE = "26 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
@@ -12626,7 +12666,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     }
 
     function getGenderAvailability(dateStr, timeSlot, checkTwoSlots = false, excludeAppointmentId = null) {
-      const activeStaff = (assistants || []).filter(a => a.active !== false);
+      const activeStaff = (assistants || []).filter(a => a.active !== false && a.canMassage !== false);
       const activeFemales = activeStaff.filter(isFemaleAssistant);
       const activeMales = activeStaff.filter(isMaleAssistant);
 
@@ -12785,8 +12825,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       }
 
       return (assistants || []).filter(asst => {
-        // 1. Must be active clinic staff
-        if (!asst || asst.active === false) return false;
+        // 1. Must be active clinic staff and perform massage
+        if (!asst || asst.active === false || asst.canMassage === false) return false;
 
         // 2. Must not be on leave for this specific date
         if (isAssistantOnLeaveOnDate(asst.id, dateStr)) return false;
@@ -12810,7 +12850,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     }
 
     /**
-     * Universal Assistant Booking Conflict Checker (v5.5.2)
+     * Universal Assistant Booking Conflict Checker (v5.5.3)
      * Validates leave, double-booking, and capacity across all workflows.
      * All active assistants can be booked unless on leave or occupied.
      */
@@ -12850,7 +12890,18 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           };
         }
 
-        // 1.2 Leave / Off Duty for date Check
+        // 1.2 Non-Massage Staff Check
+        if (asst && asst.canMassage === false) {
+          return {
+            hasConflict: true,
+            type: 'no_massage',
+            title: `เจ้าหน้าที่ ${asstNick} ไม่ได้รับหน้าที่นวด`,
+            desc: `เจ้าหน้าที่/ผู้ช่วยฯ ${asstNick} ไม่ได้ปฏิบัติหน้าที่นวดในระบบ กรุณาเลือกผู้ช่วยแพทย์ท่านอื่น`,
+            asst
+          };
+        }
+
+        // 1.3 Leave / Off Duty for date Check
         if (isAssistantOnLeaveOnDate(assistantId, bookDate)) {
           const dateFormatted = (typeof formatThaiDateShort === "function") ? formatThaiDateShort(bookDate) : bookDate;
           return {
@@ -20493,6 +20544,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       document.getElementById("modal-profile-phone").value = asst.phone || "";
       document.getElementById("modal-profile-email").value = asst.email || "";
 
+      const profileMassageCb = document.getElementById("modal-profile-can-massage");
+      if (profileMassageCb) {
+        profileMassageCb.checked = asst.canMassage !== false;
+        if (typeof updateCanMassageToggleLabel === "function") {
+          updateCanMassageToggleLabel('edit');
+        }
+      }
+
       // Switch to active tab
       switchAssistantDetailTab(defaultTab);
 
@@ -21115,6 +21174,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       const role = document.getElementById("modal-profile-role")?.value || "staff";
       const phone = (document.getElementById("modal-profile-phone")?.value || "").trim();
       const email = (document.getElementById("modal-profile-email")?.value || "").trim();
+      const canMassage = document.getElementById("modal-profile-can-massage") ? document.getElementById("modal-profile-can-massage").checked : true;
 
       asst.name = fullname;
       asst.nickname = nickname;
@@ -21122,6 +21182,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       asst.role = role;
       asst.phone = phone;
       asst.email = email;
+      asst.canMassage = canMassage;
 
       persistAssistants();
 
@@ -21135,7 +21196,9 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
             phone: asst.phone,
             email: asst.email,
             role: asst.role,
-            active: asst.active
+            active: asst.active,
+            can_massage: asst.canMassage,
+            canMassage: asst.canMassage
           });
         } catch(err) {
           console.warn("Supabase assistant profile update error:", err);
@@ -21236,6 +21299,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       if (clearBtn) clearBtn.classList.toggle("hidden", !q);
 
       const filterStatus = document.getElementById("asst-filter-status") ? document.getElementById("asst-filter-status").value : "all";
+      const filterMassage = document.getElementById("asst-filter-massage") ? document.getElementById("asst-filter-massage").value : "all";
       const filterSlot = document.getElementById("asst-filter-slot") ? document.getElementById("asst-filter-slot").value : "all";
       const filterGender = document.getElementById("asst-filter-gender") ? document.getElementById("asst-filter-gender").value : "all";
       const filterRole = document.getElementById("asst-filter-role") ? document.getElementById("asst-filter-role").value : "all";
@@ -21255,6 +21319,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         const dutyStatus = getAssistantDutyStatusForDate(asst, targetRosterDate);
         const isOff = dutyStatus.isOff;
         const shiftType = dutyStatus.type;
+
+        // Filter by Massage Capability
+        if (filterMassage === "massage" && asst.canMassage === false) return false;
+        if (filterMassage === "no_massage" && asst.canMassage !== false) return false;
 
         // Filter by Shift Status
         if (filterStatus === "active" && isOff) return false;
@@ -21330,6 +21398,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         const isMale = asst.gender === 'male';
         const dutyStatus = getAssistantDutyStatusForDate(asst, targetRosterDate);
         const isOff = dutyStatus.isOff;
+        const canMassage = asst.canMassage !== false;
         
         // Count total cases and today's cases for this assistant
         const asstApts = getAssistantAppointmentsList(asst.id);
@@ -21353,8 +21422,21 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                   <span class="font-semibold text-herbal-800 dark:text-emerald-300">ชื่อเล่น: ${escapeHtml(asst.nickname)}</span>
                   <span>•</span>
                   <span>${isMale ? '👨 ชาย' : '👩 หญิง'}</span>
+                  ${asst.role === 'admin' ? '<span class="text-purple-600 font-bold">• 🛡️ Admin</span>' : ''}
                 </div>
               </div>
+            </div>
+
+            <!-- Massage Capability Switch UI Toggle -->
+            <div class="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 text-xs" onclick="event.stopPropagation()">
+              <div class="flex items-center gap-1.5">
+                <span class="text-sm">${canMassage ? '💆' : '🚫'}</span>
+                <span class="font-bold text-[11px] ${canMassage ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}">${canMassage ? 'หน้าที่นวด (เปิดรับคิว)' : 'ไม่ทำหน้าที่นวด'}</span>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer select-none" title="${canMassage ? 'เปิดรับคิวจอง' : 'ปิดรับคิวจอง'}">
+                <input type="checkbox" ${canMassage ? 'checked' : ''} onchange="toggleAssistantCanMassage('${asst.id}', event)" class="sr-only peer">
+                <div class="w-8 h-4 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-emerald-600"></div>
+              </label>
             </div>
 
             <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
@@ -21377,6 +21459,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         const isMale = asst.gender === 'male';
         const dutyStatus = getAssistantDutyStatusForDate(asst, targetRosterDate);
         const isOff = dutyStatus.isOff;
+        const canMassage = asst.canMassage !== false;
         
         // Count total cases and today's cases for this assistant
         const asstApts = getAssistantAppointmentsList(asst.id);
@@ -21409,6 +21492,15 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
             </div>
 
             <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
+              <!-- Massage Capability Switch UI Toggle -->
+              <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 text-xs" onclick="event.stopPropagation()" title="${canMassage ? 'หน้าที่นวด: เปิดรับคิวจอง' : 'ไม่นวด: ปิดรับคิวและซ่อนจากตัวเลือกจอง'}">
+                <label class="relative inline-flex items-center cursor-pointer select-none">
+                  <input type="checkbox" ${canMassage ? 'checked' : ''} onchange="toggleAssistantCanMassage('${asst.id}', event)" class="sr-only peer">
+                  <div class="w-8 h-4 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+                <span class="font-bold text-[11px] ${canMassage ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'} whitespace-nowrap">${canMassage ? '💆 นวด' : '🚫 ไม่นวด'}</span>
+              </div>
+
               <div class="hidden sm:flex flex-col items-end text-right">
                 <span class="text-xs font-bold text-herbal-800 dark:text-emerald-300">💆‍♂️ ${totalCases} เคส</span>
                 <span class="text-[10px] text-slate-400">วันนี้ ${todayCases} เคส</span>
@@ -21435,10 +21527,15 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         const totalCases = asstApts.length;
         const todayStr = targetRosterDate || (typeof getTodayDateString === "function" ? getTodayDateString() : "");
         const todayCases = asstApts.filter(a => (a.bookDate || a.book_date) === todayStr).length;
+        const canMassage = asst.canMassage !== false;
 
         const statusBadge = isOff 
           ? '<span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-500 border border-slate-200">⚪ ลาเวร</span>'
           : `<span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold ${shiftInfo.badgeClass}">🟢 ${shiftInfo.shortLabel}</span>`;
+
+        const roleBadge = asst.role === 'admin'
+          ? '<span class="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-950 dark:text-purple-300">🛡️ Admin</span>'
+          : (asst.role === 'user' ? '<span class="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">👤 User</span>' : '<span class="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-950 dark:text-amber-300">🩺 Staff</span>');
 
         return `
           <tr onclick="openAssistantDetailModal('${asst.id}')" class="hover:bg-herbal-50/60 dark:hover:bg-slate-800/80 transition text-slate-700 dark:text-slate-200 cursor-pointer group">
@@ -21455,6 +21552,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                 </div>
               </div>
             </td>
+            <td class="px-3.5 py-3 text-center" onclick="event.stopPropagation()">
+              <label class="inline-flex items-center gap-1.5 cursor-pointer select-none" title="${canMassage ? 'หน้าที่นวด: เปิดรับคิวจอง' : 'ไม่นวด: ปิดรับคิวและซ่อนจากตัวเลือกจอง'}">
+                <input type="checkbox" ${canMassage ? 'checked' : ''} onchange="toggleAssistantCanMassage('${asst.id}', event)" class="sr-only peer">
+                <div class="w-8 h-4 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-emerald-600"></div>
+                <span class="font-bold text-[11px] ${canMassage ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'} whitespace-nowrap">${canMassage ? '💆 นวด' : '🚫 ไม่นวด'}</span>
+              </label>
+            </td>
+            <td class="px-3.5 py-3">${roleBadge}</td>
             <td class="px-3.5 py-3">${statusBadge}</td>
             <td class="px-3.5 py-3">
               <span class="font-bold text-herbal-800 text-xs">💆‍♂️ ${totalCases} เคส</span>
@@ -21499,9 +21604,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
               <tr>
                 <th class="px-3.5 py-3 text-center w-12">#</th>
                 <th class="px-3.5 py-3">ผู้ช่วยแพทย์แผนไทย</th>
+                <th class="px-3.5 py-3 text-center">หน้าที่นวด</th>
                 <th class="px-3.5 py-3">สิทธิ์ระบบ</th>
-                <th class="px-3.5 py-3">ช่องทางติดต่อ / Login</th>
                 <th class="px-3.5 py-3">ช่วงเวลาปฏิบัติงาน / เวร</th>
+                <th class="px-3.5 py-3">ยอดนวด</th>
                 <th class="px-3.5 py-3 text-right">การจัดการ</th>
               </tr>
             </thead>
@@ -21686,6 +21792,13 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     function openAddAssistantModal() {
       const modal = document.getElementById("modal-add-assistant");
       if (modal) {
+        const canMassageCb = document.getElementById("new-asst-can-massage");
+        if (canMassageCb) {
+          canMassageCb.checked = true;
+          if (typeof updateCanMassageToggleLabel === "function") {
+            updateCanMassageToggleLabel('add');
+          }
+        }
         modal.classList.remove("hidden");
         lucide.createIcons();
       }
@@ -21707,6 +21820,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       const phone = (document.getElementById("new-asst-phone")?.value || "").trim();
       const email = (document.getElementById("new-asst-email")?.value || "").trim();
       const shiftType = document.getElementById("new-asst-shift-type")?.value || "full";
+      const canMassage = document.getElementById("new-asst-can-massage") ? document.getElementById("new-asst-can-massage").checked : true;
 
       if (!fullname || !nickname) return;
 
@@ -21739,6 +21853,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         phone: phone,
         email: email,
         active: active,
+        canMassage: canMassage,
         shiftType: shiftType,
         slots: slots,
         created_at: new Date().toISOString()
@@ -21754,7 +21869,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       populateAssistantsDropdown("new-assistant-select");
       showToast(`เพิ่มผู้ช่วยฯ ${nickname} เรียบร้อยแล้ว`, "success");
 
-      await logActivity("CHANGE_ASSISTANT", `เพิ่มรายชื่อผู้ช่วยฯ ใหม่: ${nickname} (${fullname}) [สิทธิ์: ${role.toUpperCase()}, เวร: ${shiftType}]`, {
+      await logActivity("CHANGE_ASSISTANT", `เพิ่มรายชื่อผู้ช่วยฯ ใหม่: ${nickname} (${fullname}) [สิทธิ์: ${role.toUpperCase()}, เวร: ${shiftType}, นวด: ${canMassage ? 'ใช่' : 'ไม่ใช่'}]`, {
         assistantId: newObj.id,
         name: fullname,
         nickname: nickname,
@@ -21762,7 +21877,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         role: role,
         phone: phone,
         email: email,
-        shiftType: shiftType
+        shiftType: shiftType,
+        canMassage: canMassage
       });
 
       if (supabaseClient) {
@@ -21775,7 +21891,9 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
             role: newObj.role,
             phone: newObj.phone,
             email: newObj.email,
-            active: newObj.active
+            active: newObj.active,
+            can_massage: newObj.canMassage,
+            canMassage: newObj.canMassage
           });
           if (error) console.error("Supabase insert assistant error:", error);
         } catch(err) { console.error("Supabase insert assistant error:", err); }
@@ -21842,7 +21960,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       else if (shiftType === 'full') asst.slots = [...ALL_WORKING_SLOTS];
       else if (shiftType === 'off') {
         asst.active = false;
-        asst.slots = [];
+        slots = [];
       }
 
       persistAssistants();
@@ -21865,7 +21983,9 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
             phone: asst.phone,
             email: asst.email,
             role: asst.role,
-            active: asst.active
+            active: asst.active,
+            can_massage: asst.canMassage !== false,
+            canMassage: asst.canMassage !== false
           });
           if (error) console.warn("Supabase assistant update error:", error);
         } catch(err) {
@@ -22076,7 +22196,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       const allAsstIds = Object.keys(rosterObj);
       const asstIds = allAsstIds.filter(aid => {
         const asst = (assistants || []).find(a => a.id === aid);
-        if (!asst || asst.active === false) return false;
+        if (!asst || asst.active === false || asst.canMassage === false) return false;
         if (typeof isAssistantOnLeaveOnDate === "function" && isAssistantOnLeaveOnDate(aid, dateStr)) return false;
         return true;
       });
@@ -22278,7 +22398,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       }
       const rosterObj = assistantDutyRosters[currentRosterDate];
       const workingAssts = (assistants || []).filter(a => {
-        if (!a || a.active === false) return false;
+        if (!a || a.active === false || a.canMassage === false) return false;
         if (typeof isAssistantOnLeaveOnDate === "function" && isAssistantOnLeaveOnDate(a.id, currentRosterDate)) return false;
         return true;
       });
@@ -22296,10 +22416,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         }
       });
 
-      // Filter out assistants on leave from table display
+      // Filter out assistants on leave or non-massage from table display
       const rosterAsstIds = Object.keys(rosterObj).filter(aId => {
         const asst = (assistants || []).find(a => a.id === aId);
-        if (!asst || asst.active === false) return false;
+        if (!asst || asst.active === false || asst.canMassage === false) return false;
         if (typeof isAssistantOnLeaveOnDate === "function" && isAssistantOnLeaveOnDate(aId, currentRosterDate)) return false;
         return true;
       }).sort((aId, bId) => {
@@ -22313,10 +22433,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         return (aAsst?.nickname || aAsst?.name || "").localeCompare(bAsst?.nickname || bAsst?.name || "", "th");
       });
 
-      // 2. Populate Dropdown with Remaining Active Assistants (not on leave)
+      // 2. Populate Dropdown with Remaining Active Assistants (not on leave & can massage)
       if (selectEl) {
         const remainingAssts = (assistants || []).filter(a => {
-          if (!a.active) return false;
+          if (!a.active || a.canMassage === false) return false;
           if (typeof isAssistantOnLeaveOnDate === "function" && isAssistantOnLeaveOnDate(a.id, currentRosterDate)) return false;
           return !rosterAsstIds.includes(a.id);
         });
@@ -22749,7 +22869,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
     function addAllActiveAssistantsToRoster() {
       if (!assistantDutyRosters[currentRosterDate]) assistantDutyRosters[currentRosterDate] = {};
-      const activeAssts = (assistants || []).filter(a => a.active);
+      const activeAssts = (assistants || []).filter(a => a.active && a.canMassage !== false);
       const currentTime = getCurrentTimeString();
 
       let addedCount = 0;
@@ -23641,6 +23761,62 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       }).join("");
 
       if (window.lucide) lucide.createIcons();
+    }
+
+    // ==================== ASSISTANT MASSAGE CAPABILITY TOGGLE (v5.5.3) ====================
+    function updateCanMassageToggleLabel(mode = 'add') {
+      const isAdd = mode === 'add';
+      const checkbox = document.getElementById(isAdd ? "new-asst-can-massage" : "modal-profile-can-massage");
+      const label = document.getElementById(isAdd ? "new-asst-can-massage-label" : "modal-profile-can-massage-label");
+      if (!checkbox || !label) return;
+      
+      if (checkbox.checked) {
+        label.textContent = "💆 ปฏิบัติหน้าที่นวด (เปิดรับคิวจองในระบบ)";
+        label.className = "text-xs font-bold text-emerald-700 dark:text-emerald-400";
+      } else {
+        label.textContent = "🚫 ไม่ได้ทำหน้าที่นวด (ซ่อนจากตัวเลือกจองคิวนวด)";
+        label.className = "text-xs font-bold text-slate-500 dark:text-slate-400";
+      }
+    }
+
+    async function toggleAssistantCanMassage(asstId, event) {
+      if (event) event.stopPropagation();
+      const asst = (assistants || []).find(a => a.id === asstId);
+      if (!asst) return;
+      const current = asst.canMassage !== false;
+      asst.canMassage = !current;
+      persistAssistants();
+
+      if (typeof supabaseClient !== "undefined" && supabaseClient) {
+        try {
+          await supabaseClient.from("assistants").upsert({
+            id: asst.id,
+            name: asst.name,
+            nickname: asst.nickname,
+            gender: asst.gender,
+            phone: asst.phone,
+            email: asst.email,
+            role: asst.role,
+            active: asst.active,
+            can_massage: asst.canMassage,
+            canMassage: asst.canMassage
+          });
+        } catch(e) {
+          console.warn("Supabase assistant canMassage update error:", e);
+        }
+      }
+
+      renderManageShifts();
+      if (typeof renderAssistantRosterMatrix === "function") renderAssistantRosterMatrix();
+      if (typeof populateAssistantsDropdown === "function") populateAssistantsDropdown("new-assistant-select");
+
+      const statusText = asst.canMassage ? "💆 ปฏิบัติหน้าที่นวด (เปิดรับคิวจอง)" : "🚫 ไม่ได้ทำหน้าที่นวด (ซ่อนจากระบบจองคิว)";
+      showToast(`ปรับสถานะของ ${asst.nickname || asst.name}: ${statusText}`, asst.canMassage ? "success" : "info");
+
+      await logActivity("CONFIG_SYSTEM", `เปลี่ยนสถานะหน้าที่นวด: ${asst.nickname || asst.name} -> ${statusText}`, {
+        assistantId: asst.id,
+        canMassage: asst.canMassage
+      });
     }
 
 
@@ -25237,7 +25413,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       }
 
       const activeAssts = (assistants || []).filter(a => {
-        if (!a || a.active === false) return false;
+        if (!a || a.active === false || a.canMassage === false) return false;
         const isOff = (typeof isAssistantOnLeaveOnDate === "function")
           ? isAssistantOnLeaveOnDate(a.id, dateVal)
           : (typeof getAssistantDutyStatusForDate === "function" ? getAssistantDutyStatusForDate(a, dateVal).isOff : false);
@@ -25285,7 +25461,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
       // Helper to count available slots for an assistant
       function getAssistantFreeSlotCount(asst) {
-        if (!asst || asst.active === false) return 0;
+        if (!asst || asst.active === false || asst.canMassage === false) return 0;
         const isOff = (typeof isAssistantOnLeaveOnDate === "function")
           ? isAssistantOnLeaveOnDate(asst.id, dateVal)
           : (typeof getAssistantDutyStatusForDate === "function" ? getAssistantDutyStatusForDate(asst, dateVal).isOff : false);

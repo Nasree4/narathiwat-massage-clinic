@@ -59,7 +59,7 @@
     }
 
     function getGenderAvailability(dateStr, timeSlot, checkTwoSlots = false, excludeAppointmentId = null) {
-      const activeStaff = (assistants || []).filter(a => a.active !== false);
+      const activeStaff = (assistants || []).filter(a => a.active !== false && a.canMassage !== false);
       const activeFemales = activeStaff.filter(isFemaleAssistant);
       const activeMales = activeStaff.filter(isMaleAssistant);
 
@@ -218,8 +218,8 @@
       }
 
       return (assistants || []).filter(asst => {
-        // 1. Must be active clinic staff
-        if (!asst || asst.active === false) return false;
+        // 1. Must be active clinic staff and perform massage
+        if (!asst || asst.active === false || asst.canMassage === false) return false;
 
         // 2. Must not be on leave for this specific date
         if (isAssistantOnLeaveOnDate(asst.id, dateStr)) return false;
@@ -243,7 +243,7 @@
     }
 
     /**
-     * Universal Assistant Booking Conflict Checker (v5.5.2)
+     * Universal Assistant Booking Conflict Checker (v5.5.3)
      * Validates leave, double-booking, and capacity across all workflows.
      * All active assistants can be booked unless on leave or occupied.
      */
@@ -283,7 +283,18 @@
           };
         }
 
-        // 1.2 Leave / Off Duty for date Check
+        // 1.2 Non-Massage Staff Check
+        if (asst && asst.canMassage === false) {
+          return {
+            hasConflict: true,
+            type: 'no_massage',
+            title: `เจ้าหน้าที่ ${asstNick} ไม่ได้รับหน้าที่นวด`,
+            desc: `เจ้าหน้าที่/ผู้ช่วยฯ ${asstNick} ไม่ได้ปฏิบัติหน้าที่นวดในระบบ กรุณาเลือกผู้ช่วยแพทย์ท่านอื่น`,
+            asst
+          };
+        }
+
+        // 1.3 Leave / Off Duty for date Check
         if (isAssistantOnLeaveOnDate(assistantId, bookDate)) {
           const dateFormatted = (typeof formatThaiDateShort === "function") ? formatThaiDateShort(bookDate) : bookDate;
           return {

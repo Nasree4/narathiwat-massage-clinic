@@ -415,7 +415,7 @@
       }
 
       const activeAssts = (assistants || []).filter(a => {
-        if (!a || a.active === false) return false;
+        if (!a || a.active === false || a.canMassage === false) return false;
         const isOff = (typeof isAssistantOnLeaveOnDate === "function")
           ? isAssistantOnLeaveOnDate(a.id, dateVal)
           : (typeof getAssistantDutyStatusForDate === "function" ? getAssistantDutyStatusForDate(a, dateVal).isOff : false);
@@ -463,7 +463,7 @@
 
       // Helper to count available slots for an assistant
       function getAssistantFreeSlotCount(asst) {
-        if (!asst || asst.active === false) return 0;
+        if (!asst || asst.active === false || asst.canMassage === false) return 0;
         const isOff = (typeof isAssistantOnLeaveOnDate === "function")
           ? isAssistantOnLeaveOnDate(asst.id, dateVal)
           : (typeof getAssistantDutyStatusForDate === "function" ? getAssistantDutyStatusForDate(asst, dateVal).isOff : false);

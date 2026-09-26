@@ -871,6 +871,14 @@
       document.getElementById("modal-profile-phone").value = asst.phone || "";
       document.getElementById("modal-profile-email").value = asst.email || "";
 
+      const profileMassageCb = document.getElementById("modal-profile-can-massage");
+      if (profileMassageCb) {
+        profileMassageCb.checked = asst.canMassage !== false;
+        if (typeof updateCanMassageToggleLabel === "function") {
+          updateCanMassageToggleLabel('edit');
+        }
+      }
+
       // Switch to active tab
       switchAssistantDetailTab(defaultTab);
 
@@ -1493,6 +1501,7 @@
       const role = document.getElementById("modal-profile-role")?.value || "staff";
       const phone = (document.getElementById("modal-profile-phone")?.value || "").trim();
       const email = (document.getElementById("modal-profile-email")?.value || "").trim();
+      const canMassage = document.getElementById("modal-profile-can-massage") ? document.getElementById("modal-profile-can-massage").checked : true;
 
       asst.name = fullname;
       asst.nickname = nickname;
@@ -1500,6 +1509,7 @@
       asst.role = role;
       asst.phone = phone;
       asst.email = email;
+      asst.canMassage = canMassage;
 
       persistAssistants();
 
@@ -1513,7 +1523,9 @@
             phone: asst.phone,
             email: asst.email,
             role: asst.role,
-            active: asst.active
+            active: asst.active,
+            can_massage: asst.canMassage,
+            canMassage: asst.canMassage
           });
         } catch(err) {
           console.warn("Supabase assistant profile update error:", err);
@@ -1614,6 +1626,7 @@
       if (clearBtn) clearBtn.classList.toggle("hidden", !q);
 
       const filterStatus = document.getElementById("asst-filter-status") ? document.getElementById("asst-filter-status").value : "all";
+      const filterMassage = document.getElementById("asst-filter-massage") ? document.getElementById("asst-filter-massage").value : "all";
       const filterSlot = document.getElementById("asst-filter-slot") ? document.getElementById("asst-filter-slot").value : "all";
       const filterGender = document.getElementById("asst-filter-gender") ? document.getElementById("asst-filter-gender").value : "all";
       const filterRole = document.getElementById("asst-filter-role") ? document.getElementById("asst-filter-role").value : "all";
@@ -1633,6 +1646,10 @@
         const dutyStatus = getAssistantDutyStatusForDate(asst, targetRosterDate);
         const isOff = dutyStatus.isOff;
         const shiftType = dutyStatus.type;
+
+        // Filter by Massage Capability
+        if (filterMassage === "massage" && asst.canMassage === false) return false;
+        if (filterMassage === "no_massage" && asst.canMassage !== false) return false;
 
         // Filter by Shift Status
         if (filterStatus === "active" && isOff) return false;
@@ -1708,6 +1725,7 @@
         const isMale = asst.gender === 'male';
         const dutyStatus = getAssistantDutyStatusForDate(asst, targetRosterDate);
         const isOff = dutyStatus.isOff;
+        const canMassage = asst.canMassage !== false;
         
         // Count total cases and today's cases for this assistant
         const asstApts = getAssistantAppointmentsList(asst.id);
@@ -1731,8 +1749,21 @@
                   <span class="font-semibold text-herbal-800 dark:text-emerald-300">ชื่อเล่น: ${escapeHtml(asst.nickname)}</span>
                   <span>•</span>
                   <span>${isMale ? '👨 ชาย' : '👩 หญิง'}</span>
+                  ${asst.role === 'admin' ? '<span class="text-purple-600 font-bold">• 🛡️ Admin</span>' : ''}
                 </div>
               </div>
+            </div>
+
+            <!-- Massage Capability Switch UI Toggle -->
+            <div class="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 text-xs" onclick="event.stopPropagation()">
+              <div class="flex items-center gap-1.5">
+                <span class="text-sm">${canMassage ? '💆' : '🚫'}</span>
+                <span class="font-bold text-[11px] ${canMassage ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}">${canMassage ? 'หน้าที่นวด (เปิดรับคิว)' : 'ไม่ทำหน้าที่นวด'}</span>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer select-none" title="${canMassage ? 'เปิดรับคิวจอง' : 'ปิดรับคิวจอง'}">
+                <input type="checkbox" ${canMassage ? 'checked' : ''} onchange="toggleAssistantCanMassage('${asst.id}', event)" class="sr-only peer">
+                <div class="w-8 h-4 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-emerald-600"></div>
+              </label>
             </div>
 
             <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
@@ -1755,6 +1786,7 @@
         const isMale = asst.gender === 'male';
         const dutyStatus = getAssistantDutyStatusForDate(asst, targetRosterDate);
         const isOff = dutyStatus.isOff;
+        const canMassage = asst.canMassage !== false;
         
         // Count total cases and today's cases for this assistant
         const asstApts = getAssistantAppointmentsList(asst.id);
@@ -1787,6 +1819,15 @@
             </div>
 
             <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
+              <!-- Massage Capability Switch UI Toggle -->
+              <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/80 text-xs" onclick="event.stopPropagation()" title="${canMassage ? 'หน้าที่นวด: เปิดรับคิวจอง' : 'ไม่นวด: ปิดรับคิวและซ่อนจากตัวเลือกจอง'}">
+                <label class="relative inline-flex items-center cursor-pointer select-none">
+                  <input type="checkbox" ${canMassage ? 'checked' : ''} onchange="toggleAssistantCanMassage('${asst.id}', event)" class="sr-only peer">
+                  <div class="w-8 h-4 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+                <span class="font-bold text-[11px] ${canMassage ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'} whitespace-nowrap">${canMassage ? '💆 นวด' : '🚫 ไม่นวด'}</span>
+              </div>
+
               <div class="hidden sm:flex flex-col items-end text-right">
                 <span class="text-xs font-bold text-herbal-800 dark:text-emerald-300">💆‍♂️ ${totalCases} เคส</span>
                 <span class="text-[10px] text-slate-400">วันนี้ ${todayCases} เคส</span>
@@ -1813,10 +1854,15 @@
         const totalCases = asstApts.length;
         const todayStr = targetRosterDate || (typeof getTodayDateString === "function" ? getTodayDateString() : "");
         const todayCases = asstApts.filter(a => (a.bookDate || a.book_date) === todayStr).length;
+        const canMassage = asst.canMassage !== false;
 
         const statusBadge = isOff 
           ? '<span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-500 border border-slate-200">⚪ ลาเวร</span>'
           : `<span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold ${shiftInfo.badgeClass}">🟢 ${shiftInfo.shortLabel}</span>`;
+
+        const roleBadge = asst.role === 'admin'
+          ? '<span class="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-950 dark:text-purple-300">🛡️ Admin</span>'
+          : (asst.role === 'user' ? '<span class="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">👤 User</span>' : '<span class="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-950 dark:text-amber-300">🩺 Staff</span>');
 
         return `
           <tr onclick="openAssistantDetailModal('${asst.id}')" class="hover:bg-herbal-50/60 dark:hover:bg-slate-800/80 transition text-slate-700 dark:text-slate-200 cursor-pointer group">
@@ -1833,6 +1879,14 @@
                 </div>
               </div>
             </td>
+            <td class="px-3.5 py-3 text-center" onclick="event.stopPropagation()">
+              <label class="inline-flex items-center gap-1.5 cursor-pointer select-none" title="${canMassage ? 'หน้าที่นวด: เปิดรับคิวจอง' : 'ไม่นวด: ปิดรับคิวและซ่อนจากตัวเลือกจอง'}">
+                <input type="checkbox" ${canMassage ? 'checked' : ''} onchange="toggleAssistantCanMassage('${asst.id}', event)" class="sr-only peer">
+                <div class="w-8 h-4 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-emerald-600"></div>
+                <span class="font-bold text-[11px] ${canMassage ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'} whitespace-nowrap">${canMassage ? '💆 นวด' : '🚫 ไม่นวด'}</span>
+              </label>
+            </td>
+            <td class="px-3.5 py-3">${roleBadge}</td>
             <td class="px-3.5 py-3">${statusBadge}</td>
             <td class="px-3.5 py-3">
               <span class="font-bold text-herbal-800 text-xs">💆‍♂️ ${totalCases} เคส</span>
@@ -1877,9 +1931,10 @@
               <tr>
                 <th class="px-3.5 py-3 text-center w-12">#</th>
                 <th class="px-3.5 py-3">ผู้ช่วยแพทย์แผนไทย</th>
+                <th class="px-3.5 py-3 text-center">หน้าที่นวด</th>
                 <th class="px-3.5 py-3">สิทธิ์ระบบ</th>
-                <th class="px-3.5 py-3">ช่องทางติดต่อ / Login</th>
                 <th class="px-3.5 py-3">ช่วงเวลาปฏิบัติงาน / เวร</th>
+                <th class="px-3.5 py-3">ยอดนวด</th>
                 <th class="px-3.5 py-3 text-right">การจัดการ</th>
               </tr>
             </thead>
@@ -2064,6 +2119,13 @@
     function openAddAssistantModal() {
       const modal = document.getElementById("modal-add-assistant");
       if (modal) {
+        const canMassageCb = document.getElementById("new-asst-can-massage");
+        if (canMassageCb) {
+          canMassageCb.checked = true;
+          if (typeof updateCanMassageToggleLabel === "function") {
+            updateCanMassageToggleLabel('add');
+          }
+        }
         modal.classList.remove("hidden");
         lucide.createIcons();
       }
@@ -2085,6 +2147,7 @@
       const phone = (document.getElementById("new-asst-phone")?.value || "").trim();
       const email = (document.getElementById("new-asst-email")?.value || "").trim();
       const shiftType = document.getElementById("new-asst-shift-type")?.value || "full";
+      const canMassage = document.getElementById("new-asst-can-massage") ? document.getElementById("new-asst-can-massage").checked : true;
 
       if (!fullname || !nickname) return;
 
@@ -2117,6 +2180,7 @@
         phone: phone,
         email: email,
         active: active,
+        canMassage: canMassage,
         shiftType: shiftType,
         slots: slots,
         created_at: new Date().toISOString()
@@ -2132,7 +2196,7 @@
       populateAssistantsDropdown("new-assistant-select");
       showToast(`เพิ่มผู้ช่วยฯ ${nickname} เรียบร้อยแล้ว`, "success");
 
-      await logActivity("CHANGE_ASSISTANT", `เพิ่มรายชื่อผู้ช่วยฯ ใหม่: ${nickname} (${fullname}) [สิทธิ์: ${role.toUpperCase()}, เวร: ${shiftType}]`, {
+      await logActivity("CHANGE_ASSISTANT", `เพิ่มรายชื่อผู้ช่วยฯ ใหม่: ${nickname} (${fullname}) [สิทธิ์: ${role.toUpperCase()}, เวร: ${shiftType}, นวด: ${canMassage ? 'ใช่' : 'ไม่ใช่'}]`, {
         assistantId: newObj.id,
         name: fullname,
         nickname: nickname,
@@ -2140,7 +2204,8 @@
         role: role,
         phone: phone,
         email: email,
-        shiftType: shiftType
+        shiftType: shiftType,
+        canMassage: canMassage
       });
 
       if (supabaseClient) {
@@ -2153,7 +2218,9 @@
             role: newObj.role,
             phone: newObj.phone,
             email: newObj.email,
-            active: newObj.active
+            active: newObj.active,
+            can_massage: newObj.canMassage,
+            canMassage: newObj.canMassage
           });
           if (error) console.error("Supabase insert assistant error:", error);
         } catch(err) { console.error("Supabase insert assistant error:", err); }
@@ -2220,7 +2287,7 @@
       else if (shiftType === 'full') asst.slots = [...ALL_WORKING_SLOTS];
       else if (shiftType === 'off') {
         asst.active = false;
-        asst.slots = [];
+        slots = [];
       }
 
       persistAssistants();
@@ -2243,7 +2310,9 @@
             phone: asst.phone,
             email: asst.email,
             role: asst.role,
-            active: asst.active
+            active: asst.active,
+            can_massage: asst.canMassage !== false,
+            canMassage: asst.canMassage !== false
           });
           if (error) console.warn("Supabase assistant update error:", error);
         } catch(err) {
@@ -2454,7 +2523,7 @@
       const allAsstIds = Object.keys(rosterObj);
       const asstIds = allAsstIds.filter(aid => {
         const asst = (assistants || []).find(a => a.id === aid);
-        if (!asst || asst.active === false) return false;
+        if (!asst || asst.active === false || asst.canMassage === false) return false;
         if (typeof isAssistantOnLeaveOnDate === "function" && isAssistantOnLeaveOnDate(aid, dateStr)) return false;
         return true;
       });
@@ -2656,7 +2725,7 @@
       }
       const rosterObj = assistantDutyRosters[currentRosterDate];
       const workingAssts = (assistants || []).filter(a => {
-        if (!a || a.active === false) return false;
+        if (!a || a.active === false || a.canMassage === false) return false;
         if (typeof isAssistantOnLeaveOnDate === "function" && isAssistantOnLeaveOnDate(a.id, currentRosterDate)) return false;
         return true;
       });
@@ -2674,10 +2743,10 @@
         }
       });
 
-      // Filter out assistants on leave from table display
+      // Filter out assistants on leave or non-massage from table display
       const rosterAsstIds = Object.keys(rosterObj).filter(aId => {
         const asst = (assistants || []).find(a => a.id === aId);
-        if (!asst || asst.active === false) return false;
+        if (!asst || asst.active === false || asst.canMassage === false) return false;
         if (typeof isAssistantOnLeaveOnDate === "function" && isAssistantOnLeaveOnDate(aId, currentRosterDate)) return false;
         return true;
       }).sort((aId, bId) => {
@@ -2691,10 +2760,10 @@
         return (aAsst?.nickname || aAsst?.name || "").localeCompare(bAsst?.nickname || bAsst?.name || "", "th");
       });
 
-      // 2. Populate Dropdown with Remaining Active Assistants (not on leave)
+      // 2. Populate Dropdown with Remaining Active Assistants (not on leave & can massage)
       if (selectEl) {
         const remainingAssts = (assistants || []).filter(a => {
-          if (!a.active) return false;
+          if (!a.active || a.canMassage === false) return false;
           if (typeof isAssistantOnLeaveOnDate === "function" && isAssistantOnLeaveOnDate(a.id, currentRosterDate)) return false;
           return !rosterAsstIds.includes(a.id);
         });
@@ -3127,7 +3196,7 @@
 
     function addAllActiveAssistantsToRoster() {
       if (!assistantDutyRosters[currentRosterDate]) assistantDutyRosters[currentRosterDate] = {};
-      const activeAssts = (assistants || []).filter(a => a.active);
+      const activeAssts = (assistants || []).filter(a => a.active && a.canMassage !== false);
       const currentTime = getCurrentTimeString();
 
       let addedCount = 0;
@@ -4019,5 +4088,61 @@
       }).join("");
 
       if (window.lucide) lucide.createIcons();
+    }
+
+    // ==================== ASSISTANT MASSAGE CAPABILITY TOGGLE (v5.5.3) ====================
+    function updateCanMassageToggleLabel(mode = 'add') {
+      const isAdd = mode === 'add';
+      const checkbox = document.getElementById(isAdd ? "new-asst-can-massage" : "modal-profile-can-massage");
+      const label = document.getElementById(isAdd ? "new-asst-can-massage-label" : "modal-profile-can-massage-label");
+      if (!checkbox || !label) return;
+      
+      if (checkbox.checked) {
+        label.textContent = "💆 ปฏิบัติหน้าที่นวด (เปิดรับคิวจองในระบบ)";
+        label.className = "text-xs font-bold text-emerald-700 dark:text-emerald-400";
+      } else {
+        label.textContent = "🚫 ไม่ได้ทำหน้าที่นวด (ซ่อนจากตัวเลือกจองคิวนวด)";
+        label.className = "text-xs font-bold text-slate-500 dark:text-slate-400";
+      }
+    }
+
+    async function toggleAssistantCanMassage(asstId, event) {
+      if (event) event.stopPropagation();
+      const asst = (assistants || []).find(a => a.id === asstId);
+      if (!asst) return;
+      const current = asst.canMassage !== false;
+      asst.canMassage = !current;
+      persistAssistants();
+
+      if (typeof supabaseClient !== "undefined" && supabaseClient) {
+        try {
+          await supabaseClient.from("assistants").upsert({
+            id: asst.id,
+            name: asst.name,
+            nickname: asst.nickname,
+            gender: asst.gender,
+            phone: asst.phone,
+            email: asst.email,
+            role: asst.role,
+            active: asst.active,
+            can_massage: asst.canMassage,
+            canMassage: asst.canMassage
+          });
+        } catch(e) {
+          console.warn("Supabase assistant canMassage update error:", e);
+        }
+      }
+
+      renderManageShifts();
+      if (typeof renderAssistantRosterMatrix === "function") renderAssistantRosterMatrix();
+      if (typeof populateAssistantsDropdown === "function") populateAssistantsDropdown("new-assistant-select");
+
+      const statusText = asst.canMassage ? "💆 ปฏิบัติหน้าที่นวด (เปิดรับคิวจอง)" : "🚫 ไม่ได้ทำหน้าที่นวด (ซ่อนจากระบบจองคิว)";
+      showToast(`ปรับสถานะของ ${asst.nickname || asst.name}: ${statusText}`, asst.canMassage ? "success" : "info");
+
+      await logActivity("CONFIG_SYSTEM", `เปลี่ยนสถานะหน้าที่นวด: ${asst.nickname || asst.name} -> ${statusText}`, {
+        assistantId: asst.id,
+        canMassage: asst.canMassage
+      });
     }
 
