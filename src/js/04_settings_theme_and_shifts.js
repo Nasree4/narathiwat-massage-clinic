@@ -36,6 +36,9 @@
         patient_records_title: "ประวัติและข้อมูลคนไข้ (Patient Records)",
         patient_records_desc: "ค้นหาประวัติการรักษา นัดหมายย้อนหลัง และข้อมูล EMR คนไข้",
         btn_open_patients: "เปิดดูประวัติคนไข้",
+        staff_leave_title: "บันทึกการลาของฉัน (My Leave Record)",
+        staff_leave_desc: "บันทึกวันลาเวร / ลาป่วย / ลาพักผ่อน ระบบจะตัดชื่อออกจากรอบบริการ",
+        btn_record_my_leave: "บันทึกการลาของฉัน",
         admin_hub_title: "การตั้งค่าคลินิก & จัดการระบบ (Clinic Settings & Management)",
         admin_sub_slots: "จำนวนคิวแต่ละรอบ",
         admin_sub_slots_desc: "ตั้งค่าโควตา & ล็อครอบเวลา",
@@ -82,6 +85,9 @@
         patient_records_title: "Patient Records & EMR",
         patient_records_desc: "Search patient history, past visits, and EMR records",
         btn_open_patients: "Open Patient Records",
+        staff_leave_title: "My Leave Request",
+        staff_leave_desc: "Record duty off / sick / vacation leave to exclude from bookings",
+        btn_record_my_leave: "Record My Leave",
         admin_hub_title: "Admin Management Hub",
         admin_sub_slots: "Time Slots & Quotas",
         admin_sub_slots_desc: "Configure capacity and lock slots",
@@ -255,6 +261,16 @@
           patientRecordsCard.classList.remove("hidden");
         } else {
           patientRecordsCard.classList.add("hidden");
+        }
+      }
+
+      // Hide or show Staff Leave Record card based on permission (Staff & Admin)
+      const staffLeaveCard = document.getElementById("settings-staff-leave-card");
+      if (staffLeaveCard) {
+        if (isStaffOrAdmin) {
+          staffLeaveCard.classList.remove("hidden");
+        } else {
+          staffLeaveCard.classList.add("hidden");
         }
       }
 

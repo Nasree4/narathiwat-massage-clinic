@@ -107,6 +107,13 @@
                       <span class="text-[10px] text-emerald-700 font-normal">ส่วนแบ่งค่าบริการ 60% ผู้ช่วยฯ</span>
                     </div>
                   </button>
+                  <button type="button" onclick="openAssistantLeaveModalForStaff()" class="p-3.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold flex items-center space-x-2.5 transition shadow-2xs text-left">
+                    <i data-lucide="calendar-off" class="w-5 h-5 text-amber-600 shrink-0"></i>
+                    <div>
+                      <span class="block">บันทึกการลาของฉัน</span>
+                      <span class="text-[10px] text-amber-700 font-normal">ลาเวร ลาป่วย ลาพักผ่อน</span>
+                    </div>
+                  </button>
                 ` : ''}
                 ${currentUser.role === 'admin' ? `
                   <button type="button" onclick="switchTab('manage')" class="p-3.5 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 rounded-xl text-xs font-bold flex items-center space-x-2.5 transition shadow-2xs text-left">
@@ -1064,6 +1071,15 @@
           patientRecordsCard.classList.remove("hidden");
         } else {
           patientRecordsCard.classList.add("hidden");
+        }
+      }
+
+      const staffLeaveCard = document.getElementById("settings-staff-leave-card");
+      if (staffLeaveCard) {
+        if (isStaffOrAdmin) {
+          staffLeaveCard.classList.remove("hidden");
+        } else {
+          staffLeaveCard.classList.add("hidden");
         }
       }
 

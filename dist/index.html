@@ -771,9 +771,9 @@
           <h1 class="text-sm sm:text-base md:text-lg font-bold leading-tight tracking-wide flex items-center gap-1 sm:gap-1.5 flex-wrap">
             <span data-i18n="app_title">คลินิกการแพทย์แผนไทย</span>
             <span class="text-[10px] sm:text-[11px] font-normal px-2 py-0.5 bg-herbal-800/80 text-herbal-200 rounded-full border border-herbal-600 hidden sm:inline-block" data-i18n="service_status">เปิดบริการปกติ</span>
-            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.4 (คลิกเพื่อตรวจสอบการอัปเดต)">
+            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.5 (คลิกเพื่อตรวจสอบการอัปเดต)">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span id="app-header-version-tag">v5.5.4</span>
+              <span id="app-header-version-tag">v5.5.5</span>
             </button>
           </h1>
           <p class="text-[11px] sm:text-xs text-herbal-200 font-light" data-i18n="app_hospital">
@@ -2644,7 +2644,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="font-medium text-slate-700 dark:text-slate-300">คลินิกการแพทย์แผนไทย รพ.นราธิวาสราชนครินทร์</span>
         <span class="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
-        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.4</span>
+        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.5</span>
         <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">ล่าสุด</span>
       </div>
       <div class="flex items-center gap-2">
@@ -2755,6 +2755,21 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           <button onclick="goToSettingsSection('patients')" class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition shadow-sm flex items-center justify-center space-x-1.5 whitespace-nowrap">
             <i data-lucide="contact" class="w-4 h-4"></i>
             <span data-i18n="btn_open_patients">เปิดดูประวัติคนไข้</span>
+          </button>
+        </div>
+
+        <!-- 3.5 Staff Leave Record (สำหรับเจ้าหน้าที่ / ผู้ช่วยฯ บันทึกการลาของตนเอง) -->
+        <div id="settings-staff-leave-card" class="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="space-y-0.5">
+            <div class="font-bold text-sm text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+              <span class="text-base">🏖️</span>
+              <span data-i18n="staff_leave_title">บันทึกการลาของฉัน (My Leave Record)</span>
+            </div>
+            <p class="text-xs text-amber-700 dark:text-amber-300/80" data-i18n="staff_leave_desc">บันทึกวันลาเวร / ลาป่วย / ลาพักผ่อน ระบบจะตัดชื่อออกจากรอบบริการ</p>
+          </div>
+          <button type="button" onclick="openAssistantLeaveModalForStaff(); closeSettingsModal();" class="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white text-xs font-bold transition shadow-sm flex items-center justify-center space-x-1.5 whitespace-nowrap cursor-pointer">
+            <i data-lucide="calendar-off" class="w-4 h-4"></i>
+            <span data-i18n="btn_record_my_leave">บันทึกการลาของฉัน</span>
           </button>
         </div>
 
@@ -2870,7 +2885,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                 <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">26 กันยายน 2569</span></p>
               </div>
             </div>
-            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.4</span>
+            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.5</span>
           </div>
 
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/70 text-xs">
@@ -2889,7 +2904,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       
       <!-- Modal Footer -->
       <div class="bg-slate-50 dark:bg-slate-800/80 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between flex-shrink-0">
-        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.4</span></span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.5</span></span>
         <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold transition" data-i18n="btn_close">
           ปิดหน้าต่าง
         </button>
@@ -6009,7 +6024,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.5.4";
+    const APP_VERSION = "v5.5.5";
     const APP_BUILD_DATE = "26 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
@@ -7650,6 +7665,9 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         patient_records_title: "ประวัติและข้อมูลคนไข้ (Patient Records)",
         patient_records_desc: "ค้นหาประวัติการรักษา นัดหมายย้อนหลัง และข้อมูล EMR คนไข้",
         btn_open_patients: "เปิดดูประวัติคนไข้",
+        staff_leave_title: "บันทึกการลาของฉัน (My Leave Record)",
+        staff_leave_desc: "บันทึกวันลาเวร / ลาป่วย / ลาพักผ่อน ระบบจะตัดชื่อออกจากรอบบริการ",
+        btn_record_my_leave: "บันทึกการลาของฉัน",
         admin_hub_title: "การตั้งค่าคลินิก & จัดการระบบ (Clinic Settings & Management)",
         admin_sub_slots: "จำนวนคิวแต่ละรอบ",
         admin_sub_slots_desc: "ตั้งค่าโควตา & ล็อครอบเวลา",
@@ -7696,6 +7714,9 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         patient_records_title: "Patient Records & EMR",
         patient_records_desc: "Search patient history, past visits, and EMR records",
         btn_open_patients: "Open Patient Records",
+        staff_leave_title: "My Leave Request",
+        staff_leave_desc: "Record duty off / sick / vacation leave to exclude from bookings",
+        btn_record_my_leave: "Record My Leave",
         admin_hub_title: "Admin Management Hub",
         admin_sub_slots: "Time Slots & Quotas",
         admin_sub_slots_desc: "Configure capacity and lock slots",
@@ -7869,6 +7890,16 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           patientRecordsCard.classList.remove("hidden");
         } else {
           patientRecordsCard.classList.add("hidden");
+        }
+      }
+
+      // Hide or show Staff Leave Record card based on permission (Staff & Admin)
+      const staffLeaveCard = document.getElementById("settings-staff-leave-card");
+      if (staffLeaveCard) {
+        if (isStaffOrAdmin) {
+          staffLeaveCard.classList.remove("hidden");
+        } else {
+          staffLeaveCard.classList.add("hidden");
         }
       }
 
@@ -10440,6 +10471,13 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                       <span class="text-[10px] text-emerald-700 font-normal">ส่วนแบ่งค่าบริการ 60% ผู้ช่วยฯ</span>
                     </div>
                   </button>
+                  <button type="button" onclick="openAssistantLeaveModalForStaff()" class="p-3.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold flex items-center space-x-2.5 transition shadow-2xs text-left">
+                    <i data-lucide="calendar-off" class="w-5 h-5 text-amber-600 shrink-0"></i>
+                    <div>
+                      <span class="block">บันทึกการลาของฉัน</span>
+                      <span class="text-[10px] text-amber-700 font-normal">ลาเวร ลาป่วย ลาพักผ่อน</span>
+                    </div>
+                  </button>
                 ` : ''}
                 ${currentUser.role === 'admin' ? `
                   <button type="button" onclick="switchTab('manage')" class="p-3.5 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 rounded-xl text-xs font-bold flex items-center space-x-2.5 transition shadow-2xs text-left">
@@ -11397,6 +11435,15 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           patientRecordsCard.classList.remove("hidden");
         } else {
           patientRecordsCard.classList.add("hidden");
+        }
+      }
+
+      const staffLeaveCard = document.getElementById("settings-staff-leave-card");
+      if (staffLeaveCard) {
+        if (isStaffOrAdmin) {
+          staffLeaveCard.classList.remove("hidden");
+        } else {
+          staffLeaveCard.classList.add("hidden");
         }
       }
 
@@ -23456,23 +23503,95 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     }
 
     /* =========================================================================
-       ASSISTANT LEAVE MANAGEMENT SYSTEM (ระบบจัดการวันลาผู้ช่วยแพทย์แผนไทย v5.5.2)
+       ASSISTANT LEAVE MANAGEMENT SYSTEM (ระบบจัดการวันลาผู้ช่วยแพทย์แผนไทย v5.5.5)
        ========================================================================= */
 
     let currentLeaveModalMode = "single"; // "single" | "range"
+
+    function findAssistantForCurrentUser() {
+      if (!currentUser) return null;
+      const list = Array.isArray(assistants) ? assistants : [];
+      
+      // 1. Direct ID matches
+      const userCleanId = String(currentUser.id || "").replace(/^usr-/, "").trim();
+      let match = list.find(a => a.id === currentUser.id || a.id === userCleanId || ("usr-" + a.id) === currentUser.id);
+      if (match) return match;
+
+      // 2. Phone match
+      const userPhone = String(currentUser.phone || "").replace(/\D/g, "");
+      if (userPhone && userPhone.length >= 8) {
+        match = list.find(a => {
+          const p = String(a.phone || "").replace(/\D/g, "");
+          return p && (p === userPhone || p.endsWith(userPhone) || userPhone.endsWith(p));
+        });
+        if (match) return match;
+      }
+
+      // 3. Email match
+      const userEmail = String(currentUser.email || "").toLowerCase().trim();
+      if (userEmail && userEmail.includes("@")) {
+        match = list.find(a => String(a.email || "").toLowerCase().trim() === userEmail);
+        if (match) return match;
+      }
+
+      // 4. Normalized name match
+      const userName = String(currentUser.name || "").trim();
+      const normUserName = typeof normalizeAssistantName === "function" ? normalizeAssistantName(userName) : userName.toLowerCase();
+      if (normUserName) {
+        match = list.find(a => {
+          const normA = typeof normalizeAssistantName === "function" ? normalizeAssistantName(a.name) : (a.name || "").toLowerCase();
+          return normA === normUserName;
+        });
+        if (match) return match;
+      }
+
+      // 5. Nickname or partial name in user name match
+      if (userName) {
+        match = list.find(a => {
+          if (a.nickname && (userName.includes(a.nickname) || a.nickname.includes(userName))) return true;
+          if (a.name && (userName.includes(a.name) || a.name.includes(userName))) return true;
+          return false;
+        });
+        if (match) return match;
+      }
+
+      return null;
+    }
+
+    function openAssistantLeaveModalForStaff() {
+      const myAsst = findAssistantForCurrentUser();
+      if (myAsst) {
+        openAssistantLeaveModal(myAsst.id);
+      } else {
+        openAssistantLeaveModal(null);
+      }
+    }
 
     function openAssistantLeaveModal(targetAsstId = null) {
       const modal = document.getElementById("modal-assistant-leave");
       if (!modal) return;
 
+      const myAsst = findAssistantForCurrentUser();
+      const isStaffOnly = Boolean(currentUser && currentUser.role === "staff");
+
+      // Auto-select staff's own assistant profile if no target was explicitly passed
+      if (!targetAsstId && myAsst) {
+        targetAsstId = myAsst.id;
+      }
+
       const asstSelect = document.getElementById("leave-asst-select");
       if (asstSelect) {
         const activeAssts = (assistants || []).filter(a => a.active !== false);
-        asstSelect.innerHTML = activeAssts.map(a => `
-          <option value="${a.id}" ${targetAsstId && targetAsstId === a.id ? 'selected' : ''}>
-            ${a.gender === 'male' ? '👨' : '👩'} ${a.nickname} (${a.name})
-          </option>
-        `).join("");
+        asstSelect.innerHTML = activeAssts.map(a => {
+          const isMe = Boolean(myAsst && a.id === myAsst.id);
+          const isSelected = targetAsstId ? (targetAsstId === a.id) : isMe;
+          const meBadge = isMe ? " ⭐ (ฉัน / บัญชีนี้)" : "";
+          return `
+            <option value="${a.id}" ${isSelected ? 'selected' : ''}>
+              ${a.gender === 'male' ? '👨' : '👩'} ${a.nickname} (${a.name})${meBadge}
+            </option>
+          `;
+        }).join("");
       }
 
       const todayStr = (typeof getTodayDateString === "function") ? getTodayDateString() : new Date().toISOString().slice(0, 10);
@@ -23487,7 +23606,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       }
 
       setLeaveModalMode("single");
-      renderAssistantLeaveHistoryList(targetAsstId || "all");
+
+      // Default leave history filter: for staff, show their own leaves by default
+      const defaultHistoryFilter = (isStaffOnly && myAsst) ? myAsst.id : (targetAsstId || "all");
+      renderAssistantLeaveHistoryList(defaultHistoryFilter);
 
       modal.classList.remove("hidden");
       document.body.style.overflow = "hidden";
@@ -23692,6 +23814,18 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       const leave = (assistantLeaves || []).find(l => l.id === leaveId);
       if (!leave) return;
 
+      const myAsst = findAssistantForCurrentUser();
+      const isAdmin = Boolean(currentUser && currentUser.role === "admin");
+      const isStaff = Boolean(currentUser && currentUser.role === "staff");
+
+      if (isStaff && !isAdmin) {
+        const isMyLeave = Boolean(myAsst && (leave.assistantId === myAsst.id || leave.assistantNick === myAsst.nickname || leave.assistantName === myAsst.name));
+        if (!isMyLeave && myAsst) {
+          showToast("คุณสามารถยกเลิกได้เฉพาะรายการลาของตนเองเท่านั้น", "warning");
+          return;
+        }
+      }
+
       if (!confirm(`คุณต้องการยกเลิกการลาของ "${leave.assistantNick || leave.assistantName}" (${leave.leaveLabel} วันที่ ${leave.startDate} ถึง ${leave.endDate}) หรือไม่?`)) {
         return;
       }
@@ -23723,7 +23857,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
       await syncAssistantLeavesToSupabase();
 
-      renderAssistantLeaveHistoryList("all");
+      const refreshFilter = (isStaff && !isAdmin && myAsst) ? myAsst.id : "all";
+      renderAssistantLeaveHistoryList(refreshFilter);
       if (typeof renderAssistantRosterMatrix === "function") renderAssistantRosterMatrix();
       if (typeof renderManageShifts === "function") renderManageShifts();
       if (typeof populateAssistantsDropdown === "function") populateAssistantsDropdown("new-assistant-select");
@@ -23740,12 +23875,24 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       const container = document.getElementById("leave-history-list-container");
       if (!container) return;
 
+      const myAsst = findAssistantForCurrentUser();
+      const isAdmin = Boolean(currentUser && currentUser.role === "admin");
+      const isStaff = Boolean(currentUser && currentUser.role === "staff");
+
       const filterSelect = document.getElementById("leave-history-filter-asst");
       if (filterSelect) {
         const activeAssts = (assistants || []).filter(a => a.active !== false);
         const curVal = filterAsstId || filterSelect.value || "all";
-        filterSelect.innerHTML = `<option value="all">👥 แสดงประวัติวันลาของทุกคน (${assistantLeaves.length} รายการ)</option>` +
-          activeAssts.map(a => `<option value="${a.id}" ${curVal === a.id ? 'selected' : ''}>${a.gender === 'male' ? '👨' : '👩'} ${a.nickname} - ${a.name}</option>`).join("");
+
+        let optionsHtml = "";
+        if (myAsst) {
+          const myLeavesCount = (assistantLeaves || []).filter(l => l.assistantId === myAsst.id).length;
+          optionsHtml += `<option value="${myAsst.id}" ${curVal === myAsst.id ? 'selected' : ''}>⭐ รายการลาของฉัน (${myLeavesCount} รายการ)</option>`;
+        }
+        optionsHtml += `<option value="all" ${curVal === 'all' ? 'selected' : ''}>👥 แสดงประวัติวันลาของทุกคน (${assistantLeaves.length} รายการ)</option>`;
+        optionsHtml += activeAssts.filter(a => !myAsst || a.id !== myAsst.id).map(a => `<option value="${a.id}" ${curVal === a.id ? 'selected' : ''}>${a.gender === 'male' ? '👨' : '👩'} ${a.nickname} - ${a.name}</option>`).join("");
+
+        filterSelect.innerHTML = optionsHtml;
       }
 
       let list = Array.isArray(assistantLeaves) ? [...assistantLeaves] : [];
@@ -23777,6 +23924,9 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           ? ((typeof formatThaiDisplayDate === "function") ? formatThaiDisplayDate(l.startDate) : l.startDate)
           : `${(typeof formatThaiDateShort === "function") ? formatThaiDateShort(l.startDate) : l.startDate} - ${(typeof formatThaiDateShort === "function") ? formatThaiDateShort(l.endDate) : l.endDate} (${(l.dates || []).length} วัน)`;
 
+        const isMyLeave = Boolean(myAsst && (l.assistantId === myAsst.id || l.assistantNick === myAsst.nickname || l.assistantName === myAsst.name));
+        const canDelete = isAdmin || isMyLeave;
+
         return `
           <div class="p-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs hover:border-amber-300 transition flex items-center justify-between gap-3 text-xs mb-2">
             <div class="flex items-center space-x-3 min-w-0">
@@ -23784,6 +23934,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
               <div class="min-w-0">
                 <div class="flex items-center space-x-2 flex-wrap">
                   <span class="font-bold text-slate-800 dark:text-white">${escapeHtml(asst.nickname || asst.name)}</span>
+                  ${isMyLeave ? '<span class="px-1.5 py-0.2 text-[9.5px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 rounded-md border border-emerald-300">ฉัน</span>' : ''}
                   <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950 dark:text-amber-200">${escapeHtml(l.leaveLabel || 'ลาเวร')}</span>
                 </div>
                 <div class="flex items-center space-x-2 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex-wrap">
@@ -23792,10 +23943,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                 </div>
               </div>
             </div>
-            <button type="button" onclick="deleteAssistantLeave('${l.id}')" class="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center space-x-1 shadow-2xs cursor-pointer shrink-0" title="ยกเลิกการลา">
-              <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-600"></i>
-              <span>ยกเลิก</span>
-            </button>
+            ${canDelete ? `
+              <button type="button" onclick="deleteAssistantLeave('${l.id}')" class="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center space-x-1 shadow-2xs cursor-pointer shrink-0" title="ยกเลิกการลา">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-600"></i>
+                <span>ยกเลิก</span>
+              </button>
+            ` : `
+              <span class="text-[11px] text-slate-400 dark:text-slate-500 px-2 py-1">บันทึกแล้ว</span>
+            `}
           </div>
         `;
       }).join("");

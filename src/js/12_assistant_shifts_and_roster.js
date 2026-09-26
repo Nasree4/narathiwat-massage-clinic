@@ -3743,23 +3743,95 @@
     }
 
     /* =========================================================================
-       ASSISTANT LEAVE MANAGEMENT SYSTEM (ระบบจัดการวันลาผู้ช่วยแพทย์แผนไทย v5.5.2)
+       ASSISTANT LEAVE MANAGEMENT SYSTEM (ระบบจัดการวันลาผู้ช่วยแพทย์แผนไทย v5.5.5)
        ========================================================================= */
 
     let currentLeaveModalMode = "single"; // "single" | "range"
+
+    function findAssistantForCurrentUser() {
+      if (!currentUser) return null;
+      const list = Array.isArray(assistants) ? assistants : [];
+      
+      // 1. Direct ID matches
+      const userCleanId = String(currentUser.id || "").replace(/^usr-/, "").trim();
+      let match = list.find(a => a.id === currentUser.id || a.id === userCleanId || ("usr-" + a.id) === currentUser.id);
+      if (match) return match;
+
+      // 2. Phone match
+      const userPhone = String(currentUser.phone || "").replace(/\D/g, "");
+      if (userPhone && userPhone.length >= 8) {
+        match = list.find(a => {
+          const p = String(a.phone || "").replace(/\D/g, "");
+          return p && (p === userPhone || p.endsWith(userPhone) || userPhone.endsWith(p));
+        });
+        if (match) return match;
+      }
+
+      // 3. Email match
+      const userEmail = String(currentUser.email || "").toLowerCase().trim();
+      if (userEmail && userEmail.includes("@")) {
+        match = list.find(a => String(a.email || "").toLowerCase().trim() === userEmail);
+        if (match) return match;
+      }
+
+      // 4. Normalized name match
+      const userName = String(currentUser.name || "").trim();
+      const normUserName = typeof normalizeAssistantName === "function" ? normalizeAssistantName(userName) : userName.toLowerCase();
+      if (normUserName) {
+        match = list.find(a => {
+          const normA = typeof normalizeAssistantName === "function" ? normalizeAssistantName(a.name) : (a.name || "").toLowerCase();
+          return normA === normUserName;
+        });
+        if (match) return match;
+      }
+
+      // 5. Nickname or partial name in user name match
+      if (userName) {
+        match = list.find(a => {
+          if (a.nickname && (userName.includes(a.nickname) || a.nickname.includes(userName))) return true;
+          if (a.name && (userName.includes(a.name) || a.name.includes(userName))) return true;
+          return false;
+        });
+        if (match) return match;
+      }
+
+      return null;
+    }
+
+    function openAssistantLeaveModalForStaff() {
+      const myAsst = findAssistantForCurrentUser();
+      if (myAsst) {
+        openAssistantLeaveModal(myAsst.id);
+      } else {
+        openAssistantLeaveModal(null);
+      }
+    }
 
     function openAssistantLeaveModal(targetAsstId = null) {
       const modal = document.getElementById("modal-assistant-leave");
       if (!modal) return;
 
+      const myAsst = findAssistantForCurrentUser();
+      const isStaffOnly = Boolean(currentUser && currentUser.role === "staff");
+
+      // Auto-select staff's own assistant profile if no target was explicitly passed
+      if (!targetAsstId && myAsst) {
+        targetAsstId = myAsst.id;
+      }
+
       const asstSelect = document.getElementById("leave-asst-select");
       if (asstSelect) {
         const activeAssts = (assistants || []).filter(a => a.active !== false);
-        asstSelect.innerHTML = activeAssts.map(a => `
-          <option value="${a.id}" ${targetAsstId && targetAsstId === a.id ? 'selected' : ''}>
-            ${a.gender === 'male' ? '👨' : '👩'} ${a.nickname} (${a.name})
-          </option>
-        `).join("");
+        asstSelect.innerHTML = activeAssts.map(a => {
+          const isMe = Boolean(myAsst && a.id === myAsst.id);
+          const isSelected = targetAsstId ? (targetAsstId === a.id) : isMe;
+          const meBadge = isMe ? " ⭐ (ฉัน / บัญชีนี้)" : "";
+          return `
+            <option value="${a.id}" ${isSelected ? 'selected' : ''}>
+              ${a.gender === 'male' ? '👨' : '👩'} ${a.nickname} (${a.name})${meBadge}
+            </option>
+          `;
+        }).join("");
       }
 
       const todayStr = (typeof getTodayDateString === "function") ? getTodayDateString() : new Date().toISOString().slice(0, 10);
@@ -3774,7 +3846,10 @@
       }
 
       setLeaveModalMode("single");
-      renderAssistantLeaveHistoryList(targetAsstId || "all");
+
+      // Default leave history filter: for staff, show their own leaves by default
+      const defaultHistoryFilter = (isStaffOnly && myAsst) ? myAsst.id : (targetAsstId || "all");
+      renderAssistantLeaveHistoryList(defaultHistoryFilter);
 
       modal.classList.remove("hidden");
       document.body.style.overflow = "hidden";
@@ -3979,6 +4054,18 @@
       const leave = (assistantLeaves || []).find(l => l.id === leaveId);
       if (!leave) return;
 
+      const myAsst = findAssistantForCurrentUser();
+      const isAdmin = Boolean(currentUser && currentUser.role === "admin");
+      const isStaff = Boolean(currentUser && currentUser.role === "staff");
+
+      if (isStaff && !isAdmin) {
+        const isMyLeave = Boolean(myAsst && (leave.assistantId === myAsst.id || leave.assistantNick === myAsst.nickname || leave.assistantName === myAsst.name));
+        if (!isMyLeave && myAsst) {
+          showToast("คุณสามารถยกเลิกได้เฉพาะรายการลาของตนเองเท่านั้น", "warning");
+          return;
+        }
+      }
+
       if (!confirm(`คุณต้องการยกเลิกการลาของ "${leave.assistantNick || leave.assistantName}" (${leave.leaveLabel} วันที่ ${leave.startDate} ถึง ${leave.endDate}) หรือไม่?`)) {
         return;
       }
@@ -4010,7 +4097,8 @@
 
       await syncAssistantLeavesToSupabase();
 
-      renderAssistantLeaveHistoryList("all");
+      const refreshFilter = (isStaff && !isAdmin && myAsst) ? myAsst.id : "all";
+      renderAssistantLeaveHistoryList(refreshFilter);
       if (typeof renderAssistantRosterMatrix === "function") renderAssistantRosterMatrix();
       if (typeof renderManageShifts === "function") renderManageShifts();
       if (typeof populateAssistantsDropdown === "function") populateAssistantsDropdown("new-assistant-select");
@@ -4027,12 +4115,24 @@
       const container = document.getElementById("leave-history-list-container");
       if (!container) return;
 
+      const myAsst = findAssistantForCurrentUser();
+      const isAdmin = Boolean(currentUser && currentUser.role === "admin");
+      const isStaff = Boolean(currentUser && currentUser.role === "staff");
+
       const filterSelect = document.getElementById("leave-history-filter-asst");
       if (filterSelect) {
         const activeAssts = (assistants || []).filter(a => a.active !== false);
         const curVal = filterAsstId || filterSelect.value || "all";
-        filterSelect.innerHTML = `<option value="all">👥 แสดงประวัติวันลาของทุกคน (${assistantLeaves.length} รายการ)</option>` +
-          activeAssts.map(a => `<option value="${a.id}" ${curVal === a.id ? 'selected' : ''}>${a.gender === 'male' ? '👨' : '👩'} ${a.nickname} - ${a.name}</option>`).join("");
+
+        let optionsHtml = "";
+        if (myAsst) {
+          const myLeavesCount = (assistantLeaves || []).filter(l => l.assistantId === myAsst.id).length;
+          optionsHtml += `<option value="${myAsst.id}" ${curVal === myAsst.id ? 'selected' : ''}>⭐ รายการลาของฉัน (${myLeavesCount} รายการ)</option>`;
+        }
+        optionsHtml += `<option value="all" ${curVal === 'all' ? 'selected' : ''}>👥 แสดงประวัติวันลาของทุกคน (${assistantLeaves.length} รายการ)</option>`;
+        optionsHtml += activeAssts.filter(a => !myAsst || a.id !== myAsst.id).map(a => `<option value="${a.id}" ${curVal === a.id ? 'selected' : ''}>${a.gender === 'male' ? '👨' : '👩'} ${a.nickname} - ${a.name}</option>`).join("");
+
+        filterSelect.innerHTML = optionsHtml;
       }
 
       let list = Array.isArray(assistantLeaves) ? [...assistantLeaves] : [];
@@ -4064,6 +4164,9 @@
           ? ((typeof formatThaiDisplayDate === "function") ? formatThaiDisplayDate(l.startDate) : l.startDate)
           : `${(typeof formatThaiDateShort === "function") ? formatThaiDateShort(l.startDate) : l.startDate} - ${(typeof formatThaiDateShort === "function") ? formatThaiDateShort(l.endDate) : l.endDate} (${(l.dates || []).length} วัน)`;
 
+        const isMyLeave = Boolean(myAsst && (l.assistantId === myAsst.id || l.assistantNick === myAsst.nickname || l.assistantName === myAsst.name));
+        const canDelete = isAdmin || isMyLeave;
+
         return `
           <div class="p-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs hover:border-amber-300 transition flex items-center justify-between gap-3 text-xs mb-2">
             <div class="flex items-center space-x-3 min-w-0">
@@ -4071,6 +4174,7 @@
               <div class="min-w-0">
                 <div class="flex items-center space-x-2 flex-wrap">
                   <span class="font-bold text-slate-800 dark:text-white">${escapeHtml(asst.nickname || asst.name)}</span>
+                  ${isMyLeave ? '<span class="px-1.5 py-0.2 text-[9.5px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 rounded-md border border-emerald-300">ฉัน</span>' : ''}
                   <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950 dark:text-amber-200">${escapeHtml(l.leaveLabel || 'ลาเวร')}</span>
                 </div>
                 <div class="flex items-center space-x-2 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex-wrap">
@@ -4079,10 +4183,14 @@
                 </div>
               </div>
             </div>
-            <button type="button" onclick="deleteAssistantLeave('${l.id}')" class="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center space-x-1 shadow-2xs cursor-pointer shrink-0" title="ยกเลิกการลา">
-              <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-600"></i>
-              <span>ยกเลิก</span>
-            </button>
+            ${canDelete ? `
+              <button type="button" onclick="deleteAssistantLeave('${l.id}')" class="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center space-x-1 shadow-2xs cursor-pointer shrink-0" title="ยกเลิกการลา">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-600"></i>
+                <span>ยกเลิก</span>
+              </button>
+            ` : `
+              <span class="text-[11px] text-slate-400 dark:text-slate-500 px-2 py-1">บันทึกแล้ว</span>
+            `}
           </div>
         `;
       }).join("");
