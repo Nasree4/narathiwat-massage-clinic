@@ -414,7 +414,13 @@
         return;
       }
 
-      const activeAssts = (assistants || []).filter(a => a.active !== false);
+      const activeAssts = (assistants || []).filter(a => {
+        if (!a || a.active === false) return false;
+        const isOff = (typeof isAssistantOnLeaveOnDate === "function")
+          ? isAssistantOnLeaveOnDate(a.id, dateVal)
+          : (typeof getAssistantDutyStatusForDate === "function" ? getAssistantDutyStatusForDate(a, dateVal).isOff : false);
+        return !isOff;
+      });
       const rosterForDate = (typeof assistantDutyRosters !== "undefined" && assistantDutyRosters[dateVal]) ? assistantDutyRosters[dateVal] : {};
 
       function sortAssistantsByCheckIn(list) {
@@ -681,24 +687,15 @@
         `;
       }).join("");
 
-      const onDutyStaffCount = activeAssts.filter(a => {
-        const isOff = (typeof isAssistantOnLeaveOnDate === "function") ? isAssistantOnLeaveOnDate(a.id, dateVal) : false;
-        return !isOff;
-      }).length;
-      const offDutyStaffCount = activeAssts.length - onDutyStaffCount;
-
       directoryBox.innerHTML = `
         <div class="flex items-center justify-between gap-1 border-b border-slate-200 dark:border-slate-700/80 pb-1.5 flex-wrap">
           <div class="font-bold text-xs text-slate-800 dark:text-slate-200 flex items-center space-x-1.5">
             <span class="text-sm">👥</span>
-            <span>รายชื่อผู้ช่วยแพทย์แผนไทยทั้งหมด (คลิกที่ชื่อเพื่อดูรอบเวลา & จองคิว)</span>
+            <span>รายชื่อผู้ช่วยแพทย์แผนไทยที่พร้อมให้บริการ (คลิกที่ชื่อเพื่อดูรอบเวลา & จองคิว)</span>
           </div>
           <div class="flex items-center gap-1.5 flex-wrap">
             <span class="text-[10px] text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full font-bold">
-              🟢 พร้อมให้บริการ ${onDutyStaffCount} ท่าน
-            </span>
-            <span class="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-bold border border-slate-200 dark:border-slate-700">
-              ⚪ ลาเวร / พัก ${offDutyStaffCount} ท่าน
+              🟢 พร้อมให้บริการ ${activeAssts.length} ท่าน
             </span>
           </div>
         </div>
@@ -709,7 +706,7 @@
             <span>👩 ผู้ช่วยแพทย์หญิง (${femaleAssts.length} ท่าน):</span>
           </div>
           <div class="flex flex-wrap gap-1.5">
-            ${femaleChips || '<span class="text-[11px] text-slate-400">ไม่มีรายชื่อผู้ช่วยแพทย์หญิง</span>'}
+            ${femaleChips || '<span class="text-[11px] text-slate-400">ไม่มีผู้ช่วยแพทย์หญิงที่พร้อมให้บริการในวันที่เลือก</span>'}
           </div>
         </div>
 
@@ -719,7 +716,7 @@
             <span>👨 ผู้ช่วยแพทย์ชาย (${maleAssts.length} ท่าน):</span>
           </div>
           <div class="flex flex-wrap gap-1.5">
-            ${maleChips || '<span class="text-[11px] text-slate-400">ไม่มีรายชื่อผู้ช่วยแพทย์ชาย</span>'}
+            ${maleChips || '<span class="text-[11px] text-slate-400">ไม่มีผู้ช่วยแพทย์ชายที่พร้อมให้บริการในวันที่เลือก</span>'}
           </div>
         </div>
       `;

@@ -701,17 +701,6 @@
           });
           optsHtml += `</optgroup>`;
         }
-
-        const leaveStaff = (assistants || []).filter(a => a.active !== false && isAssistantOnLeaveOnDate(a.id, dateVal));
-        if (leaveStaff.length > 0) {
-          optsHtml += `<optgroup label="🏖️ ผู้ช่วยฯ ที่ลาเวร / พัก ในวันที่เลือก (${leaveStaff.length} ท่าน)">`;
-          leaveStaff.forEach(a => {
-            const genderIcon = isMaleAssistant(a) ? '👨' : '👩';
-            const nick = a.nickname || a.name;
-            optsHtml += `<option value="${a.id}" disabled class="text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800">🏖️ ${genderIcon} ${escapeHtml(nick)} (ลาเวร/พัก)</option>`;
-          });
-          optsHtml += `</optgroup>`;
-        }
       }
 
       sel.innerHTML = optsHtml;
