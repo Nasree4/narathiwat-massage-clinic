@@ -771,9 +771,9 @@
           <h1 class="text-sm sm:text-base md:text-lg font-bold leading-tight tracking-wide flex items-center gap-1 sm:gap-1.5 flex-wrap">
             <span data-i18n="app_title">คลินิกการแพทย์แผนไทย</span>
             <span class="text-[10px] sm:text-[11px] font-normal px-2 py-0.5 bg-herbal-800/80 text-herbal-200 rounded-full border border-herbal-600 hidden sm:inline-block" data-i18n="service_status">เปิดบริการปกติ</span>
-            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.0 (คลิกเพื่อตรวจสอบการอัปเดต)">
+            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.1 (คลิกเพื่อตรวจสอบการอัปเดต)">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span id="app-header-version-tag">v5.5.0</span>
+              <span id="app-header-version-tag">v5.5.1</span>
             </button>
           </h1>
           <p class="text-[11px] sm:text-xs text-herbal-200 font-light" data-i18n="app_hospital">
@@ -2638,7 +2638,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="font-medium text-slate-700 dark:text-slate-300">คลินิกการแพทย์แผนไทย รพ.นราธิวาสราชนครินทร์</span>
         <span class="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
-        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.0</span>
+        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.1</span>
         <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">ล่าสุด</span>
       </div>
       <div class="flex items-center gap-2">
@@ -2855,7 +2855,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                 <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">26 กันยายน 2569</span></p>
               </div>
             </div>
-            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.0</span>
+            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.1</span>
           </div>
 
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/70 text-xs">
@@ -2874,7 +2874,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       
       <!-- Modal Footer -->
       <div class="bg-slate-50 dark:bg-slate-800/80 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between flex-shrink-0">
-        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.0</span></span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.1</span></span>
         <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold transition" data-i18n="btn_close">
           ปิดหน้าต่าง
         </button>
@@ -5809,7 +5809,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.5.0";
+    const APP_VERSION = "v5.5.1";
     const APP_BUILD_DATE = "26 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
@@ -6929,11 +6929,24 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         waitRoomMin = Math.max(0, Math.round((endMs - new Date(waitRoomStart).getTime()) / 60000));
       }
 
+      const isCompleted = apt.status && (apt.status.includes("กลับบ้าน") || apt.status.includes("ส่งต่อ") || Boolean(doneEntry));
+
       // 3. Treatment Duration (ทำหัตถการ - นวดจริง)
       if (apt.treatmentStartTime || roomEntry) {
         treatmentStart = apt.treatmentStartTime || (roomEntry ? roomEntry.timestamp : null);
-        const endMs = (apt.treatmentEndTime ? new Date(apt.treatmentEndTime).getTime() : (doneEntry ? new Date(doneEntry.timestamp).getTime() : nowMs));
-        treatmentEnd = (apt.treatmentEndTime || doneEntry) ? (apt.treatmentEndTime || doneEntry?.timestamp) : null;
+        let endMs;
+        if (apt.treatmentEndTime) {
+          endMs = new Date(apt.treatmentEndTime).getTime();
+        } else if (doneEntry) {
+          endMs = new Date(doneEntry.timestamp).getTime();
+        } else if (isCompleted) {
+          const dur = (apt.slotsOccupied && apt.slotsOccupied.length > 1) ? 120 : 60;
+          endMs = treatmentStart ? (new Date(treatmentStart).getTime() + dur * 60000) : nowMs;
+        } else {
+          endMs = nowMs;
+        }
+
+        treatmentEnd = (apt.treatmentEndTime || doneEntry) ? (apt.treatmentEndTime || doneEntry?.timestamp) : (isCompleted && treatmentStart ? new Date(endMs).toISOString() : null);
         if (treatmentStart) {
           treatmentMin = Math.max(0, Math.round((endMs - new Date(treatmentStart).getTime()) / 60000));
         }
@@ -6943,8 +6956,18 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       if (hasStarted) {
         const checkinEntry = waitEntry || examEntry || roomEntry || doneEntry;
         totalStart = checkinEntry ? checkinEntry.timestamp : (apt.treatmentStartTime || null);
-        const finalEndMs = (apt.treatmentEndTime ? new Date(apt.treatmentEndTime).getTime() : (doneEntry ? new Date(doneEntry.timestamp).getTime() : nowMs));
-        totalEnd = (apt.treatmentEndTime || doneEntry) ? (apt.treatmentEndTime || doneEntry?.timestamp) : null;
+        let finalEndMs;
+        if (apt.treatmentEndTime) {
+          finalEndMs = new Date(apt.treatmentEndTime).getTime();
+        } else if (doneEntry) {
+          finalEndMs = new Date(doneEntry.timestamp).getTime();
+        } else if (isCompleted) {
+          finalEndMs = treatmentEnd ? new Date(treatmentEnd).getTime() : nowMs;
+        } else {
+          finalEndMs = nowMs;
+        }
+
+        totalEnd = (apt.treatmentEndTime || doneEntry) ? (apt.treatmentEndTime || doneEntry?.timestamp) : (isCompleted && treatmentEnd ? treatmentEnd : null);
         if (totalStart) {
           totalStayMin = Math.max(0, Math.round((finalEndMs - new Date(totalStart).getTime()) / 60000));
         }
@@ -7087,8 +7110,23 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         apt.treatmentStartTime = massageEntry ? massageEntry.timestamp : new Date().toISOString();
       }
 
-      // Real start timestamp priority: apt.treatmentStartTime -> massageEntry.timestamp
-      let startIso = apt.treatmentStartTime || (massageEntry ? massageEntry.timestamp : null);
+      // Real start timestamp priority: apt.treatmentStartTime -> massageEntry.timestamp -> apt.timings.treatmentStart
+      let startIso = apt.treatmentStartTime || (massageEntry ? massageEntry.timestamp : null) || (apt.timings ? apt.timings.treatmentStart : null);
+
+      // If finished but startIso is not found from history, deduce from bookDate + timeSlot
+      if (!startIso && isDone && apt.timeSlot) {
+        const slotClean = (apt.timeSlot || "").replace("รอบ ", "").replace(" น.", "").trim().replace(".", ":");
+        if (slotClean.includes(":")) {
+          const [h, m] = slotClean.split(":");
+          const d = apt.bookDate ? new Date(apt.bookDate) : new Date();
+          d.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+          if (!isNaN(d.getTime())) {
+            startIso = d.toISOString();
+            apt.treatmentStartTime = startIso;
+          }
+        }
+      }
+
       if (!startIso && !isDone) return "";
 
       let startTimeStr = "-";
@@ -7099,12 +7137,19 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         startTimeStr = `${sH}.${sM} น.`;
       }
 
-      const endIso = apt.treatmentEndTime || (doneEntry ? doneEntry.timestamp : null);
+      let endIso = apt.treatmentEndTime || (doneEntry ? doneEntry.timestamp : null) || (apt.timings ? apt.timings.treatmentEnd : null);
 
       if (isDone) {
         let endD = endIso ? new Date(endIso) : null;
         if (!endD || isNaN(endD.getTime())) {
-          endD = new Date();
+          if (startD && !isNaN(startD.getTime())) {
+            const dur = (apt.slotsOccupied && apt.slotsOccupied.length > 1) ? 120 : 60;
+            endD = new Date(startD.getTime() + dur * 60000);
+            endIso = endD.toISOString();
+            apt.treatmentEndTime = endIso;
+          } else {
+            endD = new Date();
+          }
         }
         const eH = String(endD.getHours()).padStart(2, '0');
         const eM = String(endD.getMinutes()).padStart(2, '0');
@@ -8813,11 +8858,30 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     }
 
     function mapSupabaseToAppointment(row) {
-      let extras = [];
-      if (Array.isArray(row.extra_services)) extras = row.extra_services;
+      let rawExtras = [];
+      if (Array.isArray(row.extra_services)) rawExtras = row.extra_services;
       else if (typeof row.extra_services === "string") {
-        try { extras = JSON.parse(row.extra_services); } catch(e) { extras = []; }
+        try { rawExtras = JSON.parse(row.extra_services); } catch(e) { rawExtras = []; }
       }
+
+      // Extract clean string extra services and parse cloud timing metadata (__ttm_meta__)
+      let cleanExtras = [];
+      let cloudMeta = null;
+
+      (Array.isArray(rawExtras) ? rawExtras : []).forEach(item => {
+        if (typeof item === "string") {
+          if (item.includes('"__ttm_meta__":true') || item.includes('__ttm_meta__')) {
+            try {
+              const parsed = JSON.parse(item);
+              if (parsed && parsed.__ttm_meta__) cloudMeta = parsed;
+            } catch(e) {}
+          } else {
+            cleanExtras.push(item);
+          }
+        } else if (typeof item === "object" && item && item.__ttm_meta__) {
+          cloudMeta = item;
+        }
+      });
 
       let occupied = [row.time_slot];
       if (Array.isArray(row.slots_occupied)) occupied = row.slots_occupied;
@@ -8859,17 +8923,45 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         if (!timings && localApt.timings) timings = localApt.timings;
       }
 
+      // Prioritize cloudMeta timestamps from remote device action
       let treatmentStartTime = null;
       let treatmentEndTime = null;
-      if (localApt) {
-        treatmentStartTime = localApt.treatmentStartTime || null;
-        treatmentEndTime = localApt.treatmentEndTime || null;
+
+      if (cloudMeta) {
+        if (cloudMeta.treatmentStartTime) treatmentStartTime = cloudMeta.treatmentStartTime;
+        if (cloudMeta.treatmentEndTime) treatmentEndTime = cloudMeta.treatmentEndTime;
+        if (cloudMeta.timings && typeof cloudMeta.timings === 'object') timings = cloudMeta.timings;
+        if (Array.isArray(cloudMeta.statusHistory) && cloudMeta.statusHistory.length > 0) {
+          statusHist = cloudMeta.statusHistory;
+        }
       }
+
+      if (!treatmentStartTime && localApt) treatmentStartTime = localApt.treatmentStartTime || null;
+      if (!treatmentEndTime && localApt) treatmentEndTime = localApt.treatmentEndTime || null;
+
       if (!treatmentStartTime && timings && timings.treatmentStartTime) {
         treatmentStartTime = timings.treatmentStartTime;
       }
       if (!treatmentEndTime && timings && timings.treatmentEndTime) {
         treatmentEndTime = timings.treatmentEndTime;
+      }
+
+      // Persist unpacked metadata to local memory caches
+      if (treatmentStartTime || treatmentEndTime || statusHist.length > 0 || timings) {
+        try {
+          const memHist = getMemStatusHistories();
+          if (statusHist.length > 0) memHist[row.id] = statusHist;
+          const memTimings = getMemTreatmentTimings();
+          if (timings || treatmentStartTime || treatmentEndTime) {
+            memTimings[row.id] = {
+              ...(timings || {}),
+              treatmentStartTime: treatmentStartTime || null,
+              treatmentEndTime: treatmentEndTime || null
+            };
+          }
+          scheduleSaveStatusHistories();
+          scheduleSaveTreatmentTimings();
+        } catch(e) {}
       }
 
       return {
@@ -8881,7 +8973,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         bookDate: row.book_date,
         timeSlot: row.time_slot,
         mainService: row.main_service,
-        extraServices: extras,
+        extraServices: cleanExtras,
         assistantId: row.assistant_id,
         assistantNick: row.assistant_nick,
         status: row.status,
@@ -8896,6 +8988,21 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     }
 
     function mapAppointmentToSupabase(apt) {
+      const cleanExtras = Array.isArray(apt.extraServices)
+        ? apt.extraServices.filter(s => typeof s === 'string' && !s.includes('__ttm_meta__'))
+        : [];
+
+      // Pack timing and status history metadata into extra_services JSON bundle
+      const meta = {
+        __ttm_meta__: true,
+        treatmentStartTime: apt.treatmentStartTime || null,
+        treatmentEndTime: apt.treatmentEndTime || null,
+        timings: apt.timings || null,
+        statusHistory: Array.isArray(apt.statusHistory) ? apt.statusHistory.slice(-20) : []
+      };
+
+      const extrasWithMeta = [...cleanExtras, JSON.stringify(meta)];
+
       return {
         id: apt.id,
         patient_name: apt.patientName,
@@ -8905,7 +9012,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         book_date: apt.bookDate,
         time_slot: apt.timeSlot,
         main_service: apt.mainService,
-        extra_services: apt.extraServices || [],
+        extra_services: extrasWithMeta,
         assistant_id: apt.assistantId || "auto",
         assistant_nick: apt.assistantNick || "จัดสรรตามเหมาะสม",
         status: apt.status || "⚪ ว่าง",
@@ -8979,7 +9086,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           appointments[idx] = item;
           try { localStorage.setItem("ttm_appointments", JSON.stringify(appointments)); } catch(e) {}
 
-          if (statusChanged) {
+          if (statusChanged && (!item.statusHistory || item.statusHistory.length <= 1)) {
             recordStatusTransition(item, item.status, "การอัปเดตแบบเรียลไทม์");
           }
 
@@ -15742,7 +15849,11 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
       if (supabaseClient) {
         try {
-          const { error } = await supabaseClient.from("appointments").update({ status: finalStatus }).eq("id", appointmentId);
+          const supabasePayload = mapAppointmentToSupabase(apt);
+          const { error } = await supabaseClient.from("appointments").update({
+            status: finalStatus,
+            extra_services: supabasePayload.extra_services
+          }).eq("id", appointmentId);
           if (error) throw error;
         } catch(e) {
           console.error("Supabase status update error:", e);
@@ -16546,12 +16657,13 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
       if (supabaseClient) {
         try {
+          const supabasePayload = mapAppointmentToSupabase(apt);
           const { error } = await supabaseClient.from("appointments").update({
             assistant_id: apt.assistantId,
             assistant_nick: apt.assistantNick,
             status: apt.status,
             main_service: apt.mainService,
-            extra_services: apt.extraServices || [],
+            extra_services: supabasePayload.extra_services,
             slots_occupied: apt.slotsOccupied || [apt.timeSlot]
           }).eq("id", appointmentId);
           if (error) throw error;
@@ -16777,9 +16889,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
       if (supabaseClient) {
         try {
+          const supabasePayload = mapAppointmentToSupabase(apt);
           const payload = {
             main_service: apt.mainService,
-            extra_services: apt.extraServices,
+            extra_services: supabasePayload.extra_services,
             slots_occupied: apt.slotsOccupied,
             medical_scheme: apt.medicalScheme
           };
@@ -16788,7 +16901,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
             // Fallback without medical_scheme if column is not yet on remote
             await supabaseClient.from("appointments").update({
               main_service: apt.mainService,
-              extra_services: apt.extraServices,
+              extra_services: supabasePayload.extra_services,
               slots_occupied: apt.slotsOccupied
             }).eq("id", apt.id);
           }

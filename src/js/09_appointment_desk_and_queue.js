@@ -1821,7 +1821,11 @@
 
       if (supabaseClient) {
         try {
-          const { error } = await supabaseClient.from("appointments").update({ status: finalStatus }).eq("id", appointmentId);
+          const supabasePayload = mapAppointmentToSupabase(apt);
+          const { error } = await supabaseClient.from("appointments").update({
+            status: finalStatus,
+            extra_services: supabasePayload.extra_services
+          }).eq("id", appointmentId);
           if (error) throw error;
         } catch(e) {
           console.error("Supabase status update error:", e);
@@ -2625,12 +2629,13 @@
 
       if (supabaseClient) {
         try {
+          const supabasePayload = mapAppointmentToSupabase(apt);
           const { error } = await supabaseClient.from("appointments").update({
             assistant_id: apt.assistantId,
             assistant_nick: apt.assistantNick,
             status: apt.status,
             main_service: apt.mainService,
-            extra_services: apt.extraServices || [],
+            extra_services: supabasePayload.extra_services,
             slots_occupied: apt.slotsOccupied || [apt.timeSlot]
           }).eq("id", appointmentId);
           if (error) throw error;
@@ -2856,9 +2861,10 @@
 
       if (supabaseClient) {
         try {
+          const supabasePayload = mapAppointmentToSupabase(apt);
           const payload = {
             main_service: apt.mainService,
-            extra_services: apt.extraServices,
+            extra_services: supabasePayload.extra_services,
             slots_occupied: apt.slotsOccupied,
             medical_scheme: apt.medicalScheme
           };
@@ -2867,7 +2873,7 @@
             // Fallback without medical_scheme if column is not yet on remote
             await supabaseClient.from("appointments").update({
               main_service: apt.mainService,
-              extra_services: apt.extraServices,
+              extra_services: supabasePayload.extra_services,
               slots_occupied: apt.slotsOccupied
             }).eq("id", apt.id);
           }

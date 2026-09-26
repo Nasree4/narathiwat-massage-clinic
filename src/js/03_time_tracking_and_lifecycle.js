@@ -368,11 +368,24 @@
         waitRoomMin = Math.max(0, Math.round((endMs - new Date(waitRoomStart).getTime()) / 60000));
       }
 
+      const isCompleted = apt.status && (apt.status.includes("กลับบ้าน") || apt.status.includes("ส่งต่อ") || Boolean(doneEntry));
+
       // 3. Treatment Duration (ทำหัตถการ - นวดจริง)
       if (apt.treatmentStartTime || roomEntry) {
         treatmentStart = apt.treatmentStartTime || (roomEntry ? roomEntry.timestamp : null);
-        const endMs = (apt.treatmentEndTime ? new Date(apt.treatmentEndTime).getTime() : (doneEntry ? new Date(doneEntry.timestamp).getTime() : nowMs));
-        treatmentEnd = (apt.treatmentEndTime || doneEntry) ? (apt.treatmentEndTime || doneEntry?.timestamp) : null;
+        let endMs;
+        if (apt.treatmentEndTime) {
+          endMs = new Date(apt.treatmentEndTime).getTime();
+        } else if (doneEntry) {
+          endMs = new Date(doneEntry.timestamp).getTime();
+        } else if (isCompleted) {
+          const dur = (apt.slotsOccupied && apt.slotsOccupied.length > 1) ? 120 : 60;
+          endMs = treatmentStart ? (new Date(treatmentStart).getTime() + dur * 60000) : nowMs;
+        } else {
+          endMs = nowMs;
+        }
+
+        treatmentEnd = (apt.treatmentEndTime || doneEntry) ? (apt.treatmentEndTime || doneEntry?.timestamp) : (isCompleted && treatmentStart ? new Date(endMs).toISOString() : null);
         if (treatmentStart) {
           treatmentMin = Math.max(0, Math.round((endMs - new Date(treatmentStart).getTime()) / 60000));
         }
@@ -382,8 +395,18 @@
       if (hasStarted) {
         const checkinEntry = waitEntry || examEntry || roomEntry || doneEntry;
         totalStart = checkinEntry ? checkinEntry.timestamp : (apt.treatmentStartTime || null);
-        const finalEndMs = (apt.treatmentEndTime ? new Date(apt.treatmentEndTime).getTime() : (doneEntry ? new Date(doneEntry.timestamp).getTime() : nowMs));
-        totalEnd = (apt.treatmentEndTime || doneEntry) ? (apt.treatmentEndTime || doneEntry?.timestamp) : null;
+        let finalEndMs;
+        if (apt.treatmentEndTime) {
+          finalEndMs = new Date(apt.treatmentEndTime).getTime();
+        } else if (doneEntry) {
+          finalEndMs = new Date(doneEntry.timestamp).getTime();
+        } else if (isCompleted) {
+          finalEndMs = treatmentEnd ? new Date(treatmentEnd).getTime() : nowMs;
+        } else {
+          finalEndMs = nowMs;
+        }
+
+        totalEnd = (apt.treatmentEndTime || doneEntry) ? (apt.treatmentEndTime || doneEntry?.timestamp) : (isCompleted && treatmentEnd ? treatmentEnd : null);
         if (totalStart) {
           totalStayMin = Math.max(0, Math.round((finalEndMs - new Date(totalStart).getTime()) / 60000));
         }
@@ -526,8 +549,23 @@
         apt.treatmentStartTime = massageEntry ? massageEntry.timestamp : new Date().toISOString();
       }
 
-      // Real start timestamp priority: apt.treatmentStartTime -> massageEntry.timestamp
-      let startIso = apt.treatmentStartTime || (massageEntry ? massageEntry.timestamp : null);
+      // Real start timestamp priority: apt.treatmentStartTime -> massageEntry.timestamp -> apt.timings.treatmentStart
+      let startIso = apt.treatmentStartTime || (massageEntry ? massageEntry.timestamp : null) || (apt.timings ? apt.timings.treatmentStart : null);
+
+      // If finished but startIso is not found from history, deduce from bookDate + timeSlot
+      if (!startIso && isDone && apt.timeSlot) {
+        const slotClean = (apt.timeSlot || "").replace("รอบ ", "").replace(" น.", "").trim().replace(".", ":");
+        if (slotClean.includes(":")) {
+          const [h, m] = slotClean.split(":");
+          const d = apt.bookDate ? new Date(apt.bookDate) : new Date();
+          d.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+          if (!isNaN(d.getTime())) {
+            startIso = d.toISOString();
+            apt.treatmentStartTime = startIso;
+          }
+        }
+      }
+
       if (!startIso && !isDone) return "";
 
       let startTimeStr = "-";
@@ -538,12 +576,19 @@
         startTimeStr = `${sH}.${sM} น.`;
       }
 
-      const endIso = apt.treatmentEndTime || (doneEntry ? doneEntry.timestamp : null);
+      let endIso = apt.treatmentEndTime || (doneEntry ? doneEntry.timestamp : null) || (apt.timings ? apt.timings.treatmentEnd : null);
 
       if (isDone) {
         let endD = endIso ? new Date(endIso) : null;
         if (!endD || isNaN(endD.getTime())) {
-          endD = new Date();
+          if (startD && !isNaN(startD.getTime())) {
+            const dur = (apt.slotsOccupied && apt.slotsOccupied.length > 1) ? 120 : 60;
+            endD = new Date(startD.getTime() + dur * 60000);
+            endIso = endD.toISOString();
+            apt.treatmentEndTime = endIso;
+          } else {
+            endD = new Date();
+          }
         }
         const eH = String(endD.getHours()).padStart(2, '0');
         const eM = String(endD.getMinutes()).padStart(2, '0');

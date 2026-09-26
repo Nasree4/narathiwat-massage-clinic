@@ -567,11 +567,30 @@
     }
 
     function mapSupabaseToAppointment(row) {
-      let extras = [];
-      if (Array.isArray(row.extra_services)) extras = row.extra_services;
+      let rawExtras = [];
+      if (Array.isArray(row.extra_services)) rawExtras = row.extra_services;
       else if (typeof row.extra_services === "string") {
-        try { extras = JSON.parse(row.extra_services); } catch(e) { extras = []; }
+        try { rawExtras = JSON.parse(row.extra_services); } catch(e) { rawExtras = []; }
       }
+
+      // Extract clean string extra services and parse cloud timing metadata (__ttm_meta__)
+      let cleanExtras = [];
+      let cloudMeta = null;
+
+      (Array.isArray(rawExtras) ? rawExtras : []).forEach(item => {
+        if (typeof item === "string") {
+          if (item.includes('"__ttm_meta__":true') || item.includes('__ttm_meta__')) {
+            try {
+              const parsed = JSON.parse(item);
+              if (parsed && parsed.__ttm_meta__) cloudMeta = parsed;
+            } catch(e) {}
+          } else {
+            cleanExtras.push(item);
+          }
+        } else if (typeof item === "object" && item && item.__ttm_meta__) {
+          cloudMeta = item;
+        }
+      });
 
       let occupied = [row.time_slot];
       if (Array.isArray(row.slots_occupied)) occupied = row.slots_occupied;
@@ -613,17 +632,45 @@
         if (!timings && localApt.timings) timings = localApt.timings;
       }
 
+      // Prioritize cloudMeta timestamps from remote device action
       let treatmentStartTime = null;
       let treatmentEndTime = null;
-      if (localApt) {
-        treatmentStartTime = localApt.treatmentStartTime || null;
-        treatmentEndTime = localApt.treatmentEndTime || null;
+
+      if (cloudMeta) {
+        if (cloudMeta.treatmentStartTime) treatmentStartTime = cloudMeta.treatmentStartTime;
+        if (cloudMeta.treatmentEndTime) treatmentEndTime = cloudMeta.treatmentEndTime;
+        if (cloudMeta.timings && typeof cloudMeta.timings === 'object') timings = cloudMeta.timings;
+        if (Array.isArray(cloudMeta.statusHistory) && cloudMeta.statusHistory.length > 0) {
+          statusHist = cloudMeta.statusHistory;
+        }
       }
+
+      if (!treatmentStartTime && localApt) treatmentStartTime = localApt.treatmentStartTime || null;
+      if (!treatmentEndTime && localApt) treatmentEndTime = localApt.treatmentEndTime || null;
+
       if (!treatmentStartTime && timings && timings.treatmentStartTime) {
         treatmentStartTime = timings.treatmentStartTime;
       }
       if (!treatmentEndTime && timings && timings.treatmentEndTime) {
         treatmentEndTime = timings.treatmentEndTime;
+      }
+
+      // Persist unpacked metadata to local memory caches
+      if (treatmentStartTime || treatmentEndTime || statusHist.length > 0 || timings) {
+        try {
+          const memHist = getMemStatusHistories();
+          if (statusHist.length > 0) memHist[row.id] = statusHist;
+          const memTimings = getMemTreatmentTimings();
+          if (timings || treatmentStartTime || treatmentEndTime) {
+            memTimings[row.id] = {
+              ...(timings || {}),
+              treatmentStartTime: treatmentStartTime || null,
+              treatmentEndTime: treatmentEndTime || null
+            };
+          }
+          scheduleSaveStatusHistories();
+          scheduleSaveTreatmentTimings();
+        } catch(e) {}
       }
 
       return {
@@ -635,7 +682,7 @@
         bookDate: row.book_date,
         timeSlot: row.time_slot,
         mainService: row.main_service,
-        extraServices: extras,
+        extraServices: cleanExtras,
         assistantId: row.assistant_id,
         assistantNick: row.assistant_nick,
         status: row.status,
@@ -650,6 +697,21 @@
     }
 
     function mapAppointmentToSupabase(apt) {
+      const cleanExtras = Array.isArray(apt.extraServices)
+        ? apt.extraServices.filter(s => typeof s === 'string' && !s.includes('__ttm_meta__'))
+        : [];
+
+      // Pack timing and status history metadata into extra_services JSON bundle
+      const meta = {
+        __ttm_meta__: true,
+        treatmentStartTime: apt.treatmentStartTime || null,
+        treatmentEndTime: apt.treatmentEndTime || null,
+        timings: apt.timings || null,
+        statusHistory: Array.isArray(apt.statusHistory) ? apt.statusHistory.slice(-20) : []
+      };
+
+      const extrasWithMeta = [...cleanExtras, JSON.stringify(meta)];
+
       return {
         id: apt.id,
         patient_name: apt.patientName,
@@ -659,7 +721,7 @@
         book_date: apt.bookDate,
         time_slot: apt.timeSlot,
         main_service: apt.mainService,
-        extra_services: apt.extraServices || [],
+        extra_services: extrasWithMeta,
         assistant_id: apt.assistantId || "auto",
         assistant_nick: apt.assistantNick || "จัดสรรตามเหมาะสม",
         status: apt.status || "⚪ ว่าง",
@@ -733,7 +795,7 @@
           appointments[idx] = item;
           try { localStorage.setItem("ttm_appointments", JSON.stringify(appointments)); } catch(e) {}
 
-          if (statusChanged) {
+          if (statusChanged && (!item.statusHistory || item.statusHistory.length <= 1)) {
             recordStatusTransition(item, item.status, "การอัปเดตแบบเรียลไทม์");
           }
 
