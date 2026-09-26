@@ -2724,12 +2724,12 @@
       // Build THEAD
       let theadHtml = `
         <thead>
-          <tr class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold border-b border-slate-200 dark:border-slate-700 sticky top-0 z-20 shadow-2xs">
-            <th class="py-3 px-2 w-10 text-center text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400">#</th>
-            <th class="py-3 px-3 min-w-[170px] text-left text-xs font-black text-slate-800 dark:text-slate-100">ผู้ช่วยแพทย์แผนไทย</th>
-            <th class="py-3 px-3 min-w-[140px] w-36 text-center border-l border-slate-200 dark:border-slate-700 text-xs font-black text-emerald-800 dark:text-emerald-300">
-              <div class="flex items-center justify-center gap-1.5">
-                <i data-lucide="clock" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+          <tr class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold border-b border-slate-200 dark:border-slate-700 sticky top-0 z-20 shadow-2xs text-[11px] sm:text-xs">
+            <th class="py-2.5 px-1 w-7 min-w-[28px] text-center text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400">#</th>
+            <th class="py-2.5 px-2 min-w-[130px] sm:min-w-[145px] text-left font-black text-slate-800 dark:text-slate-100">ผู้ช่วยแพทย์แผนไทย</th>
+            <th class="py-2.5 px-1.5 min-w-[96px] sm:min-w-[110px] w-28 text-center border-l border-slate-200 dark:border-slate-700 font-black text-emerald-800 dark:text-emerald-300">
+              <div class="flex items-center justify-center gap-1">
+                <i data-lucide="clock" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
                 <span>เวลาที่มา</span>
               </div>
             </th>
@@ -2737,28 +2737,28 @@
 
       effectiveSlots.forEach(s => {
         theadHtml += `
-          <th class="py-2 px-1 text-center min-w-[62px] border-l border-slate-200 dark:border-slate-700/80">
-            <button type="button" onclick="toggleSlotColumnForAll('${s}')" class="w-full py-1 rounded-lg hover:bg-emerald-100/70 dark:hover:bg-emerald-950/60 transition group cursor-pointer" title="คลิกเพื่อสลับติ๊กทั้งรอบเวลา ${s}">
-              <span class="block text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:group-hover:text-emerald-400">${s}</span>
-              <span class="block text-[9.5px] text-slate-400 group-hover:text-emerald-600 font-semibold">รอบ</span>
+          <th class="py-1.5 px-0.5 text-center min-w-[38px] sm:min-w-[44px] border-l border-slate-200 dark:border-slate-700/80">
+            <button type="button" onclick="toggleSlotColumnForAll('${s}')" class="w-full py-0.5 rounded hover:bg-emerald-100/70 dark:hover:bg-emerald-950/60 transition group cursor-pointer" title="คลิกเพื่อสลับติ๊กทั้งรอบเวลา ${s}">
+              <span class="block text-[11px] sm:text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-emerald-700 dark:group-hover:text-emerald-400">${s}</span>
+              <span class="block text-[8.5px] text-slate-400 group-hover:text-emerald-600 font-semibold">รอบ</span>
             </button>
           </th>
         `;
       });
 
       theadHtml += `
-            <th class="py-3 px-2 w-20 text-center border-l border-slate-200 dark:border-slate-700 text-xs font-bold text-amber-800 dark:text-amber-300" title="ยอดเคสจริงที่ทำในรอบเช้า 08:00 - 12:00 น.">ยอดเช้า (08-12)</th>
-            <th class="py-3 px-2 w-20 text-center border-l border-slate-200 dark:border-slate-700 text-xs font-bold text-purple-800 dark:text-purple-300" title="ยอดเคสจริงที่ทำในรอบ 13:00 - 15:00 น.">ยอดบ่าย (13-15)</th>
-            <th class="py-3 px-2.5 w-20 text-center border-l border-slate-200 dark:border-slate-700 text-xs font-black text-emerald-800 dark:text-emerald-300">รวมรอบ</th>
-            <th class="py-3 px-2 w-20 text-center border-l border-slate-200 dark:border-slate-700 text-xs font-black text-amber-700 dark:text-amber-300" title="ลำดับคิวรอบบ่าย (มาก่อน 08:32 น. ได้สิทธิ์ก่อน เรียงยอดเช้าน้อยไปมาก)">คิวบ่าย</th>
-            <th class="py-3 px-2 w-20 text-center border-l border-slate-200 dark:border-slate-700 text-xs font-black text-purple-700 dark:text-purple-300" title="ลำดับคิวนอกเวลา (เรียงยอดบ่าย 13-15 น้อยไปมาก เฉพาะคนอยู่เวร OT)">คิว OT</th>
-            <th class="py-3 px-2 w-16 text-center border-l border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400">จัดการ</th>
+            <th class="py-2.5 px-1 w-14 sm:w-16 min-w-[50px] text-center border-l border-slate-200 dark:border-slate-700 text-[10.5px] sm:text-xs font-bold text-amber-800 dark:text-amber-300" title="ยอดเคสจริงที่ทำในรอบเช้า 08:00 - 12:00 น.">ยอดเช้า</th>
+            <th class="py-2.5 px-1 w-14 sm:w-16 min-w-[50px] text-center border-l border-slate-200 dark:border-slate-700 text-[10.5px] sm:text-xs font-bold text-purple-800 dark:text-purple-300" title="ยอดเคสจริงที่ทำในรอบ 13:00 - 15:00 น.">ยอดบ่าย</th>
+            <th class="py-2.5 px-1 w-14 sm:w-16 min-w-[50px] text-center border-l border-slate-200 dark:border-slate-700 text-[10.5px] sm:text-xs font-black text-emerald-800 dark:text-emerald-300">รวมรอบ</th>
+            <th class="py-2.5 px-1 w-14 sm:w-16 min-w-[50px] text-center border-l border-slate-200 dark:border-slate-700 text-[10.5px] sm:text-xs font-black text-amber-700 dark:text-amber-300" title="ลำดับคิวรอบบ่าย (มาก่อน 08:32 น. ได้สิทธิ์ก่อน เรียงยอดเช้าน้อยไปมาก)">คิวบ่าย</th>
+            <th class="py-2.5 px-1 w-14 sm:w-16 min-w-[50px] text-center border-l border-slate-200 dark:border-slate-700 text-[10.5px] sm:text-xs font-black text-purple-700 dark:text-purple-300" title="ลำดับคิวนอกเวลา (เรียงยอดบ่าย 13-15 น้อยไปมาก เฉพาะคนอยู่เวร OT)">คิว OT</th>
+            <th class="py-2.5 px-1 w-14 sm:w-16 min-w-[50px] text-center border-l border-slate-200 dark:border-slate-700 text-[10.5px] sm:text-xs font-bold text-slate-600 dark:text-slate-400">จัดการ</th>
           </tr>
         </thead>
       `;
 
       // Build TBODY
-      let tbodyHtml = `<tbody class="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">`;
+      let tbodyHtml = `<tbody class="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900 text-xs">`;
 
       rosterAsstIds.forEach((asstId, idx) => {
         const asst = (assistants || []).find(a => a.id === asstId) || {
@@ -2792,26 +2792,26 @@
 
         const isMale = asst.gender === "male";
         const genderBadge = isMale 
-          ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60">👨 ชาย</span>`
-          : `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/60">👩 หญิง</span>`;
+          ? `<span class="px-1 py-0.2 rounded text-[9.5px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60">👨 ชาย</span>`
+          : `<span class="px-1 py-0.2 rounded text-[9.5px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/60">👩 หญิง</span>`;
 
         const checkInBadge = stat.isBeforeCutoff
-          ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-extrabold bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/90 shadow-2xs">🟢 ก่อน 08:32</span>`
-          : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-extrabold bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-200 border border-amber-300/90 shadow-2xs">🟡 หลัง 08:32</span>`;
+          ? `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9.5px] font-extrabold bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/90 shadow-2xs">🟢 &lt;08:32</span>`
+          : `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9.5px] font-extrabold bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-200 border border-amber-300/90 shadow-2xs">🟡 &gt;08:32</span>`;
 
-        const afternoonMedal = stat.afternoonRank === 1 ? '🥇 #1' : stat.afternoonRank === 2 ? '🥈 #2' : stat.afternoonRank === 3 ? '🥉 #3' : `คิว #${stat.afternoonRank}`;
-        const afternoonRankBadge = `<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-extrabold ${stat.afternoonRank <= 3 ? 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/80 dark:text-amber-200' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200'}">${afternoonMedal}</span>`;
+        const afternoonMedal = stat.afternoonRank === 1 ? '🥇 #1' : stat.afternoonRank === 2 ? '🥈 #2' : stat.afternoonRank === 3 ? '🥉 #3' : `#${stat.afternoonRank}`;
+        const afternoonRankBadge = `<span class="inline-block px-1.5 py-0.5 rounded-lg text-xs font-extrabold ${stat.afternoonRank <= 3 ? 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/80 dark:text-amber-200' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200'}">${afternoonMedal}</span>`;
 
         const otRankBadge = stat.isOtDuty
-          ? `<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-black bg-purple-100 text-purple-900 dark:bg-purple-950/80 dark:text-purple-200 border border-purple-300 dark:border-purple-800">🌙 #${stat.otRank || '-'}</span>`
+          ? `<span class="inline-block px-1.5 py-0.5 rounded-lg text-xs font-black bg-purple-100 text-purple-900 dark:bg-purple-950/80 dark:text-purple-200 border border-purple-300 dark:border-purple-800">🌙 #${stat.otRank || '-'}</span>`
           : `<span class="text-slate-300 dark:text-slate-600 font-bold">-</span>`;
 
         tbodyHtml += `
           <tr id="roster-row-${asstId}" class="hover:bg-slate-50/80 dark:hover:bg-slate-850/80 transition group">
-            <td class="py-2 px-2 text-center text-xs font-bold text-slate-400">${idx + 1}</td>
-            <td class="py-2 px-3">
-              <div class="flex items-center space-x-2 min-w-0">
-                <div class="w-7 h-7 rounded-full ${isMale ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'} flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+            <td class="py-2 px-1 text-center text-xs font-bold text-slate-400">${idx + 1}</td>
+            <td class="py-2 px-2">
+              <div class="flex items-center space-x-1.5 min-w-0">
+                <div class="w-6 h-6 rounded-full ${isMale ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'} flex items-center justify-center font-bold text-[11px] shrink-0 shadow-2xs">
                   ${asst.nickname ? asst.nickname.substring(0, 1) : 'ผ'}
                 </div>
                 <div class="min-w-0">
@@ -2819,21 +2819,21 @@
                     <span class="font-black text-slate-800 dark:text-slate-100 text-xs truncate">${asst.nickname || asst.name}</span>
                     ${genderBadge}
                   </div>
-                  <div class="text-[10px] text-slate-400 dark:text-slate-500 truncate">${asst.name}</div>
+                  <div class="text-[9.5px] text-slate-400 dark:text-slate-500 truncate">${asst.name}</div>
                 </div>
               </div>
             </td>
-            <td class="py-2 px-2.5 text-center border-l border-slate-100 dark:border-slate-800 min-w-[140px]">
-              <div class="flex flex-col items-center justify-center gap-1">
-                <div class="inline-flex items-center justify-center bg-emerald-50/90 dark:bg-slate-800 hover:bg-emerald-100/80 dark:hover:bg-slate-750 px-2.5 py-1 rounded-xl border-2 border-emerald-400/90 dark:border-emerald-600 shadow-2xs transition group cursor-pointer" title="เวลาที่เช็คชื่อเข้างาน (คลิกเพื่อแก้ไขเวลา)">
+            <td class="py-1.5 px-1.5 text-center border-l border-slate-100 dark:border-slate-800 min-w-[96px] sm:min-w-[110px]">
+              <div class="flex flex-col items-center justify-center gap-0.5">
+                <div class="inline-flex items-center justify-center bg-emerald-50/90 dark:bg-slate-800 hover:bg-emerald-100/80 dark:hover:bg-slate-750 px-1.5 py-0.5 rounded-lg border border-emerald-400/90 dark:border-emerald-600 shadow-2xs transition group cursor-pointer" title="เวลาที่เช็คชื่อเข้างาน (คลิกเพื่อแก้ไขเวลา)">
                   <input type="time" 
                     value="${entry.checkInTime || getCurrentTimeString()}" 
                     onchange="updateAssistantCheckInTime('${asstId}', this.value)"
-                    class="bg-transparent font-mono text-sm sm:text-base font-black text-emerald-950 dark:text-emerald-200 outline-none cursor-pointer text-center w-[98px] tracking-wide"
+                    class="bg-transparent font-mono text-xs sm:text-sm font-black text-emerald-950 dark:text-emerald-200 outline-none cursor-pointer text-center w-[74px] sm:w-[80px] tracking-wide"
                     title="เวลาที่เช็คชื่อเข้างาน (คลิกเพื่อแก้ไขเวลา)">
-                  <span class="text-xs text-emerald-800 dark:text-emerald-300 font-extrabold ml-0.5 shrink-0 select-none">น.</span>
+                  <span class="text-[11px] text-emerald-800 dark:text-emerald-300 font-extrabold ml-0.5 shrink-0 select-none">น.</span>
                 </div>
-                <div class="mt-0.5">${checkInBadge}</div>
+                <div>${checkInBadge}</div>
               </div>
             </td>
         `;
@@ -2845,45 +2845,45 @@
           }
 
           tbodyHtml += `
-            <td id="roster-cell-${asstId}-${s.replace(':', '_')}" class="py-1.5 px-0.5 text-center border-l border-slate-100 dark:border-slate-800 transition ${isChecked ? 'bg-emerald-50/50 dark:bg-emerald-950/20' : ''}">
-              <label class="flex items-center justify-center p-1 cursor-pointer w-full h-full rounded-lg hover:bg-emerald-100/50 dark:hover:bg-emerald-950/40 transition">
+            <td id="roster-cell-${asstId}-${s.replace(':', '_')}" class="py-1 px-0.5 text-center border-l border-slate-100 dark:border-slate-800 transition ${isChecked ? 'bg-emerald-50/50 dark:bg-emerald-950/20' : ''}">
+              <label class="flex items-center justify-center p-1 cursor-pointer w-full h-full rounded hover:bg-emerald-100/50 dark:hover:bg-emerald-950/40 transition">
                 <input type="checkbox" 
                   onchange="toggleAssistantSlot('${asstId}', '${s}', this.checked)"
                   ${isChecked ? 'checked' : ''}
-                  class="w-4 h-4 rounded text-emerald-600 border-slate-300 dark:border-slate-600 focus:ring-emerald-500 dark:bg-slate-800 cursor-pointer accent-emerald-600">
+                  class="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded text-emerald-600 border-slate-300 dark:border-slate-600 focus:ring-emerald-500 dark:bg-slate-800 cursor-pointer accent-emerald-600">
               </label>
             </td>
           `;
         });
 
         tbodyHtml += `
-            <td class="py-2 px-2 text-center border-l border-slate-100 dark:border-slate-800 text-xs font-bold text-amber-800 dark:text-amber-300">
+            <td class="py-1.5 px-1 text-center border-l border-slate-100 dark:border-slate-800 text-[11px] sm:text-xs font-bold text-amber-800 dark:text-amber-300">
               ${stat.morningCaseCount} เคส
             </td>
-            <td class="py-2 px-2 text-center border-l border-slate-100 dark:border-slate-800 text-xs font-bold text-purple-800 dark:text-purple-300">
+            <td class="py-1.5 px-1 text-center border-l border-slate-100 dark:border-slate-800 text-[11px] sm:text-xs font-bold text-purple-800 dark:text-purple-300">
               ${stat.afternoonCaseCount} เคส
             </td>
-            <td class="py-2 px-2 text-center border-l border-slate-100 dark:border-slate-800 font-bold">
-              <span id="roster-rounds-badge-${asstId}" class="inline-block px-2 py-0.5 rounded-lg text-xs font-black shadow-2xs ${roundCount > 0 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-700/80' : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 border border-slate-200 dark:border-slate-700'}">
+            <td class="py-1.5 px-1 text-center border-l border-slate-100 dark:border-slate-800 font-bold">
+              <span id="roster-rounds-badge-${asstId}" class="inline-block px-1.5 py-0.5 rounded-lg text-[11px] sm:text-xs font-black shadow-2xs ${roundCount > 0 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-700/80' : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 border border-slate-200 dark:border-slate-700'}">
                 ${roundCount} รอบ
               </span>
             </td>
-            <td class="py-2 px-2 text-center border-l border-slate-100 dark:border-slate-800">
+            <td class="py-1.5 px-1 text-center border-l border-slate-100 dark:border-slate-800">
               ${afternoonRankBadge}
             </td>
-            <td class="py-2 px-2 text-center border-l border-slate-100 dark:border-slate-800">
+            <td class="py-1.5 px-1 text-center border-l border-slate-100 dark:border-slate-800">
               ${otRankBadge}
             </td>
-            <td class="py-2 px-1 text-center border-l border-slate-100 dark:border-slate-800">
-              <div class="flex items-center justify-center space-x-1">
-                <button type="button" onclick="syncAssistantRosterSlotWithShift('${asstId}')" class="p-1 text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 rounded-lg transition cursor-pointer" title="รีเซ็ตรอบตามตารางเวร (${shiftSlots.length} รอบ)">
-                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <td class="py-1.5 px-0.5 text-center border-l border-slate-100 dark:border-slate-800">
+              <div class="flex items-center justify-center space-x-0.5">
+                <button type="button" onclick="syncAssistantRosterSlotWithShift('${asstId}')" class="p-1 text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 rounded transition cursor-pointer" title="รีเซ็ตรอบตามตารางเวร (${shiftSlots.length} รอบ)">
+                  <i data-lucide="refresh-cw" class="w-3 h-3 sm:w-3.5 sm:h-3.5"></i>
                 </button>
-                <button type="button" onclick="toggleAssistantAllSlots('${asstId}')" class="p-1 text-slate-500 hover:text-emerald-700 dark:text-slate-400 dark:hover:text-emerald-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition cursor-pointer" title="สลับติ๊กทั้งหมด / ปลดทั้งหมด">
-                  <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+                <button type="button" onclick="toggleAssistantAllSlots('${asstId}')" class="p-1 text-slate-500 hover:text-emerald-700 dark:text-slate-400 dark:hover:text-emerald-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition cursor-pointer" title="สลับติ๊กทั้งหมด / ปลดทั้งหมด">
+                  <i data-lucide="zap" class="w-3 h-3 sm:w-3.5 sm:h-3.5"></i>
                 </button>
-                <button type="button" onclick="removeAssistantFromRoster('${asstId}')" class="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-lg transition cursor-pointer" title="ลบออกจากตารางวันนี้">
-                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                <button type="button" onclick="removeAssistantFromRoster('${asstId}')" class="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded transition cursor-pointer" title="ลบออกจากตารางวันนี้">
+                  <i data-lucide="trash-2" class="w-3 h-3 sm:w-3.5 sm:h-3.5"></i>
                 </button>
               </div>
             </td>
@@ -2895,10 +2895,10 @@
 
       // Build TFOOT (Summary of on-duty staff per slot)
       let tfootHtml = `
-        <tfoot class="bg-slate-50 dark:bg-slate-850 font-bold border-t-2 border-slate-200 dark:border-slate-700 sticky bottom-0 z-20">
+        <tfoot class="bg-slate-50 dark:bg-slate-850 font-bold border-t-2 border-slate-200 dark:border-slate-700 sticky bottom-0 z-20 text-[11px] sm:text-xs">
           <tr>
-            <td colspan="3" class="py-3 px-4 text-left text-xs font-black text-slate-800 dark:text-slate-100">
-              <div class="flex items-center space-x-2">
+            <td colspan="3" class="py-2.5 px-3 text-left font-black text-slate-800 dark:text-slate-100">
+              <div class="flex items-center space-x-1.5">
                 <i data-lucide="bar-chart-2" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
                 <span>สรุปอัตรากำลังพร้อมให้บริการ (คน/รอบ)</span>
               </div>
@@ -2915,8 +2915,8 @@
         }
 
         tfootHtml += `
-          <td id="roster-slot-summary-${s.replace(':', '_')}" class="py-2.5 px-1 text-center border-l border-slate-200 dark:border-slate-700">
-            <span class="inline-block px-2 py-0.5 rounded-lg text-xs font-black border ${countBadgeClass}">
+          <td id="roster-slot-summary-${s.replace(':', '_')}" class="py-2 px-0.5 text-center border-l border-slate-200 dark:border-slate-700">
+            <span class="inline-block px-1 py-0.5 rounded-lg text-[10.5px] sm:text-[11px] font-black border ${countBadgeClass}">
               ${count} คน
             </span>
           </td>
@@ -2924,14 +2924,16 @@
       });
 
       tfootHtml += `
-            <td class="py-3 px-3 text-center border-l border-slate-200 dark:border-slate-700">
-              <span id="roster-total-rounds-summary" class="inline-block px-2.5 py-1 rounded-xl text-xs font-black bg-purple-100 text-purple-900 dark:bg-purple-950/80 dark:text-purple-300 border border-purple-300 dark:border-purple-700">
+            <td class="py-2 px-1 text-center border-l border-slate-200 dark:border-slate-700 text-[11px] text-slate-400">-</td>
+            <td class="py-2 px-1 text-center border-l border-slate-200 dark:border-slate-700 text-[11px] text-slate-400">-</td>
+            <td class="py-2 px-1 text-center border-l border-slate-200 dark:border-slate-700">
+              <span id="roster-total-rounds-summary" class="inline-block px-1.5 py-0.5 rounded-lg text-[11px] sm:text-xs font-black bg-purple-100 text-purple-900 dark:bg-purple-950/80 dark:text-purple-300 border border-purple-300 dark:border-purple-700">
                 รวม ${totalDailyRounds}
               </span>
             </td>
-            <td class="py-3 px-3 text-center border-l border-slate-200 dark:border-slate-700 text-[11px] text-slate-400">
-              -
-            </td>
+            <td class="py-2 px-1 text-center border-l border-slate-200 dark:border-slate-700 text-[11px] text-slate-400">-</td>
+            <td class="py-2 px-1 text-center border-l border-slate-200 dark:border-slate-700 text-[11px] text-slate-400">-</td>
+            <td class="py-2 px-1 text-center border-l border-slate-200 dark:border-slate-700 text-[11px] text-slate-400">-</td>
           </tr>
         </tfoot>
       `;

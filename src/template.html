@@ -771,9 +771,9 @@
           <h1 class="text-sm sm:text-base md:text-lg font-bold leading-tight tracking-wide flex items-center gap-1 sm:gap-1.5 flex-wrap">
             <span data-i18n="app_title">คลินิกการแพทย์แผนไทย</span>
             <span class="text-[10px] sm:text-[11px] font-normal px-2 py-0.5 bg-herbal-800/80 text-herbal-200 rounded-full border border-herbal-600 hidden sm:inline-block" data-i18n="service_status">เปิดบริการปกติ</span>
-            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.4.7 (คลิกเพื่อตรวจสอบการอัปเดต)">
+            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.4.8 (คลิกเพื่อตรวจสอบการอัปเดต)">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span id="app-header-version-tag">v5.4.7</span>
+              <span id="app-header-version-tag">v5.4.8</span>
             </button>
           </h1>
           <p class="text-[11px] sm:text-xs text-herbal-200 font-light" data-i18n="app_hospital">
@@ -2638,7 +2638,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="font-medium text-slate-700 dark:text-slate-300">คลินิกการแพทย์แผนไทย รพ.นราธิวาสราชนครินทร์</span>
         <span class="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
-        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.4.7</span>
+        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.4.8</span>
         <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">ล่าสุด</span>
       </div>
       <div class="flex items-center gap-2">
@@ -2855,7 +2855,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                 <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">26 กันยายน 2569</span></p>
               </div>
             </div>
-            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.4.7</span>
+            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.4.8</span>
           </div>
 
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/70 text-xs">
@@ -2874,7 +2874,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       
       <!-- Modal Footer -->
       <div class="bg-slate-50 dark:bg-slate-800/80 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between flex-shrink-0">
-        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.4.7</span></span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.4.8</span></span>
         <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold transition" data-i18n="btn_close">
           ปิดหน้าต่าง
         </button>
@@ -5604,22 +5604,22 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
   </div>
 
   <!-- 11. Assistant Massage Shift & Roster Matrix Modal (ตารางจัดคิวนวดของผู้ช่วยแพทย์แผนไทย) -->
-  <div id="modal-assistant-roster-matrix" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/80 backdrop-blur-xs hidden p-2 sm:p-4 overflow-y-auto">
+  <div id="modal-assistant-roster-matrix" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/80 backdrop-blur-xs hidden p-1 sm:p-2.5 md:p-3.5 overflow-y-auto">
     <div class="fixed inset-0" onclick="closeAssistantRosterModal()"></div>
-    <div class="relative bg-white dark:bg-slate-900 rounded-3xl w-full max-w-6xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[94vh] z-10 my-auto">
+    <div class="relative bg-white dark:bg-slate-900 rounded-3xl w-full max-w-[99vw] 2xl:max-w-[1920px] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[96vh] z-10 my-auto">
       
       <!-- Modal Header -->
-      <div class="p-4 sm:p-5 bg-gradient-to-r from-herbal-900 via-herbal-800 to-emerald-900 text-white flex items-center justify-between shadow-md">
+      <div class="p-3.5 sm:p-4 bg-gradient-to-r from-herbal-900 via-herbal-800 to-emerald-900 text-white flex items-center justify-between shadow-md">
         <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-2xl bg-white/10 text-white flex items-center justify-center font-bold text-lg border border-white/20 shadow-inner">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-white/10 text-white flex items-center justify-center font-bold text-lg border border-white/20 shadow-inner">
             <i data-lucide="calendar-check" class="w-5 h-5 text-emerald-300"></i>
           </div>
           <div>
             <div class="flex items-center space-x-2">
-              <h3 class="font-bold text-base sm:text-lg leading-tight">ตารางจัดคิวนวดของผู้ช่วยแพทย์แผนไทย</h3>
+              <h3 class="font-bold text-sm sm:text-base md:text-lg leading-tight">ตารางจัดคิวนวดของผู้ช่วยแพทย์แผนไทย</h3>
               <span id="roster-badge-date-info" class="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/20 text-emerald-200 border border-white/20">ประจำวัน</span>
             </div>
-            <p class="text-xs text-herbal-200">จัดรอบการให้บริการรายบุคคล ติ๊กรอบนวด คำนวณจำนวนรอบอัตโนมัติ และสรุปอัตรากำลัง</p>
+            <p class="text-[11px] sm:text-xs text-herbal-200">จัดรอบการให้บริการรายบุคคล ติ๊กรอบนวด คำนวณจำนวนรอบอัตโนมัติ และสรุปอัตรากำลัง</p>
           </div>
         </div>
         <button type="button" onclick="closeAssistantRosterModal()" class="p-2 text-white/80 hover:text-white rounded-xl hover:bg-white/10 transition cursor-pointer" aria-label="ปิด">
@@ -5628,10 +5628,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       </div>
 
       <!-- Modal Body (Toolbar + Matrix Table) -->
-      <div id="roster-modal-body" class="p-3 sm:p-5 overflow-y-auto space-y-4 flex-grow custom-scroll bg-slate-50/50 dark:bg-slate-900/50">
+      <div id="roster-modal-body" class="p-2 sm:p-3.5 md:p-4 overflow-y-auto space-y-3 flex-grow custom-scroll bg-slate-50/50 dark:bg-slate-900/50">
         
         <!-- Controls & Date Selection Toolbar -->
-        <div class="bg-white dark:bg-slate-850 p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+        <div class="bg-white dark:bg-slate-850 p-2.5 sm:p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-2.5">
           
           <!-- Date Navigator -->
           <div class="flex flex-wrap items-center gap-2">
