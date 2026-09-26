@@ -7,7 +7,7 @@
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.5.1";
+    const APP_VERSION = "v5.5.2";
     const APP_BUILD_DATE = "26 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
@@ -256,4 +256,18 @@
       assistantDutyRosters = {};
     }
     let currentRosterDate = "";
+
+    // Assistant Leaves State (ข้อมูลการลาของผู้ช่วยแพทย์แผนไทย แยกตามวัน/ช่วงเวลา)
+    let assistantLeaves = [];
+    try {
+      const savedLeaves = localStorage.getItem("ttm_assistant_leaves");
+      if (savedLeaves) {
+        const parsedLeaves = JSON.parse(savedLeaves);
+        if (Array.isArray(parsedLeaves)) {
+          assistantLeaves = parsedLeaves;
+        }
+      }
+    } catch(e) {
+      assistantLeaves = [];
+    }
 

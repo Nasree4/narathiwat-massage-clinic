@@ -457,21 +457,21 @@
 
       // Helper to count available slots for an assistant
       function getAssistantFreeSlotCount(asst) {
-        const dutyStatus = (typeof getAssistantDutyStatusForDate === "function")
-          ? getAssistantDutyStatusForDate(asst, dateVal)
-          : { isOff: false, isNotCheckedIn: false };
-        if (dutyStatus.isOff || dutyStatus.isNotCheckedIn) return 0;
+        if (!asst || asst.active === false) return 0;
+        const isOff = (typeof isAssistantOnLeaveOnDate === "function")
+          ? isAssistantOnLeaveOnDate(asst.id, dateVal)
+          : (typeof getAssistantDutyStatusForDate === "function" ? getAssistantDutyStatusForDate(asst, dateVal).isOff : false);
+        if (isOff) return 0;
 
         let freeCount = 0;
         slots.forEach(slot => {
           const slotConf = getSlotConfigForDate(dateVal, slot);
           if (!slotConf.enabled) return;
-          const onDuty = isAssistantOnDutyForSlot(asst, slot, dateVal);
-          if (!onDuty) return;
           const isOccupied = appointments.some(apt => {
-            if (apt.bookDate === dateVal && apt.assistantId === asst.id) {
+            if (apt.bookDate === dateVal && (apt.assistantId === asst.id || (apt.assistantNick && apt.assistantNick === asst.nickname))) {
               if (apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
-              return apt.slotsOccupied && apt.slotsOccupied.includes(slot);
+              const aptSlots = (apt.slotsOccupied && apt.slotsOccupied.length > 0) ? apt.slotsOccupied : [apt.timeSlot];
+              return aptSlots.includes(slot);
             }
             return false;
           });
@@ -599,26 +599,20 @@
 
       // Female Assistant Quick Chips
       const femaleChips = femaleAssts.map(asst => {
-        const dutyStatus = (typeof getAssistantDutyStatusForDate === "function")
-          ? getAssistantDutyStatusForDate(asst, dateVal)
-          : { isOff: false };
-        const isOff = dutyStatus.isOff;
-        const isNotChecked = dutyStatus.isNotCheckedIn;
-        const freeCount = (isOff || isNotChecked) ? 0 : getAssistantFreeSlotCount(asst);
+        const isOff = (typeof isAssistantOnLeaveOnDate === "function")
+          ? isAssistantOnLeaveOnDate(asst.id, dateVal)
+          : (typeof getAssistantDutyStatusForDate === "function" ? getAssistantDutyStatusForDate(asst, dateVal).isOff : false);
+        const freeCount = isOff ? 0 : getAssistantFreeSlotCount(asst);
         const hasFree = freeCount > 0;
         const isCurrent = wizardBookingData.assistantId === asst.id;
         const nick = escapeHtml(asst.nickname || asst.name);
 
-        let statusBadgeText = 'ไม่มา';
-        let statusBadgeClass = 'bg-slate-200 dark:bg-slate-700 text-slate-500 font-bold';
-        let btnBgClass = 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-60';
+        let statusBadgeText = 'เต็ม';
+        let statusBadgeClass = 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold';
+        let btnBgClass = 'bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700';
 
         if (isOff) {
           statusBadgeText = 'ลาเวร';
-          statusBadgeClass = 'bg-slate-200 dark:bg-slate-700 text-slate-500 font-bold';
-          btnBgClass = 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-60';
-        } else if (isNotChecked) {
-          statusBadgeText = 'ยังไม่เช็คชื่อ';
           statusBadgeClass = 'bg-slate-200 dark:bg-slate-700 text-slate-500 font-bold';
           btnBgClass = 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-60';
         } else if (hasFree) {
@@ -633,9 +627,7 @@
 
         const chipTitle = isOff
           ? `${nick} (ลาเวร / พัก ในวันที่เลือก)`
-          : isNotChecked
-            ? `${nick} (ยังไม่ได้เช็คชื่อเข้างาน)`
-            : `${nick} (พร้อมให้บริการ - ${hasFree ? `ว่าง ${freeCount} รอบ` : 'เต็มทุกรอบ'})`;
+          : `${nick} (พร้อมให้บริการ - ${hasFree ? `ว่าง ${freeCount} รอบ` : 'เต็มทุกรอบ'})`;
 
         return `
           <button type="button" onclick="jumpToAssistantSlot('${asst.id}', '${nick}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition cursor-pointer active:scale-95 ${btnBgClass}" title="${chipTitle}">
@@ -649,26 +641,20 @@
 
       // Male Assistant Quick Chips
       const maleChips = maleAssts.map(asst => {
-        const dutyStatus = (typeof getAssistantDutyStatusForDate === "function")
-          ? getAssistantDutyStatusForDate(asst, dateVal)
-          : { isOff: false };
-        const isOff = dutyStatus.isOff;
-        const isNotChecked = dutyStatus.isNotCheckedIn;
-        const freeCount = (isOff || isNotChecked) ? 0 : getAssistantFreeSlotCount(asst);
+        const isOff = (typeof isAssistantOnLeaveOnDate === "function")
+          ? isAssistantOnLeaveOnDate(asst.id, dateVal)
+          : (typeof getAssistantDutyStatusForDate === "function" ? getAssistantDutyStatusForDate(asst, dateVal).isOff : false);
+        const freeCount = isOff ? 0 : getAssistantFreeSlotCount(asst);
         const hasFree = freeCount > 0;
         const isCurrent = wizardBookingData.assistantId === asst.id;
         const nick = escapeHtml(asst.nickname || asst.name);
 
-        let statusBadgeText = 'ไม่มา';
-        let statusBadgeClass = 'bg-slate-200 dark:bg-slate-700 text-slate-500 font-bold';
-        let btnBgClass = 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-60';
+        let statusBadgeText = 'เต็ม';
+        let statusBadgeClass = 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold';
+        let btnBgClass = 'bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700';
 
         if (isOff) {
           statusBadgeText = 'ลาเวร';
-          statusBadgeClass = 'bg-slate-200 dark:bg-slate-700 text-slate-500 font-bold';
-          btnBgClass = 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-60';
-        } else if (isNotChecked) {
-          statusBadgeText = 'ยังไม่เช็คชื่อ';
           statusBadgeClass = 'bg-slate-200 dark:bg-slate-700 text-slate-500 font-bold';
           btnBgClass = 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-60';
         } else if (hasFree) {
@@ -683,9 +669,7 @@
 
         const chipTitle = isOff
           ? `${nick} (ลาเวร / พัก ในวันที่เลือก)`
-          : isNotChecked
-            ? `${nick} (ยังไม่ได้เช็คชื่อเข้างาน)`
-            : `${nick} (พร้อมให้บริการ - ${hasFree ? `ว่าง ${freeCount} รอบ` : 'เต็มทุกรอบ'})`;
+          : `${nick} (พร้อมให้บริการ - ${hasFree ? `ว่าง ${freeCount} รอบ` : 'เต็มทุกรอบ'})`;
 
         return `
           <button type="button" onclick="jumpToAssistantSlot('${asst.id}', '${nick}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition cursor-pointer active:scale-95 ${btnBgClass}" title="${chipTitle}">
@@ -697,10 +681,9 @@
         `;
       }).join("");
 
-      const isDateToday = (typeof getTodayDateString === "function" && dateVal === getTodayDateString());
       const onDutyStaffCount = activeAssts.filter(a => {
-        const st = (typeof getAssistantDutyStatusForDate === "function") ? getAssistantDutyStatusForDate(a, dateVal) : { isOff: false };
-        return !st.isOff && !st.isNotCheckedIn;
+        const isOff = (typeof isAssistantOnLeaveOnDate === "function") ? isAssistantOnLeaveOnDate(a.id, dateVal) : false;
+        return !isOff;
       }).length;
       const offDutyStaffCount = activeAssts.length - onDutyStaffCount;
 
@@ -712,10 +695,10 @@
           </div>
           <div class="flex items-center gap-1.5 flex-wrap">
             <span class="text-[10px] text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full font-bold">
-              🟢 ${isDateToday ? 'เช็คชื่อมา ' : 'พร้อมให้บริการ '}${onDutyStaffCount} ท่าน
+              🟢 พร้อมให้บริการ ${onDutyStaffCount} ท่าน
             </span>
             <span class="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-bold border border-slate-200 dark:border-slate-700">
-              ⚪ ${isDateToday ? 'ยังไม่เช็ค/ลา ' : 'ลาเวร '}${offDutyStaffCount} ท่าน
+              ⚪ ลาเวร / พัก ${offDutyStaffCount} ท่าน
             </span>
           </div>
         </div>
@@ -752,11 +735,9 @@
       const sortedAsstsForCards = [...femaleAssts, ...maleAssts];
 
       sortedAsstsForCards.forEach(asst => {
-        const dutyStatus = (typeof getAssistantDutyStatusForDate === "function")
-          ? getAssistantDutyStatusForDate(asst, dateVal)
-          : { isOff: false };
-        const isOff = dutyStatus.isOff;
-        const isNotChecked = dutyStatus.isNotCheckedIn;
+        const isOff = (typeof isAssistantOnLeaveOnDate === "function")
+          ? isAssistantOnLeaveOnDate(asst.id, dateVal)
+          : (typeof getAssistantDutyStatusForDate === "function" ? getAssistantDutyStatusForDate(asst, dateVal).isOff : false);
 
         const asstBox = document.createElement("div");
         asstBox.id = "asst-slot-card-" + asst.id;
@@ -773,12 +754,11 @@
             `;
           }
 
-          const onDuty = !isOff && !isNotChecked && isAssistantOnDutyForSlot(asst, slot, dateVal);
-
           const isOccupied = appointments.some(apt => {
-            if (apt.bookDate === dateVal && apt.assistantId === asst.id) {
+            if (apt.bookDate === dateVal && (apt.assistantId === asst.id || (apt.assistantNick && apt.assistantNick === asst.nickname))) {
               if (apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
-              return apt.slotsOccupied && apt.slotsOccupied.includes(slot);
+              const aptSlots = (apt.slotsOccupied && apt.slotsOccupied.length > 0) ? apt.slotsOccupied : [apt.timeSlot];
+              return aptSlots.includes(slot);
             }
             return false;
           });
@@ -788,7 +768,7 @@
           const isGenderFull = isMale ? (genderAvail.maleFreeCount <= 0) : (genderAvail.femaleFreeCount <= 0);
 
           const isSelected = (wizardBookingData.timeSlot === slot && wizardBookingData.assistantId === asst.id);
-          const isAvailable = onDuty && !isOccupied && !isGenderFull;
+          const isAvailable = !isOff && !isOccupied && !isGenderFull;
 
           let cardClass = "";
           let statusLabel = "ว่าง";
@@ -799,12 +779,6 @@
           } else if (isOff) {
             cardClass = "bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed";
             statusLabel = "ลาเวร";
-          } else if (isNotChecked) {
-            cardClass = "bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed";
-            statusLabel = "ไม่มา";
-          } else if (!onDuty) {
-            cardClass = "bg-slate-100 dark:bg-slate-800/70 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed";
-            statusLabel = "ไม่อยู่เวร";
           } else if (isOccupied || isGenderFull) {
             cardClass = "bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-900/50 cursor-not-allowed";
             statusLabel = isOccupied ? "ติดนัด" : "เต็ม";
@@ -815,20 +789,16 @@
 
           const toolTip = isOff
             ? `${escapeHtml(asst.nickname || asst.name)} ลาเวร / พัก ในวันที่เลือก`
-            : isNotChecked
-              ? `${escapeHtml(asst.nickname || asst.name)} ยังไม่ได้เช็คชื่อเข้างาน (ไม่มา)`
-              : !onDuty 
-                ? `${escapeHtml(asst.nickname || asst.name)} ไม่อยู่เวรในรอบนี้` 
-                : isOccupied 
-                  ? 'ติดนัดหมาย' 
-                  : isGenderFull 
-                    ? `คิวผู้ช่วยแพทย์${isMale ? 'ชาย' : 'หญิง'}ในรอบนี้เต็มแล้ว` 
-                    : `คลิกเพื่อเลือกรอบเวลานี้กับ ${escapeHtml(asst.nickname || asst.name)}`;
+            : isOccupied 
+              ? 'ติดนัดหมาย' 
+              : isGenderFull 
+                ? `คิวผู้ช่วยแพทย์${isMale ? 'ชาย' : 'หญิง'}ในรอบนี้เต็มแล้ว` 
+                : `คลิกเพื่อเลือกรอบเวลานี้กับ ${escapeHtml(asst.nickname || asst.name)}`;
 
           return `
             <div class="text-center p-1 sm:p-1.5 rounded-lg text-xs font-semibold transition transform ${cardClass}" onclick="selectWizardSlotClassic('${slot}', '${asst.id}', ${isAvailable})" title="${toolTip}">
               <div class="font-bold text-[11px] sm:text-xs font-mono">${slot}</div>
-              <div class="text-[9px] sm:text-[9.5px] ${isSelected ? 'text-amber-200 font-bold' : (!onDuty || isOccupied || isGenderFull) ? 'text-slate-400 dark:text-slate-500' : 'font-normal'}">${statusLabel}</div>
+              <div class="text-[9px] sm:text-[9.5px] ${isSelected ? 'text-amber-200 font-bold' : (isOff || isOccupied || isGenderFull) ? 'text-slate-400 dark:text-slate-500' : 'font-normal'}">${statusLabel}</div>
             </div>
           `;
         }).join("");
@@ -840,9 +810,7 @@
 
         const statusBadgeHeader = isOff
           ? '<span class="text-[9.5px] px-2 py-0.2 rounded-full font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-300">⚪ ลาเวร / พัก</span>'
-          : isNotChecked
-            ? '<span class="text-[9.5px] px-2 py-0.2 rounded-full font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-300">⚪ ยังไม่เช็คชื่อ</span>'
-            : '<span class="text-[9.5px] px-2 py-0.2 rounded-full font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">🟢 พร้อมให้บริการ</span>';
+          : '<span class="text-[9.5px] px-2 py-0.2 rounded-full font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">🟢 พร้อมให้บริการ</span>';
 
         asstBox.innerHTML = `
           <div class="font-bold text-xs text-slate-800 dark:text-slate-100 flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-700/60 flex-wrap gap-1">

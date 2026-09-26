@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ttm-clinic-cache-v146';
+const CACHE_NAME = 'ttm-clinic-cache-v148';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

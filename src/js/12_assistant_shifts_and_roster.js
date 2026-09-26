@@ -682,15 +682,29 @@
     }
 
     
-    // Unified Assistant Duty Status for Date Helper (v5.4.0)
+    // Unified Assistant Duty Status for Date Helper (v5.5.2)
     function getAssistantDutyStatusForDate(asst, dateStr) {
       if (!asst) return { isOff: true, type: 'off', label: '⚪ ลาเวร / พัก (Off Duty)', shortLabel: '⚪ ลาเวร / พัก', badgeClass: 'bg-slate-100 text-slate-500 border-slate-200' };
 
       const targetDate = dateStr || (typeof currentRosterDate !== "undefined" && currentRosterDate) || (typeof getTodayDateString === "function" ? getTodayDateString() : "");
+
+      // 1. Check leave status from assistantLeaves & roster
+      if (typeof isAssistantOnLeaveOnDate === "function" && isAssistantOnLeaveOnDate(asst.id, targetDate)) {
+        return {
+          isOff: true,
+          type: 'off',
+          label: '⚪ ลาเวร / พัก (Off Duty)',
+          shortLabel: '⚪ ลาเวร / พัก',
+          badgeClass: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700',
+          slots: [],
+          checkInTime: ''
+        };
+      }
+
       const rosterObj = (typeof assistantDutyRosters !== "undefined" && assistantDutyRosters[targetDate]) ? assistantDutyRosters[targetDate] : null;
       const rEntry = rosterObj && rosterObj[asst.id] ? (typeof normalizeAssistantRosterEntry === "function" ? normalizeAssistantRosterEntry(rosterObj[asst.id]) : rosterObj[asst.id]) : null;
 
-      // 1. If explicit roster entry exists for this specific date
+      // 2. If explicit roster entry exists for this specific date
       if (rEntry) {
         if (rEntry.isExplicitlyEmpty || rEntry.shiftType === 'off' || !rEntry.slots || rEntry.slots.length === 0) {
           return {
@@ -749,8 +763,8 @@
         };
       }
 
-      // 2. Fallback to assistant object's own default properties
-      if (asst.active === false) {
+      // 3. Fallback to assistant object's own default properties
+      if (asst.active === false || asst.shiftType === 'off') {
         return {
           isOff: true,
           type: 'off',
@@ -760,27 +774,6 @@
           slots: [],
           checkInTime: ''
         };
-      }
-
-      // Check if targetDate is TODAY and live check-in has actively started
-      const isToday = (typeof getTodayDateString === "function" && targetDate === getTodayDateString());
-      if (isToday && rosterObj) {
-        const hasActiveCheckInsToday = Object.values(rosterObj).some(e => {
-          const norm = normalizeAssistantRosterEntry(e);
-          return !norm.isExplicitlyEmpty && norm.shiftType !== 'off' && Array.isArray(norm.slots) && norm.slots.length > 0;
-        });
-        if (hasActiveCheckInsToday) {
-          return {
-            isOff: false,
-            isNotCheckedIn: true,
-            type: 'not_checked_in',
-            label: '⚪ ยังไม่ได้เช็คชื่อ (ไม่มา)',
-            shortLabel: '⚪ ไม่มา',
-            badgeClass: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700',
-            slots: [],
-            checkInTime: ''
-          };
-        }
       }
 
       const defaultShift = (asst.shiftType && asst.shiftType !== 'off') ? asst.shiftType : 'full';
@@ -1744,7 +1737,11 @@
 
             <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
               <div>${statusDot}</div>
-              <div class="flex items-center space-x-2">
+              <div class="flex items-center space-x-1.5">
+                <button type="button" onclick="event.stopPropagation(); openAssistantLeaveModal('${asst.id}')" class="px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[11px] font-bold flex items-center gap-1 transition shadow-2xs cursor-pointer" title="บันทึกการลา / ลาเวร">
+                  <i data-lucide="calendar-off" class="w-3 h-3 text-amber-600"></i>
+                  <span>บันทึกการลา</span>
+                </button>
                 <span class="text-[11px] font-bold text-herbal-800 dark:text-emerald-300">💆‍♂️ ${totalCases} เคส</span>
                 <span class="text-slate-400 group-hover:text-herbal-600 dark:group-hover:text-emerald-400 font-bold transition">➔</span>
               </div>
@@ -1789,11 +1786,15 @@
               </div>
             </div>
 
-            <div class="flex items-center space-x-3 shrink-0">
+            <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
               <div class="hidden sm:flex flex-col items-end text-right">
                 <span class="text-xs font-bold text-herbal-800 dark:text-emerald-300">💆‍♂️ ${totalCases} เคส</span>
                 <span class="text-[10px] text-slate-400">วันนี้ ${todayCases} เคส</span>
               </div>
+              <button type="button" onclick="event.stopPropagation(); openAssistantLeaveModal('${asst.id}')" class="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-bold transition flex items-center space-x-1 shadow-2xs cursor-pointer" title="บันทึกการลา">
+                <i data-lucide="calendar-off" class="w-3.5 h-3.5 text-amber-600"></i>
+                <span class="hidden sm:inline">บันทึกการลา</span>
+              </button>
               <button type="button" class="px-3 py-1.5 rounded-xl bg-herbal-50 dark:bg-emerald-950/50 group-hover:bg-herbal-700 group-hover:text-white text-herbal-700 dark:text-emerald-300 text-xs font-bold transition flex items-center space-x-1 border border-herbal-200/80 dark:border-emerald-800 shadow-2xs cursor-pointer">
                 <span>ดูประวัติ & จัดการ</span>
                 <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
@@ -1838,9 +1839,15 @@
               <span class="text-[10.5px] text-slate-400 ml-1">(วันนี้ ${todayCases})</span>
             </td>
             <td class="px-3.5 py-3 text-right">
-              <span class="text-xs font-bold text-herbal-700 group-hover:underline inline-flex items-center gap-1">
-                ดูประวัติ & จัดการ <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
-              </span>
+              <div class="flex items-center justify-end space-x-2">
+                <button type="button" onclick="event.stopPropagation(); openAssistantLeaveModal('${asst.id}')" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-bold transition flex items-center space-x-1 shadow-2xs cursor-pointer" title="บันทึกการลา">
+                  <i data-lucide="calendar-off" class="w-3.5 h-3.5 text-amber-600"></i>
+                  <span>บันทึกการลา</span>
+                </button>
+                <span class="text-xs font-bold text-herbal-700 group-hover:underline inline-flex items-center gap-1">
+                  ดูประวัติ & จัดการ <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                </span>
+              </div>
             </td>
           </tr>
         `;
@@ -2444,7 +2451,13 @@
     function computeDailyAssistantQueues(dateStr) {
       if (!dateStr) dateStr = (typeof currentRosterDate !== "undefined" && currentRosterDate) ? currentRosterDate : getTodayDateString();
       const rosterObj = (typeof assistantDutyRosters !== "undefined" && assistantDutyRosters[dateStr]) ? assistantDutyRosters[dateStr] : {};
-      const asstIds = Object.keys(rosterObj);
+      const allAsstIds = Object.keys(rosterObj);
+      const asstIds = allAsstIds.filter(aid => {
+        const asst = (assistants || []).find(a => a.id === aid);
+        if (!asst || asst.active === false) return false;
+        if (typeof isAssistantOnLeaveOnDate === "function" && isAssistantOnLeaveOnDate(aid, dateStr)) return false;
+        return true;
+      });
 
       if (asstIds.length === 0) {
         return {
@@ -2637,8 +2650,37 @@
         badgeInfo.textContent = isToday ? "🟢 ประจำวันนี้" : `📅 ${currentRosterDate}`;
       }
 
-      const rosterObj = assistantDutyRosters[currentRosterDate] || {};
-      const rosterAsstIds = Object.keys(rosterObj).sort((aId, bId) => {
+      // 1. Auto-populate all active assistants except those on leave for currentRosterDate
+      if (!assistantDutyRosters[currentRosterDate]) {
+        assistantDutyRosters[currentRosterDate] = {};
+      }
+      const rosterObj = assistantDutyRosters[currentRosterDate];
+      const workingAssts = (assistants || []).filter(a => {
+        if (!a || a.active === false) return false;
+        if (typeof isAssistantOnLeaveOnDate === "function" && isAssistantOnLeaveOnDate(a.id, currentRosterDate)) return false;
+        return true;
+      });
+
+      // Auto-initialize active non-leave staff if not already populated
+      workingAssts.forEach(a => {
+        if (!rosterObj[a.id]) {
+          const defaultSlots = getAssistantWorkSlots(a);
+          rosterObj[a.id] = {
+            checkInTime: "08:00 น.",
+            slots: defaultSlots.length > 0 ? [...defaultSlots] : [...effectiveSlots],
+            shiftType: (a.shiftType && a.shiftType !== 'off') ? a.shiftType : 'full',
+            isExplicitlyEmpty: false
+          };
+        }
+      });
+
+      // Filter out assistants on leave from table display
+      const rosterAsstIds = Object.keys(rosterObj).filter(aId => {
+        const asst = (assistants || []).find(a => a.id === aId);
+        if (!asst || asst.active === false) return false;
+        if (typeof isAssistantOnLeaveOnDate === "function" && isAssistantOnLeaveOnDate(aId, currentRosterDate)) return false;
+        return true;
+      }).sort((aId, bId) => {
         const aEntry = normalizeAssistantRosterEntry(rosterObj[aId]);
         const bEntry = normalizeAssistantRosterEntry(rosterObj[bId]);
         const aTime = (aEntry.checkInTime || "99:99").trim().replace(" น.", "");
@@ -2649,11 +2691,15 @@
         return (aAsst?.nickname || aAsst?.name || "").localeCompare(bAsst?.nickname || bAsst?.name || "", "th");
       });
 
-      // 1. Populate Dropdown with Remaining Active Assistants
+      // 2. Populate Dropdown with Remaining Active Assistants (not on leave)
       if (selectEl) {
-        const remainingAssts = (assistants || []).filter(a => a.active && !rosterAsstIds.includes(a.id));
+        const remainingAssts = (assistants || []).filter(a => {
+          if (!a.active) return false;
+          if (typeof isAssistantOnLeaveOnDate === "function" && isAssistantOnLeaveOnDate(a.id, currentRosterDate)) return false;
+          return !rosterAsstIds.includes(a.id);
+        });
         if (remainingAssts.length === 0) {
-          selectEl.innerHTML = `<option value="">(เช็คชื่อครบทุกคนแล้ว)</option>`;
+          selectEl.innerHTML = `<option value="">(แสดงผู้ช่วยทุกคนครบแล้ว)</option>`;
           selectEl.disabled = true;
         } else {
           selectEl.disabled = false;
@@ -2663,12 +2709,12 @@
         }
       }
 
-      // 2. Build Table Content
+      // 3. Build Table Content
       const slotCounts = {};
       effectiveSlots.forEach(s => { slotCounts[s] = 0; });
       let totalDailyRounds = 0;
 
-      // If no assistants checked in yet for this date (Daily Reset / Fresh State)
+      // If no working assistants for this date (e.g. all on leave)
       if (rosterAsstIds.length === 0) {
         table.innerHTML = `
           <thead>
@@ -2690,15 +2736,15 @@
             <tr>
               <td colspan="${effectiveSlots.length + 4}" class="py-12 px-4 text-center bg-white dark:bg-slate-900">
                 <div class="max-w-md mx-auto space-y-3">
-                  <div class="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center shadow-inner border border-emerald-200/60 dark:border-emerald-800/60">
-                    <i data-lucide="user-check" class="w-7 h-7"></i>
+                  <div class="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 mx-auto flex items-center justify-center shadow-inner border border-amber-200/60 dark:border-amber-800/60">
+                    <i data-lucide="calendar-x" class="w-7 h-7"></i>
                   </div>
-                  <div class="font-bold text-sm text-slate-800 dark:text-slate-100">ยังไม่มีการเช็คชื่อผู้ช่วยฯ ประจำวันที่เลือก</div>
-                  <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">เลือกรายชื่อผู้ช่วยแพทย์แผนไทยจากเมนูด้านบน แล้วกดปุ่ม <strong>"➕ เช็คชื่อเข้างาน (เพิ่มแถว)"</strong> เพื่อลงเวลามาถึงและเริ่มจัดรอบนวด</p>
+                  <div class="font-bold text-sm text-slate-800 dark:text-slate-100">ผู้ช่วยแพทย์แผนไทยทุกคนลาเวร / พักในวันนี้</div>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">ท่านสามารถบันทึกหรือยกเลิกวันลาได้ในเมนู "จัดการวันลา" หรือกดปุ่มเพิ่มผู้ช่วยฯ ด้านบน</p>
                   <div class="pt-2 flex flex-wrap justify-center gap-2">
-                    <button type="button" onclick="addSelectedAssistantToRoster()" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition shadow-sm inline-flex items-center space-x-1.5 cursor-pointer">
-                      <i data-lucide="user-check" class="w-4 h-4"></i>
-                      <span>➕ เช็คชื่อเข้างานคนแรก</span>
+                    <button type="button" onclick="openAssistantLeaveModal()" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition shadow-sm inline-flex items-center space-x-1.5 cursor-pointer">
+                      <i data-lucide="calendar-off" class="w-4 h-4"></i>
+                      <span>🏖️ จัดการวันลาผู้ช่วยฯ</span>
                     </button>
                     <button type="button" onclick="addAllActiveAssistantsToRoster()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition border border-slate-200 dark:border-slate-700 inline-flex items-center space-x-1.5 cursor-pointer">
                       <i data-lucide="users" class="w-4 h-4"></i>
@@ -3625,5 +3671,353 @@
       });
 
       lucide.createIcons();
+    }
+
+    /* =========================================================================
+       ASSISTANT LEAVE MANAGEMENT SYSTEM (ระบบจัดการวันลาผู้ช่วยแพทย์แผนไทย v5.5.2)
+       ========================================================================= */
+
+    let currentLeaveModalMode = "single"; // "single" | "range"
+
+    function openAssistantLeaveModal(targetAsstId = null) {
+      const modal = document.getElementById("modal-assistant-leave");
+      if (!modal) return;
+
+      const asstSelect = document.getElementById("leave-asst-select");
+      if (asstSelect) {
+        const activeAssts = (assistants || []).filter(a => a.active !== false);
+        asstSelect.innerHTML = activeAssts.map(a => `
+          <option value="${a.id}" ${targetAsstId && targetAsstId === a.id ? 'selected' : ''}>
+            ${a.gender === 'male' ? '👨' : '👩'} ${a.nickname} (${a.name})
+          </option>
+        `).join("");
+      }
+
+      const todayStr = (typeof getTodayDateString === "function") ? getTodayDateString() : new Date().toISOString().slice(0, 10);
+      const singleDateInput = document.getElementById("leave-single-date");
+      if (singleDateInput) singleDateInput.value = (typeof currentRosterDate !== "undefined" && currentRosterDate) || todayStr;
+
+      const rangeStartInput = document.getElementById("leave-range-start");
+      const rangeEndInput = document.getElementById("leave-range-end");
+      if (rangeStartInput && rangeEndInput) {
+        rangeStartInput.value = todayStr;
+        rangeEndInput.value = todayStr;
+      }
+
+      setLeaveModalMode("single");
+      renderAssistantLeaveHistoryList(targetAsstId || "all");
+
+      modal.classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeAssistantLeaveModal() {
+      const modal = document.getElementById("modal-assistant-leave");
+      if (modal) {
+        modal.classList.add("hidden");
+        document.body.style.overflow = "";
+      }
+    }
+
+    function setLeaveModalMode(mode) {
+      currentLeaveModalMode = mode;
+      const singleContainer = document.getElementById("leave-mode-single-container");
+      const rangeContainer = document.getElementById("leave-mode-range-container");
+      const btnSingle = document.getElementById("btn-leave-mode-single");
+      const btnRange = document.getElementById("btn-leave-mode-range");
+
+      if (mode === "single") {
+        if (singleContainer) singleContainer.classList.remove("hidden");
+        if (rangeContainer) rangeContainer.classList.add("hidden");
+        if (btnSingle) {
+          btnSingle.className = "flex-1 py-2 px-3 rounded-xl bg-amber-500 text-white font-bold text-xs shadow-xs transition cursor-pointer";
+        }
+        if (btnRange) {
+          btnRange.className = "flex-1 py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold text-xs hover:bg-slate-200 transition cursor-pointer";
+        }
+      } else {
+        if (singleContainer) singleContainer.classList.add("hidden");
+        if (rangeContainer) rangeContainer.classList.remove("hidden");
+        if (btnSingle) {
+          btnSingle.className = "flex-1 py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold text-xs hover:bg-slate-200 transition cursor-pointer";
+        }
+        if (btnRange) {
+          btnRange.className = "flex-1 py-2 px-3 rounded-xl bg-amber-500 text-white font-bold text-xs shadow-xs transition cursor-pointer";
+        }
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function applyLeaveRangePreset(days) {
+      const todayStr = (typeof getTodayDateString === "function") ? getTodayDateString() : new Date().toISOString().slice(0, 10);
+      const startD = new Date(todayStr + "T00:00:00");
+      const endD = new Date(todayStr + "T00:00:00");
+      endD.setDate(startD.getDate() + (days - 1));
+
+      const formatD = (d) => {
+        const yr = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const da = String(d.getDate()).padStart(2, '0');
+        return `${yr}-${mo}-${da}`;
+      };
+
+      const startInput = document.getElementById("leave-range-start");
+      const endInput = document.getElementById("leave-range-end");
+      if (startInput) startInput.value = formatD(startD);
+      if (endInput) endInput.value = formatD(endD);
+    }
+
+    function persistAssistantLeaves() {
+      try {
+        localStorage.setItem("ttm_assistant_leaves", JSON.stringify(assistantLeaves));
+      } catch(e) {
+        console.error("Error saving assistant leaves to localStorage:", e);
+      }
+    }
+
+    async function syncAssistantLeavesToSupabase() {
+      if (typeof supabaseClient !== "undefined" && supabaseClient) {
+        try {
+          await supabaseClient.from("slot_configs").upsert({
+            id: "assistant_leaves",
+            scope: "leaves",
+            config_key: "assistant_leaves",
+            slots_json: assistantLeaves,
+            updated_at: new Date().toISOString()
+          }, { onConflict: "id" });
+        } catch(err) {
+          console.warn("Supabase assistant leaves upsert warning:", err);
+        }
+      }
+    }
+
+    async function handleSaveAssistantLeave(e) {
+      if (e && e.preventDefault) e.preventDefault();
+
+      const asstId = document.getElementById("leave-asst-select")?.value;
+      const leaveType = document.getElementById("leave-type-select")?.value || "vacation";
+      const note = (document.getElementById("leave-note")?.value || "").trim();
+
+      const asst = (assistants || []).find(a => a.id === asstId);
+      if (!asst) {
+        showToast("กรุณาเลือกผู้ช่วยแพทย์แผนไทย", "warning");
+        return;
+      }
+
+      let startDate = "";
+      let endDate = "";
+      const datesList = [];
+
+      if (currentLeaveModalMode === "single") {
+        startDate = document.getElementById("leave-single-date")?.value;
+        endDate = startDate;
+        if (!startDate) {
+          showToast("กรุณาระบุวันที่ต้องการลา", "warning");
+          return;
+        }
+        datesList.push(startDate);
+      } else {
+        startDate = document.getElementById("leave-range-start")?.value;
+        endDate = document.getElementById("leave-range-end")?.value;
+        if (!startDate || !endDate) {
+          showToast("กรุณาระบุช่วงวันที่ต้องการลา", "warning");
+          return;
+        }
+        if (startDate > endDate) {
+          showToast("วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด", "warning");
+          return;
+        }
+
+        const cur = new Date(startDate + "T00:00:00");
+        const last = new Date(endDate + "T00:00:00");
+        while (cur <= last) {
+          const yr = cur.getFullYear();
+          const mo = String(cur.getMonth() + 1).padStart(2, '0');
+          const da = String(cur.getDate()).padStart(2, '0');
+          datesList.push(`${yr}-${mo}-${da}`);
+          cur.setDate(cur.getDate() + 1);
+        }
+      }
+
+      const leaveTypeLabels = {
+        vacation: "🏖️ ลาพักผ่อน",
+        sick: "🤒 ลาป่วย",
+        business: "💼 ลากิจ",
+        off: "⚪ ลาเวร / พัก",
+        other: "📋 อื่นๆ"
+      };
+
+      const newLeave = {
+        id: "leave-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6),
+        assistantId: asst.id,
+        assistantName: asst.name,
+        assistantNick: asst.nickname,
+        leaveType: leaveType,
+        leaveLabel: leaveTypeLabels[leaveType] || leaveType,
+        startDate: startDate,
+        endDate: endDate,
+        dates: datesList,
+        note: note,
+        created_at: new Date().toISOString()
+      };
+
+      if (!Array.isArray(assistantLeaves)) assistantLeaves = [];
+      assistantLeaves.push(newLeave);
+      persistAssistantLeaves();
+
+      // Synchronize affected dates in assistantDutyRosters
+      datesList.forEach(dStr => {
+        if (assistantDutyRosters[dStr]) {
+          assistantDutyRosters[dStr][asst.id] = {
+            checkInTime: "",
+            slots: [],
+            shiftType: "off",
+            isExplicitlyEmpty: true
+          };
+        }
+      });
+      try {
+        localStorage.setItem("ttm_assistant_duty_rosters", JSON.stringify(assistantDutyRosters));
+      } catch(e) {}
+
+      await syncAssistantLeavesToSupabase();
+
+      // Refresh UI
+      renderAssistantLeaveHistoryList("all");
+      if (typeof renderAssistantRosterMatrix === "function") renderAssistantRosterMatrix();
+      if (typeof renderManageShifts === "function") renderManageShifts();
+      if (typeof populateAssistantsDropdown === "function") populateAssistantsDropdown("new-assistant-select");
+
+      const dateText = startDate === endDate 
+        ? ((typeof formatThaiDisplayDate === "function") ? formatThaiDisplayDate(startDate) : startDate)
+        : `${(typeof formatThaiDateShort === "function") ? formatThaiDateShort(startDate) : startDate} - ${(typeof formatThaiDateShort === "function") ? formatThaiDateShort(endDate) : endDate} (${datesList.length} วัน)`;
+
+      showToast(`บันทึกวันลาของ ${asst.nickname} สำเร็จ (${newLeave.leaveLabel} • ${dateText})`, "success");
+
+      await logActivity("CONFIG_SYSTEM", `บันทึกการลาผู้ช่วยฯ: ${asst.nickname} (${newLeave.leaveLabel}) วันที่ ${dateText}`, {
+        leaveId: newLeave.id,
+        assistantId: asst.id,
+        leaveType: leaveType,
+        startDate: startDate,
+        endDate: endDate,
+        note: note
+      });
+    }
+
+    async function deleteAssistantLeave(leaveId) {
+      if (!leaveId) return;
+      const leave = (assistantLeaves || []).find(l => l.id === leaveId);
+      if (!leave) return;
+
+      if (!confirm(`คุณต้องการยกเลิกการลาของ "${leave.assistantNick || leave.assistantName}" (${leave.leaveLabel} วันที่ ${leave.startDate} ถึง ${leave.endDate}) หรือไม่?`)) {
+        return;
+      }
+
+      const affectedDates = leave.dates || [leave.startDate];
+      const asstId = leave.assistantId;
+
+      assistantLeaves = assistantLeaves.filter(l => l.id !== leaveId);
+      persistAssistantLeaves();
+
+      // Re-initialize assistant roster for those dates
+      const asst = (assistants || []).find(a => a.id === asstId);
+      if (asst) {
+        affectedDates.forEach(dStr => {
+          if (assistantDutyRosters[dStr] && assistantDutyRosters[dStr][asstId]) {
+            const defaultSlots = getAssistantWorkSlots(asst);
+            assistantDutyRosters[dStr][asstId] = {
+              checkInTime: "08:00 น.",
+              slots: defaultSlots.length > 0 ? [...defaultSlots] : [...IN_HOURS_SLOTS],
+              shiftType: asst.shiftType || 'full',
+              isExplicitlyEmpty: false
+            };
+          }
+        });
+        try {
+          localStorage.setItem("ttm_assistant_duty_rosters", JSON.stringify(assistantDutyRosters));
+        } catch(e) {}
+      }
+
+      await syncAssistantLeavesToSupabase();
+
+      renderAssistantLeaveHistoryList("all");
+      if (typeof renderAssistantRosterMatrix === "function") renderAssistantRosterMatrix();
+      if (typeof renderManageShifts === "function") renderManageShifts();
+      if (typeof populateAssistantsDropdown === "function") populateAssistantsDropdown("new-assistant-select");
+
+      showToast("ยกเลิกรายการลาเรียบร้อยแล้ว", "info");
+
+      await logActivity("CONFIG_SYSTEM", `ยกเลิกการลาผู้ช่วยฯ: ${leave.assistantNick} (${leave.leaveLabel}) วันที่ ${leave.startDate}`, {
+        leaveId: leaveId,
+        assistantId: asstId
+      });
+    }
+
+    function renderAssistantLeaveHistoryList(filterAsstId = "all") {
+      const container = document.getElementById("leave-history-list-container");
+      if (!container) return;
+
+      const filterSelect = document.getElementById("leave-history-filter-asst");
+      if (filterSelect) {
+        const activeAssts = (assistants || []).filter(a => a.active !== false);
+        const curVal = filterAsstId || filterSelect.value || "all";
+        filterSelect.innerHTML = `<option value="all">👥 แสดงประวัติวันลาของทุกคน (${assistantLeaves.length} รายการ)</option>` +
+          activeAssts.map(a => `<option value="${a.id}" ${curVal === a.id ? 'selected' : ''}>${a.gender === 'male' ? '👨' : '👩'} ${a.nickname} - ${a.name}</option>`).join("");
+      }
+
+      let list = Array.isArray(assistantLeaves) ? [...assistantLeaves] : [];
+      if (filterAsstId && filterAsstId !== "all") {
+        list = list.filter(l => l.assistantId === filterAsstId);
+      }
+
+      // Sort newest start date first
+      list.sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''));
+
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div class="py-8 text-center bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 space-y-2">
+            <div class="w-10 h-10 mx-auto rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 flex items-center justify-center">
+              <i data-lucide="calendar-check" class="w-5 h-5"></i>
+            </div>
+            <div class="text-xs font-bold text-slate-600 dark:text-slate-300">ไม่มีรายการบันทึกวันลา</div>
+            <p class="text-[11px] text-slate-400">เลือกผู้ช่วยแพทย์แผนไทยและระบุวันที่ด้านบนเพื่อบันทึกการลา</p>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = list.map((l, idx) => {
+        const asst = (assistants || []).find(a => a.id === l.assistantId) || { nickname: l.assistantNick, name: l.assistantName, gender: "female" };
+        const isSingle = l.startDate === l.endDate;
+        const dateDisplay = isSingle
+          ? ((typeof formatThaiDisplayDate === "function") ? formatThaiDisplayDate(l.startDate) : l.startDate)
+          : `${(typeof formatThaiDateShort === "function") ? formatThaiDateShort(l.startDate) : l.startDate} - ${(typeof formatThaiDateShort === "function") ? formatThaiDateShort(l.endDate) : l.endDate} (${(l.dates || []).length} วัน)`;
+
+        return `
+          <div class="p-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs hover:border-amber-300 transition flex items-center justify-between gap-3 text-xs mb-2">
+            <div class="flex items-center space-x-3 min-w-0">
+              ${getAssistantAvatarHTML(asst, 'w-9 h-9', 'text-xs')}
+              <div class="min-w-0">
+                <div class="flex items-center space-x-2 flex-wrap">
+                  <span class="font-bold text-slate-800 dark:text-white">${escapeHtml(asst.nickname || asst.name)}</span>
+                  <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950 dark:text-amber-200">${escapeHtml(l.leaveLabel || 'ลาเวร')}</span>
+                </div>
+                <div class="flex items-center space-x-2 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex-wrap">
+                  <span>📅 ${escapeHtml(dateDisplay)}</span>
+                  ${l.note ? `<span>• <em>"${escapeHtml(l.note)}"</em></span>` : ''}
+                </div>
+              </div>
+            </div>
+            <button type="button" onclick="deleteAssistantLeave('${l.id}')" class="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center space-x-1 shadow-2xs cursor-pointer shrink-0" title="ยกเลิกการลา">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-600"></i>
+              <span>ยกเลิก</span>
+            </button>
+          </div>
+        `;
+      }).join("");
+
+      if (window.lucide) lucide.createIcons();
     }
 

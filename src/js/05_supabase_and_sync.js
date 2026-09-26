@@ -399,6 +399,14 @@
             const isUserTyping = document.activeElement && manageView.contains(document.activeElement);
             if (!isUserTyping && typeof renderManageSlots === "function") renderManageSlots();
           }
+        } else if (newRec.scope === "leaves" && newRec.config_key === "assistant_leaves") {
+          if (Array.isArray(newRec.slots_json)) {
+            assistantLeaves = newRec.slots_json;
+            try { localStorage.setItem("ttm_assistant_leaves", JSON.stringify(assistantLeaves)); } catch(e) {}
+            if (typeof renderAssistantLeaveHistoryList === "function") renderAssistantLeaveHistoryList();
+            if (typeof renderManageShifts === "function") renderManageShifts();
+            if (typeof renderAssistantRosterMatrix === "function") renderAssistantRosterMatrix();
+          }
         } else if (newRec.scope === "monthly") {
           customMonthlySlotConfig[newRec.config_key] = newRec.slots_json;
           try { localStorage.setItem("ttm_monthly_slot_config", JSON.stringify(customMonthlySlotConfig)); } catch(e) {}
@@ -1238,6 +1246,9 @@
                 assistants = deduplicateAssistants(combined);
                 try { localStorage.setItem("ttm_assistants", JSON.stringify(assistants)); } catch(e) {}
               }
+              else if (c.scope === "leaves" && c.config_key === "assistant_leaves") {
+                if (Array.isArray(c.slots_json)) assistantLeaves = c.slots_json;
+              }
               else if (c.scope === "holidays" && c.config_key === "custom_holidays") {
                 if (Array.isArray(c.slots_json)) customHolidaysList = c.slots_json;
               } else if (c.scope === "services" && c.config_key === "main_services") {
@@ -1265,6 +1276,7 @@
             try { localStorage.setItem("ttm_daily_slot_config", JSON.stringify(customDailySlotConfig)); } catch(e) {}
             try { localStorage.setItem("ttm_monthly_slot_config", JSON.stringify(customMonthlySlotConfig)); } catch(e) {}
             try { localStorage.setItem("ttm_assistant_duty_rosters", JSON.stringify(assistantDutyRosters)); } catch(e) {}
+            try { localStorage.setItem("ttm_assistant_leaves", JSON.stringify(assistantLeaves)); } catch(e) {}
             try { localStorage.setItem("ttm_custom_holidays", JSON.stringify(customHolidaysList)); } catch(e) {}
             try { localStorage.setItem("ttm_main_services", JSON.stringify(mainServicesList)); } catch(e) {}
           }

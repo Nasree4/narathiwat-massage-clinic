@@ -171,6 +171,40 @@
       };
     }
 
+    function isAssistantOnLeaveOnDate(asstId, dateStr) {
+      if (!asstId || !dateStr) return false;
+
+      // 1. Check assistantLeaves array
+      if (typeof assistantLeaves !== "undefined" && Array.isArray(assistantLeaves)) {
+        const onLeave = assistantLeaves.some(l => {
+          if (l.assistantId !== asstId) return false;
+          if (Array.isArray(l.dates) && l.dates.includes(dateStr)) return true;
+          if (l.startDate && l.endDate && dateStr >= l.startDate && dateStr <= l.endDate) return true;
+          if (l.date && l.date === dateStr) return true;
+          return false;
+        });
+        if (onLeave) return true;
+      }
+
+      // 2. Check assistantDutyRosters for dateStr
+      if (typeof assistantDutyRosters !== "undefined" && assistantDutyRosters[dateStr] && assistantDutyRosters[dateStr][asstId]) {
+        const rEntry = (typeof normalizeAssistantRosterEntry === "function")
+          ? normalizeAssistantRosterEntry(assistantDutyRosters[dateStr][asstId])
+          : assistantDutyRosters[dateStr][asstId];
+        if (rEntry && (rEntry.shiftType === 'off' || rEntry.isExplicitlyEmpty === true)) {
+          return true;
+        }
+      }
+
+      // 3. Check assistant object's own active/shiftType
+      const asstObj = (assistants || []).find(a => a.id === asstId);
+      if (asstObj && (asstObj.active === false || asstObj.shiftType === 'off')) {
+        return true;
+      }
+
+      return false;
+    }
+
     function getAvailableAssistantsForSlot(dateStr, timeSlot, checkTwoSlots = false, excludeAppointmentId = null) {
       if (!dateStr) {
         return (assistants || []).filter(a => a.active !== false);
@@ -188,23 +222,14 @@
         if (!asst || asst.active === false) return false;
 
         // 2. Must not be on leave for this specific date
-        const dutyStatus = (typeof getAssistantDutyStatusForDate === "function")
-          ? getAssistantDutyStatusForDate(asst, dateStr)
-          : { isOff: asst.shiftType === 'off' };
-        if (dutyStatus.isOff) return false;
+        if (isAssistantOnLeaveOnDate(asst.id, dateStr)) return false;
 
-        // 3. Must be on duty for the specific required timeSlot(s)
-        if (requiredSlots.length > 0) {
-          const worksAllRequired = requiredSlots.every(slot => isAssistantOnDutyForSlot(asst, slot, dateStr));
-          if (!worksAllRequired) return false;
-        }
-
-        // 4. Check if busy in any appointment
+        // 3. Check if busy in any appointment on the required slot(s)
         const isOccupied = (appointments || []).some(apt => {
           if (excludeAppointmentId && apt.id === excludeAppointmentId) return false;
-          if (apt.bookDate === dateStr && apt.assistantId === asst.id) {
+          if (apt.bookDate === dateStr && (apt.assistantId === asst.id || (apt.assistantNick && apt.assistantNick === asst.nickname))) {
             if (apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
-            const aptSlots = apt.slotsOccupied || [apt.timeSlot];
+            const aptSlots = (apt.slotsOccupied && apt.slotsOccupied.length > 0) ? apt.slotsOccupied : [apt.timeSlot];
             if (requiredSlots.length > 0) {
               return aptSlots.some(s => requiredSlots.includes(s));
             }
@@ -218,8 +243,9 @@
     }
 
     /**
-     * Universal Assistant Booking Conflict Checker (v5.4.2)
-     * Validates leave, shift duty, double-booking, and capacity across all workflows.
+     * Universal Assistant Booking Conflict Checker (v5.5.2)
+     * Validates leave, double-booking, and capacity across all workflows.
+     * All active assistants can be booked unless on leave or occupied.
      */
     function checkAssistantBookingConflict({
       assistantId,
@@ -258,46 +284,45 @@
         }
 
         // 1.2 Leave / Off Duty for date Check
-        if (asst && typeof getAssistantDutyStatusForDate === "function") {
-          const dutyStatus = getAssistantDutyStatusForDate(asst, bookDate);
-          if (dutyStatus.isOff) {
-            const dateFormatted = (typeof formatThaiDateShort === "function") ? formatThaiDateShort(bookDate) : bookDate;
-            return {
-              hasConflict: true,
-              type: 'leave',
-              title: `ผู้ช่วยฯ ${asstNick} ลาเวร / พัก (${dateFormatted})`,
-              desc: `ผู้ช่วยแพทย์ ${asstNick} ได้ลงบันทึกวันลาเวร / พักผ่อนในวันที่ ${dateFormatted} ไว้ จึงไม่สามารถรับนัดหมายได้ กรุณาเลือกรอบเวลาอื่นหรือเลือกผู้ช่วยแพทย์ท่านอื่น`,
-              asst
-            };
-          }
+        if (isAssistantOnLeaveOnDate(assistantId, bookDate)) {
+          const dateFormatted = (typeof formatThaiDateShort === "function") ? formatThaiDateShort(bookDate) : bookDate;
+          return {
+            hasConflict: true,
+            type: 'leave',
+            title: `ผู้ช่วยฯ ${asstNick} ลาเวร / พัก (${dateFormatted})`,
+            desc: `ผู้ช่วยแพทย์ ${asstNick} ได้ลงบันทึกวันลาเวร / พักผ่อนในวันที่ ${dateFormatted} ไว้ จึงไม่สามารถรับนัดหมายได้ กรุณาเลือกรอบเวลาอื่นหรือเลือกผู้ช่วยแพทย์ท่านอื่น`,
+            asst
+          };
         }
 
-        // 1.3 Working Shift Check for requested slot(s)
-        if (asst && typeof isAssistantOnDutyForSlot === "function") {
-          const worksAllSlots = reqSlots.every(s => isAssistantOnDutyForSlot(asst, s, bookDate));
-          if (!worksAllSlots) {
-            const slotsStr = reqSlots.map(s => (typeof formatCleanTime === "function" ? formatCleanTime(s) : s) + ' น.').join(', ');
-            return {
-              hasConflict: true,
-              type: 'off_shift',
-              title: `ผู้ช่วยฯ ${asstNick} ไม่อยู่เวรในรอบ ${slotsStr}`,
-              desc: `ผู้ช่วยแพทย์ ${asstNick} ไม่ได้ลงตารางเวรปฏิบัติงานในช่วงเวลาดังกล่าว กรุณาเลือกรอบเวลาอื่นที่ผู้ช่วยฯ เข้าเวร`,
-              asst
-            };
-          }
-        }
-
-        // 1.4 Appointment Collision / Double-Booking Check
+        // 1.3 Appointment Collision / Double-Booking Check
         const conflictingApt = (appointments || []).find(apt => {
           if (excludeAppointmentId && apt.id === excludeAppointmentId) return false;
           if (apt.bookDate !== bookDate) return false;
           if (apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
-          if (apt.assistantId === assistantId) {
+          if (apt.assistantId === assistantId || (apt.assistantNick && apt.assistantNick === asstNick)) {
             const aptSlots = (apt.slotsOccupied && apt.slotsOccupied.length > 0) ? apt.slotsOccupied : [apt.timeSlot];
             return aptSlots.some(s => reqSlots.includes(s));
           }
           return false;
         });
+
+        if (conflictingApt) {
+          const cPatient = conflictingApt.patientName || "ผู้รับบริการท่านอื่น";
+          const cTime = (conflictingApt.slotsOccupied && conflictingApt.slotsOccupied.length > 0)
+            ? conflictingApt.slotsOccupied.map(s => (typeof formatCleanTime === "function" ? formatCleanTime(s) : s)).join(' - ')
+            : (typeof formatCleanTime === "function" ? formatCleanTime(conflictingApt.timeSlot) : conflictingApt.timeSlot);
+          const cService = conflictingApt.mainService || "นวดรักษา";
+
+          return {
+            hasConflict: true,
+            type: 'collision',
+            title: `⚠️ ผู้ช่วยฯ ${asstNick} ติดนัดหมายซ้ำซ้อนแล้ว`,
+            desc: `ผู้ช่วยแพทย์ ${asstNick} มีคิวนัดหมายซ้ำซ้อนในรอบเวลา ${cTime} น. กับคุณ "${cPatient}" (${cService}) กรุณาเลือกผู้ช่วยแพทย์ท่านอื่น หรือเลือกรอบเวลาอื่น`,
+            conflictingAppointment: conflictingApt,
+            asst
+          };
+        }
 
         if (conflictingApt) {
           const cPatient = conflictingApt.patientName || "ผู้รับบริการท่านอื่น";
@@ -654,13 +679,36 @@
       }
 
       if (timeSlot) {
-        const offDutyStaff = (assistants || []).filter(a => a.active !== false && !isAssistantOnDutyForSlot(a, timeSlot, dateVal));
-        if (offDutyStaff.length > 0) {
-          optsHtml += `<optgroup label="🔒 ผู้ช่วยฯ ที่ไม่อยู่เวรในรอบเวลานี้ (${offDutyStaff.length} ท่าน)">`;
-          offDutyStaff.forEach(a => {
+        const busyStaff = (assistants || []).filter(a => {
+          if (!a || a.active === false) return false;
+          if (isAssistantOnLeaveOnDate(a.id, dateVal)) return false;
+          return (appointments || []).some(apt => {
+            if (apt.bookDate === dateVal && (apt.assistantId === a.id || (apt.assistantNick && apt.assistantNick === a.nickname))) {
+              if (apt.status === "🔴 ส่งต่อ" || apt.status === "ยกเลิก") return false;
+              const aptSlots = (apt.slotsOccupied && apt.slotsOccupied.length > 0) ? apt.slotsOccupied : [apt.timeSlot];
+              return aptSlots.includes(timeSlot);
+            }
+            return false;
+          });
+        });
+
+        if (busyStaff.length > 0) {
+          optsHtml += `<optgroup label="🔒 ผู้ช่วยฯ ที่ติดนัดหมายในรอบเวลานี้ (${busyStaff.length} ท่าน)">`;
+          busyStaff.forEach(a => {
             const genderIcon = isMaleAssistant(a) ? '👨' : '👩';
             const nick = a.nickname || a.name;
-            optsHtml += `<option value="${a.id}" disabled class="text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800">🔒 ${genderIcon} ${escapeHtml(nick)} (ไม่อยู่เวร)</option>`;
+            optsHtml += `<option value="${a.id}" disabled class="text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800">🔒 ${genderIcon} ${escapeHtml(nick)} (ติดนัดหมาย)</option>`;
+          });
+          optsHtml += `</optgroup>`;
+        }
+
+        const leaveStaff = (assistants || []).filter(a => a.active !== false && isAssistantOnLeaveOnDate(a.id, dateVal));
+        if (leaveStaff.length > 0) {
+          optsHtml += `<optgroup label="🏖️ ผู้ช่วยฯ ที่ลาเวร / พัก ในวันที่เลือก (${leaveStaff.length} ท่าน)">`;
+          leaveStaff.forEach(a => {
+            const genderIcon = isMaleAssistant(a) ? '👨' : '👩';
+            const nick = a.nickname || a.name;
+            optsHtml += `<option value="${a.id}" disabled class="text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800">🏖️ ${genderIcon} ${escapeHtml(nick)} (ลาเวร/พัก)</option>`;
           });
           optsHtml += `</optgroup>`;
         }

@@ -187,21 +187,39 @@ const res5 = context.checkAssistantBookingConflict({
 });
 assert(res5.hasConflict === false, "Allows self-matching when excludeAppointmentId is provided (rescheduling same slot)");
 
-// Test 6: Shift duty check (asst-2 is ot shift [17:00-19:00], slot 08:00 is morning in-hours)
+// Test 6: Active assistants are available across slots when not on leave or busy
 const res6 = context.checkAssistantBookingConflict({
   assistantId: "asst-2",
   bookDate: "2026-09-25",
   timeSlot: "08:00"
 });
-assert(res6.hasConflict === true && res6.type === "off_shift", "Blocks appointment when assistant is off-shift in morning");
+assert(res6.hasConflict === false, "Allows active non-leave assistant to be booked across any slot");
 
-// Test 7: Off-duty / leave assistant
-const res7 = context.checkAssistantBookingConflict({
+// Test 7: Leave / off-duty assistant blocking
+context.vmRun(`
+  assistantLeaves = [
+    {
+      id: "leave-test-1",
+      assistantId: "asst-1",
+      leaveType: "vacation",
+      startDate: "2026-09-26",
+      endDate: "2026-09-27",
+      dates: ["2026-09-26", "2026-09-27"]
+    }
+  ];
+`);
+const res7a = context.checkAssistantBookingConflict({
   assistantId: "asst-4",
   bookDate: "2026-09-25",
   timeSlot: "09:00"
 });
-assert(res7.hasConflict === true && (res7.type === "leave" || res7.type === "off_shift"), "Blocks appointment when assistant is on leave/off-duty");
+const res7b = context.checkAssistantBookingConflict({
+  assistantId: "asst-1",
+  bookDate: "2026-09-26",
+  timeSlot: "09:00"
+});
+assert(res7a.hasConflict === true && (res7a.type === "leave" || res7a.type === "off_shift") &&
+       res7b.hasConflict === true && res7b.type === "leave", "Blocks appointment when assistant is on leave or off-duty");
 
 // Test 8: Inactive assistant
 context.vmRun(`assistants.push({ id: "asst-inactive", name: "อดีตหมอ", nickname: "อดีตหมอ", active: false, shiftType: "full" });`);
@@ -213,3 +231,4 @@ const res8 = context.checkAssistantBookingConflict({
 assert(res8.hasConflict === true && res8.type === "inactive", "Blocks booking for inactive assistant");
 
 console.log(`\n🏁 Test Results: ${passed} / ${total} passed (${passed === total ? '100% SUCCESS' : 'FAILURES DETECTED'})`);
+
