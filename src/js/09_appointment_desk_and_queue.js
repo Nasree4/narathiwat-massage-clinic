@@ -10,31 +10,48 @@
     function getAppointmentGender(apt) {
       if (!apt) return 'unknown';
 
-      // 1. Explicit patientGender if present
+      // 1. Direct assistant ID lookup in assistants list (เพศของผู้ช่วยแพทย์ที่ได้รับมอบหมาย)
+      if (apt.assistantId && apt.assistantId !== 'auto' && apt.assistantId !== 'male' && apt.assistantId !== 'female') {
+        const asst = (assistants || []).find(a => a.id === apt.assistantId);
+        if (asst) {
+          if (typeof isMaleAssistant === 'function' && isMaleAssistant(asst)) return 'male';
+          if (typeof isFemaleAssistant === 'function' && isFemaleAssistant(asst)) return 'female';
+          const g = (asst.gender || '').toLowerCase();
+          if (g === 'male' || g === 'ชาย') return 'male';
+          if (g === 'female' || g === 'หญิง') return 'female';
+        }
+      }
+
+      // 2. Assistant nickname / name lookup in assistants list
+      if (apt.assistantNick && apt.assistantNick !== 'auto' && apt.assistantNick !== 'ผู้ช่วยแพทย์' && !apt.assistantNick.includes('ไม่ระบุ')) {
+        const asst = (assistants || []).find(a => 
+          (a.nickname && a.nickname.trim() === apt.assistantNick.trim()) || 
+          (a.name && (a.name.trim() === apt.assistantNick.trim() || a.name.includes(apt.assistantNick.trim())))
+        );
+        if (asst) {
+          if (typeof isMaleAssistant === 'function' && isMaleAssistant(asst)) return 'male';
+          if (typeof isFemaleAssistant === 'function' && isFemaleAssistant(asst)) return 'female';
+        }
+      }
+
+      // 3. Requested assistant gender ("ขอผู้ชาย" / "ขอผู้หญิง" / "male" / "female")
+      const id = (apt.assistantId || '').toLowerCase();
+      const nick = (apt.assistantNick || '').toLowerCase();
+      if (id === 'male' || nick.includes('ขอผู้ชาย') || nick.includes('ผู้ช่วยชาย') || nick.includes('ชาย')) return 'male';
+      if (id === 'female' || nick.includes('ขอผู้หญิง') || nick.includes('ผู้ช่วยหญิง') || nick.includes('หญิง')) return 'female';
+
+      // 4. Fallback to patientGender if assistant was unassigned / auto
       const pg = (apt.patientGender || '').toLowerCase();
       if (pg === 'male' || pg === 'ชาย' || pg === 'm') return 'male';
       if (pg === 'female' || pg === 'หญิง' || pg === 'f') return 'female';
 
-      // 2. Patient name prefix check
+      // 5. Patient name prefix check (fallback)
       const name = (apt.patientName || '').trim();
       if (name.startsWith("นาย") || name.startsWith("ด.ช.") || name.startsWith("เด็กชาย") || name.startsWith("นพ.") || name.startsWith("นายแพทย์") || name.startsWith("พระ") || name.startsWith("สามเณร") || name.startsWith("แบ ") || name.startsWith("แบ-")) {
         return 'male';
       }
       if (name.startsWith("นาง") || name.startsWith("น.ส.") || name.startsWith("นางสาว") || name.startsWith("ด.ญ.") || name.startsWith("เด็กหญิง") || name.startsWith("พญ.") || name.startsWith("แพทย์หญิง") || name.startsWith("ก๊ะ") || name.startsWith("เจ๊ะ") || name.startsWith("แมะ")) {
         return 'female';
-      }
-
-      // 3. From requested/assigned assistant
-      if (apt.assistantId === 'male' || (apt.assistantNick && (apt.assistantNick.includes('ขอผู้ชาย') || apt.assistantNick.includes('ชาย')))) return 'male';
-      if (apt.assistantId === 'female' || (apt.assistantNick && (apt.assistantNick.includes('ขอผู้หญิง') || apt.assistantNick.includes('หญิง')))) return 'female';
-
-      if (apt.assistantId && apt.assistantId !== 'auto') {
-        const asst = (assistants || []).find(a => a.id === apt.assistantId);
-        if (asst) {
-          if (typeof isMaleAssistant === 'function' && isMaleAssistant(asst)) return 'male';
-          if (asst.gender === 'male' || asst.gender === 'ชาย') return 'male';
-          if (asst.gender === 'female' || asst.gender === 'หญิง') return 'female';
-        }
       }
 
       return 'unknown';
@@ -536,15 +553,15 @@
                 ${isMultiDay ? `<span class="text-xs font-semibold text-herbal-800 dark:text-emerald-300 bg-herbal-100 dark:bg-emerald-950 border border-herbal-300 dark:border-emerald-800 px-2 py-0.5 rounded-md ml-1">📅 วันที่ ${formatThaiDateShort(group.bookDate)}</span>` : ''}
               </div>
               <div class="flex items-center space-x-1.5 flex-wrap gap-1">
-                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">นัดหมาย:</span>
-                <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-herbal-100 dark:bg-emerald-950 text-herbal-900 dark:text-emerald-200 border border-herbal-300 dark:border-emerald-800 shadow-2xs" title="ยอดรวมคิวนัดหมายในรอบนี้">
+                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">ผู้ช่วยฯ:</span>
+                <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-herbal-100 dark:bg-emerald-950 text-herbal-900 dark:text-emerald-200 border border-herbal-300 dark:border-emerald-800 shadow-2xs" title="ยอดรวมผู้ช่วยแพทย์ในรอบนี้">
                   รวม ${group.items.length} ราย
                 </span>
-                <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-800 shadow-2xs flex items-center gap-1" title="ผู้รับบริการ / ขอผู้ช่วยแพทย์ชาย">
+                <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-800 shadow-2xs flex items-center gap-1" title="ผู้ช่วยแพทย์ชาย ${grpMaleCount} ท่าน">
                   <span>👨 ชาย</span>
                   <strong class="font-black text-sky-900 dark:text-sky-100">${grpMaleCount}</strong>
                 </span>
-                <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800 shadow-2xs flex items-center gap-1" title="ผู้รับบริการ / ขอผู้ช่วยแพทย์หญิง">
+                <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800 shadow-2xs flex items-center gap-1" title="ผู้ช่วยแพทย์หญิง ${grpFemaleCount} ท่าน">
                   <span>👩 หญิง</span>
                   <strong class="font-black text-rose-900 dark:text-rose-100">${grpFemaleCount}</strong>
                 </span>
