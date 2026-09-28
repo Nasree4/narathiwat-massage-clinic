@@ -781,7 +781,7 @@
         },
         {
           id: "in-room",
-          title: "ห้อง 1-5 (กำลังนวด)",
+          title: "ห้องหัตถการ / IMC (กำลังนวด)",
           icon: "bed-double",
           bgHeader: "bg-purple-700",
           borderCol: "border-purple-200 dark:border-purple-900/50",
@@ -789,7 +789,7 @@
           badgeBg: "bg-purple-800 text-white",
           filterFn: a => {
             const st = (a.status || '').replace('🟣 ', '').trim();
-            return (st.startsWith('ห้อง') && !st.startsWith('รอห้อง')) || st.includes('ปฏิบัติ');
+            return (st.startsWith('ห้อง') && !st.startsWith('รอห้อง')) || st.includes('ปฏิบัติ') || st.includes('IMC');
           }
         },
         {
@@ -831,21 +831,23 @@
         `;
         colEl.appendChild(headerEl);
 
-        // Room Occupancy Sub-Bar for "ห้อง 1-5 (กำลังนวด)"
+        // Room Occupancy Sub-Bar for "ห้อง 1-5 / IMC (กำลังนวด)"
         if (col.id === "in-room") {
-          const rooms = ["ห้อง 1", "ห้อง 2", "ห้อง 3", "ห้อง 4", "ห้อง 5"];
+          const rooms = (typeof CLINIC_ROOMS !== 'undefined') ? CLINIC_ROOMS : ["ห้อง 1", "ห้อง 2", "ห้อง 3", "ห้อง 4", "ห้อง 5", "ห้องนวดIMC"];
           const inRoomSubBar = document.createElement("div");
           inRoomSubBar.className = "bg-purple-100/90 dark:bg-purple-950/90 px-2 py-1.5 border-b border-purple-200 dark:border-purple-800 flex flex-wrap gap-1 items-center justify-between text-[10px] font-bold";
           
           let subBarHtml = "";
           rooms.forEach(rm => {
-            const max = (typeof ROOM_CAPACITIES !== 'undefined' && ROOM_CAPACITIES[rm]) ? ROOM_CAPACITIES[rm] : (rm === "ห้อง 3" || rm === "ห้อง 4" ? 6 : 5);
+            const cap = (typeof getRoomBedCapacity === 'function') ? getRoomBedCapacity(rm) : ((typeof ROOM_CAPACITIES !== 'undefined' && ROOM_CAPACITIES[rm]) ? ROOM_CAPACITIES[rm] : (rm === "ห้องนวดIMC" ? null : 5));
             const occ = filtered.filter(a => {
               const st = (a.status || '').replace('🟣 ', '').replace('🔵 ', '').trim();
-              return st === rm || st === ('รอ' + rm);
+              return st === rm || st === ('รอ' + rm) || (rm === "ห้องนวดIMC" && (st.includes("IMC") || st.includes("ห้องนวดIMC")));
             }).length;
-            const isFull = occ >= max;
-            subBarHtml += `<span class="px-1.5 py-0.5 rounded ${isFull ? 'bg-rose-500 text-white font-black shadow-2xs animate-pulse' : 'bg-white dark:bg-slate-800 text-purple-900 dark:text-purple-200 border border-purple-300 dark:border-purple-700'}" title="${rm}: ครอง ${occ}/${max} เตียง">${rm}: ${occ}/${max} เตียง</span>`;
+            const isFull = (cap !== null && cap > 0) ? (occ >= cap) : false;
+            const capText = (cap !== null && cap > 0) ? `${occ}/${cap} เตียง` : `${occ} เตียง (ไม่จำกัด)`;
+            const titleText = (cap !== null && cap > 0) ? `${rm}: ครอง ${occ}/${cap} เตียง` : `${rm}: กำลังใช้งาน ${occ} เตียง (ไม่จำกัดจำนวน)`;
+            subBarHtml += `<span class="px-1.5 py-0.5 rounded ${isFull ? 'bg-rose-500 text-white font-black shadow-2xs animate-pulse' : 'bg-white dark:bg-slate-800 text-purple-900 dark:text-purple-200 border border-purple-300 dark:border-purple-700'}" title="${titleText}">${rm}: ${capText}</span>`;
           });
           inRoomSubBar.innerHTML = subBarHtml;
           colEl.appendChild(inRoomSubBar);
@@ -1305,7 +1307,7 @@
         "08:00", "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"
       ];
 
-      const rooms = ["ห้อง 1", "ห้อง 2", "ห้อง 3", "ห้อง 4", "ห้อง 5"];
+      const rooms = (typeof CLINIC_ROOMS !== 'undefined') ? CLINIC_ROOMS : ["ห้อง 1", "ห้อง 2", "ห้อง 3", "ห้อง 4", "ห้อง 5", "ห้องนวดIMC"];
 
       const table = document.createElement("table");
       table.className = "w-full text-left text-xs border-collapse";
@@ -1315,8 +1317,9 @@
           <tr>
             <th class="py-3 px-3 w-28 border border-herbal-800 text-center">รอบเวลา</th>
             ${rooms.map(rm => {
-              const cap = (typeof ROOM_CAPACITIES !== 'undefined' && ROOM_CAPACITIES[rm]) ? ROOM_CAPACITIES[rm] : 5;
-              return `<th class="py-3 px-3 border border-herbal-800 text-center">🟣 ${rm} <span class="text-[10px] font-normal text-herbal-200">(${cap} เตียง)</span></th>`;
+              const cap = (typeof getRoomBedCapacity === 'function') ? getRoomBedCapacity(rm) : ((typeof ROOM_CAPACITIES !== 'undefined' && ROOM_CAPACITIES[rm]) ? ROOM_CAPACITIES[rm] : (rm === "ห้องนวดIMC" ? null : 5));
+              const capText = (cap !== null && cap > 0) ? `(${cap} เตียง)` : `(ไม่จำกัด)`;
+              return `<th class="py-3 px-3 border border-herbal-800 text-center whitespace-nowrap">🟣 ${rm} <span class="text-[10px] font-normal text-herbal-200">${capText}</span></th>`;
             }).join("")}
             <th class="py-3 px-3 w-48 border border-herbal-800 text-center bg-herbal-800">🟡 รอตรวจ / 🔵 รอนวด</th>
           </tr>
@@ -1341,9 +1344,12 @@
           </td>
         `;
 
-        // Rooms 1 to 5 Columns
+        // Rooms 1 to 5 + IMC Columns
         rooms.forEach(rm => {
-          const rmApts = slotApts.filter(a => a.status === rm);
+          const rmApts = slotApts.filter(a => {
+            const st = (a.status || '').replace('🟣 ', '').replace('🔵 ', '').trim();
+            return st === rm || (typeof extractRoomFromStatus === 'function' && extractRoomFromStatus(a.status) === rm);
+          });
           if (rmApts.length > 0) {
             const cardsHtml = rmApts.map(apt => {
               const safeName = apt.patientName.replace(/'/g, "\\'");
@@ -1636,30 +1642,27 @@
     }
 
     function generateStatusDropdownHtml(appointmentId, currentStatus, dateStr, customClass = "") {
-      const roomOccupiedCounts = { "ห้อง 1": 0, "ห้อง 2": 0, "ห้อง 3": 0, "ห้อง 4": 0, "ห้อง 5": 0 };
+      const rooms = (typeof CLINIC_ROOMS !== 'undefined') ? CLINIC_ROOMS : ["ห้อง 1", "ห้อง 2", "ห้อง 3", "ห้อง 4", "ห้อง 5", "ห้องนวดIMC"];
+      const roomOccupiedCounts = {};
+      rooms.forEach(rm => { roomOccupiedCounts[rm] = 0; });
       
       appointments.filter(a => a.bookDate === dateStr).forEach(a => {
-        const cleanSt = (a.status || "").replace("🔵 ", "").replace("🟣 ", "").trim();
-        const matched = cleanSt.match(/^(?:รอ)?(ห้อง\s*[1-5])/);
-        if (matched) {
-          const rmKey = matched[1].replace(/\s+/g, " ");
-          if (roomOccupiedCounts[rmKey] !== undefined) {
-            roomOccupiedCounts[rmKey]++;
-          }
+        const rmKey = (typeof extractRoomFromStatus === 'function') ? extractRoomFromStatus(a.status) : null;
+        if (rmKey && roomOccupiedCounts[rmKey] !== undefined) {
+          roomOccupiedCounts[rmKey]++;
         }
       });
 
-      const cleanCurrent = (currentStatus || "").replace("🔵 ", "").replace("🟣 ", "").trim();
-      const currentMatched = cleanCurrent.match(/^(?:รอ)?(ห้อง\s*[1-5])/);
-      const currentAssignedRoom = currentMatched ? currentMatched[1].replace(/\s+/g, " ") : null;
+      const currentAssignedRoom = (typeof extractRoomFromStatus === 'function') ? extractRoomFromStatus(currentStatus) : null;
       const isMassaging = (currentStatus || "").startsWith("🟣");
 
       const getRoomCap = (room) => {
-        return (typeof ROOM_CAPACITIES !== 'undefined' && ROOM_CAPACITIES[room]) ? ROOM_CAPACITIES[room] : (room === "ห้อง 3" || room === "ห้อง 4" ? 6 : 5);
+        return (typeof getRoomBedCapacity === 'function') ? getRoomBedCapacity(room) : (room === "ห้องนวดIMC" ? null : ((typeof ROOM_CAPACITIES !== 'undefined' && ROOM_CAPACITIES[room]) ? ROOM_CAPACITIES[room] : 5));
       };
 
       const isRoomFullForApt = (roomKey) => {
         const cap = getRoomCap(roomKey);
+        if (cap === null || cap === undefined || cap <= 0) return false; // unlimited
         const totalOcc = roomOccupiedCounts[roomKey] || 0;
         if (currentAssignedRoom === roomKey) {
           return false; // already in this room
@@ -1667,21 +1670,20 @@
         return totalOcc >= cap;
       };
 
-      const rooms = ["ห้อง 1", "ห้อง 2", "ห้อง 3", "ห้อง 4", "ห้อง 5"];
-
       const roomOptions = rooms.map(rm => {
         const cap = getRoomCap(rm);
         const total = roomOccupiedCounts[rm] || 0;
         const disabled = isRoomFullForApt(rm);
-        const isFull = total >= cap;
+        const isFull = (cap !== null && cap > 0) ? (total >= cap) : false;
         const isCurrentRoomAndMassaging = (currentAssignedRoom === rm && isMassaging);
         const icon = isCurrentRoomAndMassaging ? "🟣" : "🔵";
         const statusVal = isCurrentRoomAndMassaging ? `🟣 ${rm}` : `🔵 ${rm}`;
         const tag = isCurrentRoomAndMassaging ? " (กำลังนวด)" : "";
+        const capDesc = (cap !== null && cap > 0) ? `ครอง ${total}/${cap} เตียง${isFull && disabled ? ' - เต็ม' : ''}` : `ครอง ${total} เตียง - ไม่จำกัด`;
         return {
           value: statusVal,
           matchRoom: rm,
-          label: `${icon} ${rm}${tag} (ครอง ${total}/${cap} เตียง${isFull && disabled ? ' - เต็ม' : ''})`,
+          label: `${icon} ${rm}${tag} (${capDesc})`,
           disabled
         };
       });
@@ -1698,7 +1700,7 @@
       const isOptionSelected = (opt) => {
         if (opt.value === currentStatus) return true;
         const cleanSt = (currentStatus || "").replace("🔵 ", "").replace("🟣 ", "").trim();
-        if (opt.matchRoom && (cleanSt === opt.matchRoom || cleanSt === "รอ" + opt.matchRoom)) {
+        if (opt.matchRoom && (cleanSt === opt.matchRoom || cleanSt === "รอ" + opt.matchRoom || (opt.matchRoom === "ห้องนวดIMC" && (cleanSt.includes("IMC") || cleanSt.includes("ห้องนวดIMC"))))) {
           return true;
         }
         const cleanVal = opt.value.replace("🔵 ", "").replace("🟣 ", "").trim();
@@ -1748,29 +1750,29 @@
       const oldStatus = apt.status;
       if (oldStatus === newStatus) return;
 
-      // Quota Validation for Room 1 - 5
-      const cleanNewStatus = (newStatus || "").replace("🔵 ", "").replace("🟣 ", "").trim();
-      const roomMatch = cleanNewStatus.match(/^(?:รอ)?(ห้อง\s*[1-5])/);
-      const targetRoom = roomMatch ? roomMatch[1].replace(/\s+/g, " ") : null;
+      // Quota Validation for Room (if not unlimited)
+      const targetRoom = (typeof extractRoomFromStatus === 'function') ? extractRoomFromStatus(newStatus) : null;
 
-      if (targetRoom) {
-        const maxCapacity = (typeof ROOM_CAPACITIES !== 'undefined' && ROOM_CAPACITIES[targetRoom]) 
-          ? ROOM_CAPACITIES[targetRoom] 
-          : (targetRoom === "ห้อง 3" || targetRoom === "ห้อง 4" ? 6 : 5);
+      if (targetRoom && targetRoom !== "ห้องนวดIMC") {
+        const maxCapacity = (typeof getRoomBedCapacity === 'function') 
+          ? getRoomBedCapacity(targetRoom) 
+          : ((typeof ROOM_CAPACITIES !== 'undefined' && ROOM_CAPACITIES[targetRoom]) ? ROOM_CAPACITIES[targetRoom] : (targetRoom === "ห้อง 3" || targetRoom === "ห้อง 4" ? 6 : 5));
 
-        // Count how many OTHER appointments on this date are currently in targetRoom
-        const otherOccupiedCount = appointments.filter(a => {
-          if (a.id === appointmentId || a.bookDate !== apt.bookDate) return false;
-          const st = (a.status || "").replace("🔵 ", "").replace("🟣 ", "").trim();
-          return st === targetRoom || st === ("รอ" + targetRoom);
-        }).length;
+        if (maxCapacity !== null && maxCapacity > 0) {
+          // Count how many OTHER appointments on this date are currently in targetRoom
+          const otherOccupiedCount = appointments.filter(a => {
+            if (a.id === appointmentId || a.bookDate !== apt.bookDate) return false;
+            const st = (a.status || "").replace("🔵 ", "").replace("🟣 ", "").trim();
+            return st === targetRoom || st === ("รอ" + targetRoom) || (typeof extractRoomFromStatus === 'function' && extractRoomFromStatus(a.status) === targetRoom);
+          }).length;
 
-        if (otherOccupiedCount >= maxCapacity) {
-          showToast(`⚠️ ไม่สามารถย้ายคิวได้: เตียงใน ${targetRoom} เต็มแล้ว (${otherOccupiedCount}/${maxCapacity} เตียง)`, "warning");
-          playAlertSound();
-          renderDeskQueue();
-          renderStatsAndShare();
-          return;
+          if (otherOccupiedCount >= maxCapacity) {
+            showToast(`⚠️ ไม่สามารถย้ายคิวได้: เตียงใน ${targetRoom} เต็มแล้ว (${otherOccupiedCount}/${maxCapacity} เตียง)`, "warning");
+            playAlertSound();
+            renderDeskQueue();
+            renderStatsAndShare();
+            return;
+          }
         }
       }
 
@@ -1860,31 +1862,29 @@
       }
 
       if (quickBtnsEl) {
-        const rooms = ["ห้อง 1", "ห้อง 2", "ห้อง 3", "ห้อง 4", "ห้อง 5"];
-        const roomOccupiedCounts = { "ห้อง 1": 0, "ห้อง 2": 0, "ห้อง 3": 0, "ห้อง 4": 0, "ห้อง 5": 0 };
+        const rooms = (typeof CLINIC_ROOMS !== 'undefined') ? CLINIC_ROOMS : ["ห้อง 1", "ห้อง 2", "ห้อง 3", "ห้อง 4", "ห้อง 5", "ห้องนวดIMC"];
+        const roomOccupiedCounts = {};
+        rooms.forEach(rm => { roomOccupiedCounts[rm] = 0; });
         
         appointments.filter(a => a.bookDate === apt.bookDate).forEach(a => {
-          const cleanSt = (a.status || "").replace("🔵 ", "").replace("🟣 ", "").trim();
-          const matched = cleanSt.match(/^(?:รอ)?(ห้อง\s*[1-5])/);
-          if (matched) {
-            const rmKey = matched[1].replace(/\s+/g, " ");
-            if (roomOccupiedCounts[rmKey] !== undefined) roomOccupiedCounts[rmKey]++;
-          }
+          const rmKey = (typeof extractRoomFromStatus === 'function') ? extractRoomFromStatus(a.status) : null;
+          if (rmKey && roomOccupiedCounts[rmKey] !== undefined) roomOccupiedCounts[rmKey]++;
         });
 
         quickBtnsEl.innerHTML = rooms.map(rm => {
-          const cap = (typeof ROOM_CAPACITIES !== 'undefined' && ROOM_CAPACITIES[rm]) ? ROOM_CAPACITIES[rm] : (rm === "ห้อง 3" || rm === "ห้อง 4" ? 6 : 5);
+          const cap = (typeof getRoomBedCapacity === 'function') ? getRoomBedCapacity(rm) : (rm === "ห้องนวดIMC" ? null : ((typeof ROOM_CAPACITIES !== 'undefined' && ROOM_CAPACITIES[rm]) ? ROOM_CAPACITIES[rm] : 5));
           const total = roomOccupiedCounts[rm] || 0;
-          const isFull = total >= cap;
+          const isFull = (cap !== null && cap > 0) ? (total >= cap) : false;
           const disabledAttr = isFull ? "disabled" : "";
           const bgCls = isFull
             ? "bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed"
             : "bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-500 hover:to-indigo-600 text-white font-black shadow-sm active:scale-95 cursor-pointer border border-purple-400/40";
+          const countLabel = (cap !== null && cap > 0) ? (isFull ? 'เตียงเต็ม' : `ว่าง (${total}/${cap})`) : `ว่าง (${total} เตียง/ไม่จำกัด)`;
 
           return `
             <button type="button" ${disabledAttr} onclick="selectRoomAndStartMassage('${apt.id}', '${rm}')" class="p-2.5 rounded-xl text-xs flex flex-col items-center justify-center gap-1 transition ${bgCls}">
               <span class="font-extrabold text-sm sm:text-base">🚪 ${rm}</span>
-              <span class="text-[10px] ${isFull ? 'text-rose-500 font-bold' : 'text-purple-100 font-medium'}">${isFull ? 'เตียงเต็ม' : `ว่าง (${total}/${cap})`}</span>
+              <span class="text-[10px] ${isFull ? 'text-rose-500 font-bold' : 'text-purple-100 font-medium'}">${countLabel}</span>
             </button>
           `;
         }).join("");
@@ -1912,11 +1912,7 @@
 
       let targetRoom = explicitRoom;
       if (!targetRoom) {
-        const cleanStatus = (apt.status || '').replace('🔵 ', '').replace('🟣 ', '').trim();
-        const roomMatch = cleanStatus.match(/^(?:รอ)?(ห้อง\s*[1-5])/);
-        if (roomMatch) {
-          targetRoom = roomMatch[1].replace(/\s+/g, ' ');
-        }
+        targetRoom = (typeof extractRoomFromStatus === 'function') ? extractRoomFromStatus(apt.status) : null;
       }
 
       // If status is "ว่าง", "รอตรวจ", "รอนวด", "ส่งต่อ", "กลับบ้าน" without an assigned room
@@ -1927,18 +1923,22 @@
         return;
       }
 
-      // Quota validation for targetRoom
-      const cap = (typeof ROOM_CAPACITIES !== 'undefined' && ROOM_CAPACITIES[targetRoom]) ? ROOM_CAPACITIES[targetRoom] : (targetRoom === "ห้อง 3" || targetRoom === "ห้อง 4" ? 6 : 5);
-      const otherOccupiedCount = appointments.filter(a => {
-        if (a.id === appointmentId || a.bookDate !== apt.bookDate) return false;
-        const st = (a.status || '').replace('🔵 ', '').replace('🟣 ', '').trim();
-        return st === targetRoom || st === ('รอ' + targetRoom);
-      }).length;
+      // Quota validation for targetRoom (if not unlimited)
+      if (targetRoom !== "ห้องนวดIMC") {
+        const cap = (typeof getRoomBedCapacity === 'function') ? getRoomBedCapacity(targetRoom) : ((typeof ROOM_CAPACITIES !== 'undefined' && ROOM_CAPACITIES[targetRoom]) ? ROOM_CAPACITIES[targetRoom] : 5);
+        if (cap !== null && cap > 0) {
+          const otherOccupiedCount = appointments.filter(a => {
+            if (a.id === appointmentId || a.bookDate !== apt.bookDate) return false;
+            const st = (a.status || '').replace('🔵 ', '').replace('🟣 ', '').trim();
+            return st === targetRoom || st === ('รอ' + targetRoom) || (typeof extractRoomFromStatus === 'function' && extractRoomFromStatus(a.status) === targetRoom);
+          }).length;
 
-      if (otherOccupiedCount >= cap) {
-        showToast(`⚠️ เตียงใน ${targetRoom} เต็มแล้ว (${otherOccupiedCount}/${cap} เตียง)`, "warning");
-        playAlertSound();
-        return;
+          if (otherOccupiedCount >= cap) {
+            showToast(`⚠️ เตียงใน ${targetRoom} เต็มแล้ว (${otherOccupiedCount}/${cap} เตียง)`, "warning");
+            playAlertSound();
+            return;
+          }
+        }
       }
 
       // Record treatment start timestamp when "เริ่มนวด" is clicked
@@ -1985,15 +1985,13 @@
         `;
       }
 
-      // Waiting state (⚪ ว่าง, 🟡 รอตรวจ, 🔵 รอนวด, 🔵 ห้อง 1..5) -> Show "เริ่มนวด"
+      // Waiting state (⚪ ว่าง, 🟡 รอตรวจ, 🔵 รอนวด, 🔵 ห้อง 1..5, 🔵 ห้องนวดIMC) -> Show "เริ่มนวด"
       let targetRoomParam = "";
       let label = "เริ่มนวด";
-      const cleanSt = status.replace("🔵 ", "").trim();
-      const roomMatch = cleanSt.match(/^(?:รอ)?(ห้อง\s*[1-5])/);
+      const roomMatch = (typeof extractRoomFromStatus === 'function') ? extractRoomFromStatus(status) : null;
       if (roomMatch) {
-        const rm = roomMatch[1].replace(/\s+/g, " ");
-        targetRoomParam = `'${apt.id}', '${rm}'`;
-        label = `เริ่มนวด (${rm})`;
+        targetRoomParam = `'${apt.id}', '${roomMatch}'`;
+        label = `เริ่มนวด (${roomMatch})`;
       } else {
         targetRoomParam = `'${apt.id}'`;
       }

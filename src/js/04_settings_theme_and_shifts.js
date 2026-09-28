@@ -687,13 +687,16 @@
       }
     } catch(e) {}
 
-    // Room quota limits (Default bed capacities per room)
+    // Room quota limits (Default bed capacities per room & unlimited rooms)
+    const CLINIC_ROOMS = ["ห้อง 1", "ห้อง 2", "ห้อง 3", "ห้อง 4", "ห้อง 5", "ห้องนวดIMC"];
+
     let ROOM_CAPACITIES = {
       "ห้อง 1": 5,
       "ห้อง 2": 5,
       "ห้อง 3": 6,
       "ห้อง 4": 6,
-      "ห้อง 5": 5
+      "ห้อง 5": 5,
+      "ห้องนวดIMC": null // null = unlimited (ไม่ต้องจำกัดจำนวน)
     };
     try {
       const savedCaps = localStorage.getItem("ttm_room_capacities");
@@ -702,6 +705,25 @@
         if (parsed && typeof parsed === 'object') ROOM_CAPACITIES = { ...ROOM_CAPACITIES, ...parsed };
       }
     } catch(e) {}
+
+    function getRoomBedCapacity(room) {
+      if (!room || room === "ห้องนวดIMC") return null;
+      if (typeof ROOM_CAPACITIES !== 'undefined' && ROOM_CAPACITIES[room] !== undefined) {
+        return ROOM_CAPACITIES[room];
+      }
+      return (room === "ห้อง 3" || room === "ห้อง 4") ? 6 : 5;
+    }
+
+    function extractRoomFromStatus(status) {
+      if (!status) return null;
+      const clean = status.replace("🔵 ", "").replace("🟣 ", "").trim();
+      if (clean.includes("ห้องนวดIMC") || clean.includes("ห้องIMC") || clean.includes("IMC")) {
+        return "ห้องนวดIMC";
+      }
+      const m = clean.match(/^(?:รอ)?(ห้อง\s*[1-5])/);
+      if (m) return m[1].replace(/\s+/g, " ");
+      return null;
+    }
 
     let slotScopeMode = 'daily'; // 'daily' or 'monthly'
     let customDailySlotConfig = {}; 

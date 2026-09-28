@@ -251,8 +251,10 @@
       const waitRoomDurationMin = 10;
 
       const cleanSt = status.replace("🔵 ", "").replace("🟣 ", "").trim();
-      const roomMatch = cleanSt.match(/^(?:รอ)?(ห้อง\s*[1-5])/);
-      const roomName = roomMatch ? roomMatch[1].replace(/\s+/g, ' ') : "ห้องหัตถการ";
+      const roomMatch = (typeof extractRoomFromStatus === 'function') 
+        ? extractRoomFromStatus(status) 
+        : (cleanSt.includes("IMC") ? "ห้องนวดIMC" : (cleanSt.match(/^(?:รอ)?(ห้อง\s*[1-5])/)?.[1]?.replace(/\s+/g, ' ') || null));
+      const roomName = roomMatch || "ห้องหัตถการ";
 
       // Use real treatmentStartTime if available, otherwise if currently in treatment use Date.now()
       let realTreatmentStartMs;

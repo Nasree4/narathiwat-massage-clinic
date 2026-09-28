@@ -771,9 +771,9 @@
           <h1 class="text-sm sm:text-base md:text-lg font-bold leading-tight tracking-wide flex items-center gap-1 sm:gap-1.5 flex-wrap">
             <span data-i18n="app_title">คลินิกการแพทย์แผนไทย</span>
             <span class="text-[10px] sm:text-[11px] font-normal px-2 py-0.5 bg-herbal-800/80 text-herbal-200 rounded-full border border-herbal-600 hidden sm:inline-block" data-i18n="service_status">เปิดบริการปกติ</span>
-            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.8 (คลิกเพื่อตรวจสอบการอัปเดต)">
+            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.9 (คลิกเพื่อตรวจสอบการอัปเดต)">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span id="app-header-version-tag">v5.5.8</span>
+              <span id="app-header-version-tag">v5.5.9</span>
             </button>
           </h1>
           <p class="text-[11px] sm:text-xs text-herbal-200 font-light" data-i18n="app_hospital">
@@ -1178,12 +1178,13 @@
                   <option value="⚪ ว่าง">⚪ ว่าง</option>
                   <option value="🟡 รอตรวจ">🟡 รอตรวจ</option>
                   <option value="🔵 รอนวด">🔵 รอนวด (ทั่วไป)</option>
-                  <option value="room">🔵/🟣 ห้อง 1 - 5 (ทั้งหมด)</option>
+                  <option value="room">🔵/🟣 ห้องหัตถการทั้งหมด (ห้อง 1-5 / IMC)</option>
                   <option value="ห้อง 1">🔵/🟣 ห้อง 1</option>
                   <option value="ห้อง 2">🔵/🟣 ห้อง 2</option>
                   <option value="ห้อง 3">🔵/🟣 ห้อง 3</option>
                   <option value="ห้อง 4">🔵/🟣 ห้อง 4</option>
                   <option value="ห้อง 5">🔵/🟣 ห้อง 5</option>
+                  <option value="ห้องนวดIMC">🔵/🟣 ห้องนวดIMC (ไม่จำกัด)</option>
                   <option value="🔴 ส่งต่อ">🔴 ส่งต่อ</option>
                   <option value="🟢 กลับบ้าน">🟢 กลับบ้าน</option>
                 </select>
@@ -1223,7 +1224,7 @@
                   </button>
                   <button type="button" id="btn-desk-view-rooms" onclick="setDeskViewMode('rooms')" class="px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white">
                     <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
-                    <span>ผังห้อง 1-5</span>
+                    <span>ผังห้อง 1-5 / IMC</span>
                   </button>
                 </div>
               </div>
@@ -2644,7 +2645,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="font-medium text-slate-700 dark:text-slate-300">คลินิกการแพทย์แผนไทย รพ.นราธิวาสราชนครินทร์</span>
         <span class="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
-        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.8</span>
+        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.9</span>
         <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">ล่าสุด</span>
       </div>
       <div class="flex items-center gap-2">
@@ -2882,10 +2883,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                   <span>เวอร์ชันระบบ (System Version)</span>
                   <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">Official</span>
                 </div>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">26 กันยายน 2569</span></p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">28 กันยายน 2569</span></p>
               </div>
             </div>
-            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.8</span>
+            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.9</span>
           </div>
 
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/70 text-xs">
@@ -2904,7 +2905,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       
       <!-- Modal Footer -->
       <div class="bg-slate-50 dark:bg-slate-800/80 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between flex-shrink-0">
-        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.8</span></span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.9</span></span>
         <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold transition" data-i18n="btn_close">
           ปิดหน้าต่าง
         </button>
@@ -3018,7 +3019,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
             <!-- Patient info injected dynamically -->
           </div>
           <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-            ท่านกดปุ่ม <span class="font-black text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950 px-2 py-0.5 rounded-md">▶️ เริ่มนวด</span> ขณะที่สถานะยังเป็น <span id="room-alert-current-status" class="font-bold text-slate-900 dark:text-white">"ว่าง / รอตรวจ / รอนวด"</span> กรุณาระบุห้องหัตถการ (ห้อง 1 - 5) ก่อนเริ่มนวดจริง
+            ท่านกดปุ่ม <span class="font-black text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950 px-2 py-0.5 rounded-md">▶️ เริ่มนวด</span> ขณะที่สถานะยังเป็น <span id="room-alert-current-status" class="font-bold text-slate-900 dark:text-white">"ว่าง / รอตรวจ / รอนวด"</span> กรุณาระบุห้องหัตถการ (ห้อง 1 - 5 หรือ ห้องนวดIMC) ก่อนเริ่มนวดจริง
           </p>
         </div>
 
@@ -3029,7 +3030,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
             <span>หรือกดเลือกห้องด้านล่างนี้เพื่อเริ่มนวดทันที:</span>
           </label>
           <div id="room-alert-quick-buttons" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            <!-- Populated dynamically with rooms 1-5 and occupancy counts -->
+            <!-- Populated dynamically with rooms 1-5, ห้องนวดIMC and occupancy counts -->
           </div>
         </div>
       </div>

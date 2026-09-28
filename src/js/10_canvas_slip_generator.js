@@ -609,29 +609,27 @@
         labelEl.textContent = `สถิติการครองเตียงห้องหัตถการ (${rangeLabel}):`;
       }
 
-      const roomOccupiedCounts = { "ห้อง 1": 0, "ห้อง 2": 0, "ห้อง 3": 0, "ห้อง 4": 0, "ห้อง 5": 0 };
+      const rooms = (typeof CLINIC_ROOMS !== 'undefined') ? CLINIC_ROOMS : ["ห้อง 1", "ห้อง 2", "ห้อง 3", "ห้อง 4", "ห้อง 5", "ห้องนวดIMC"];
+      const roomOccupiedCounts = {};
+      rooms.forEach(rm => { roomOccupiedCounts[rm] = 0; });
 
       appointments.filter(a => {
         if (startDate && a.bookDate < startDate) return false;
         if (endDate && a.bookDate > endDate) return false;
         return true;
       }).forEach(a => {
-        const cleanSt = (a.status || "").replace("🔵 ", "").replace("🟣 ", "").trim();
-        const matched = cleanSt.match(/^(?:รอ)?(ห้อง\s*[1-5])/);
-        if (matched) {
-          const rmKey = matched[1].replace(/\s+/g, " ");
-          if (roomOccupiedCounts[rmKey] !== undefined) {
-            roomOccupiedCounts[rmKey]++;
-          }
+        const rmKey = (typeof extractRoomFromStatus === 'function') ? extractRoomFromStatus(a.status) : null;
+        if (rmKey && roomOccupiedCounts[rmKey] !== undefined) {
+          roomOccupiedCounts[rmKey]++;
         }
       });
 
       const currentStatusFilter = document.getElementById("desk-filter-status")?.value || "all";
 
-      Object.keys(ROOM_CAPACITIES).forEach(room => {
+      rooms.forEach(room => {
         const totalCount = roomOccupiedCounts[room] || 0;
-        const max = ROOM_CAPACITIES[room] || (room === "ห้อง 3" || room === "ห้อง 4" ? 6 : 5);
-        const isFull = totalCount >= max;
+        const max = (typeof getRoomBedCapacity === 'function') ? getRoomBedCapacity(room) : (room === "ห้องนวดIMC" ? null : ((typeof ROOM_CAPACITIES !== 'undefined' && ROOM_CAPACITIES[room]) ? ROOM_CAPACITIES[room] : 5));
+        const isFull = (max !== null && max > 0) ? (totalCount >= max) : false;
         const isActive = (currentStatusFilter === room);
 
         const badge = document.createElement("button");
@@ -646,10 +644,12 @@
           activeClass = "bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800 hover:bg-purple-200 dark:hover:bg-purple-900 cursor-pointer shadow-2xs";
         }
 
+        const capText = (max !== null && max > 0) ? `<strong>${totalCount}/${max}</strong> เตียง${isFull ? ' (เต็ม)' : ''}` : `<strong>${totalCount}</strong> เตียง (ไม่จำกัด)`;
+
         badge.className = `px-3 py-1 rounded-xl text-xs font-bold border transition transform active:scale-95 flex items-center gap-1.5 cursor-pointer ${activeClass}`;
         badge.innerHTML = `
           ${isActive ? '<span class="text-xs">🔍</span>' : ''}
-          <span>${room}: <strong>${totalCount}/${max}</strong> เตียง${isFull ? ' (เต็ม)' : ''}</span>
+          <span>${room}: ${capText}</span>
         `;
         badge.title = isActive ? `คลิกเพื่อยกเลิกการกรอง (แสดงทุกห้อง)` : `คลิกเพื่อแสดงเฉพาะคิวที่อยู่ใน ${room}`;
         badge.onclick = () => filterByRoomQuota(room);
