@@ -256,6 +256,22 @@ const res10 = context.checkAssistantBookingConflict({
 });
 assert(res10.hasConflict === false, "Allows booking when assistant is checked on duty for specific slot in Roster Matrix");
 
+// Test 11: 2-hour female pool booking when female staff is free for both slots
+context.vmRun(`
+  assistants.push(
+    { id: "asst-female-1", name: "คอดี้ อาแว", nickname: "คอดี้", gender: "หญิง", active: true, shiftType: "full" },
+    { id: "asst-female-2", name: "ปึนะ มือลี", nickname: "ปึนะ", gender: "หญิง", active: true, shiftType: "full" }
+  );
+`);
+const res11 = context.checkAssistantBookingConflict({
+  assistantId: "female",
+  bookDate: "2026-09-25",
+  timeSlot: "12:00",
+  requiresTwoSlots: true
+});
+assert(res11.hasConflict === false, "Allows 2-slot booking for female pool when female assistants are free across both slots");
+
 console.log(`\n🏁 Test Results: ${passed} / ${total} passed (${passed === total ? '100% SUCCESS' : 'FAILURES DETECTED'})`);
+
 
 

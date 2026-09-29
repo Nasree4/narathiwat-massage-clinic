@@ -131,20 +131,23 @@
           return;
         }
 
-        // Count free assistants for this slot (ignoring current appointment being moved)
-        const busyCount = appointments.filter(a => {
-          if (a.id === aptId) return false;
-          if (a.bookDate !== targetDate || a.status === "🔴 ส่งต่อ" || a.status === "ยกเลิก") return false;
-          const aptSlots = (a.slotsOccupied && a.slotsOccupied.length > 0) ? a.slotsOccupied : [a.timeSlot];
-          return aptSlots.includes(slot);
-        }).length;
+        const requiresTwoSlots = Boolean(apt && ((apt.slotsOccupied && apt.slotsOccupied.length > 1) ||
+          (apt.mainService && apt.mainService.includes("หลังคลอด")) ||
+          ((apt.extraServices || []).some(extraName => {
+            const svc = (typeof extraServicesList !== "undefined" ? extraServicesList : []).find(s => s.name === extraName);
+            return svc && svc.twoSlots;
+          }))));
 
-        const rosterForDate = (typeof assistantDutyRosters !== "undefined" && assistantDutyRosters[targetDate]) ? assistantDutyRosters[targetDate] : {};
-        const checkedInCount = Object.keys(rosterForDate).length > 0
-          ? activeAssts.filter(a => Boolean(rosterForDate[a.id]) && isAssistantOnDutyForSlot(a, slot, targetDate)).length
-          : activeAssts.filter(a => isAssistantOnDutyForSlot(a, slot, targetDate)).length;
-
-        const freeCount = Math.max(0, checkedInCount - busyCount);
+        const freeCount = (typeof getAvailableAssistantsForSlot === "function")
+          ? getAvailableAssistantsForSlot(targetDate, slot, requiresTwoSlots, aptId).length
+          : Math.max(0, (Object.keys((typeof assistantDutyRosters !== "undefined" && assistantDutyRosters[targetDate]) || {}).length > 0
+              ? activeAssts.filter(a => Boolean(assistantDutyRosters[targetDate][a.id]) && isAssistantOnDutyForSlot(a, slot, targetDate)).length
+              : activeAssts.filter(a => isAssistantOnDutyForSlot(a, slot, targetDate)).length) - appointments.filter(a => {
+              if (a.id === aptId) return false;
+              if (a.bookDate !== targetDate || a.status === "🔴 ส่งต่อ" || a.status === "ยกเลิก") return false;
+              const aptSlots = (a.slotsOccupied && a.slotsOccupied.length > 0) ? apt.slotsOccupied : [apt.timeSlot];
+              return aptSlots.includes(slot);
+            }).length);
         const isSelected = (selectedNewAptTimeSlot === slot);
         const isCurrentSlot = (apt && apt.bookDate === targetDate && apt.timeSlot === slot);
 
