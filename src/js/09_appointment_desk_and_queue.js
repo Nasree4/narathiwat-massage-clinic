@@ -405,6 +405,9 @@
           const cleanAptStatus = (a.status || "").replace("🔵 ", "").replace("🟣 ", "").replace("🟡 ", "").replace("⚪ ", "").replace("🔴 ", "").replace("🟢 ", "").trim();
           if (statusFilter === "room") {
             if (!cleanAptStatus.startsWith("ห้อง")) return false;
+          } else if (statusFilter === "⚪ ว่าง" || statusFilter === "ว่าง") {
+            const isBlankStatus = !a.status || cleanAptStatus === "ว่าง" || cleanAptStatus === "รอดำเนินการ" || a.status === "pending" || a.status === "confirmed" || a.status === "⚪ ว่าง";
+            if (!isBlankStatus) return false;
           } else if (statusFilter === "🔵 รอนวด" || statusFilter === "รอนวด") {
             const isWaitingMassage = cleanAptStatus === "รอนวด" || cleanAptStatus === "ตรวจแล้ว" || cleanAptStatus.startsWith("รอห้อง");
             if (!isWaitingMassage) return false;
@@ -774,7 +777,7 @@
           borderCol: "border-slate-200 dark:border-slate-700",
           bgCol: "bg-slate-50/60 dark:bg-slate-900/40",
           badgeBg: "bg-slate-600 text-white",
-          filterFn: a => a.status === "⚪ ว่าง" || a.status === "ว่าง" || !a.status
+          filterFn: a => !a.status || a.status === "⚪ ว่าง" || a.status === "ว่าง" || (a.status || '').includes("รอดำเนินการ") || a.status === "pending" || a.status === "confirmed"
         },
         {
           id: "vitals",
@@ -1719,11 +1722,14 @@
 
       const isOptionSelected = (opt) => {
         if (opt.value === currentStatus) return true;
-        const cleanSt = (currentStatus || "").replace("🔵 ", "").replace("🟣 ", "").trim();
+        const cleanSt = (currentStatus || "").replace("🔵 ", "").replace("🟣 ", "").replace("🟡 ", "").replace("⚪ ", "").replace("🔴 ", "").replace("🟢 ", "").trim();
         if (opt.matchRoom && (cleanSt === opt.matchRoom || cleanSt === "รอ" + opt.matchRoom || (opt.matchRoom === "ห้องนวดIMC" && (cleanSt.includes("IMC") || cleanSt.includes("ห้องนวดIMC"))))) {
           return true;
         }
-        const cleanVal = opt.value.replace("🔵 ", "").replace("🟣 ", "").trim();
+        const cleanVal = opt.value.replace("🔵 ", "").replace("🟣 ", "").replace("🟡 ", "").replace("⚪ ", "").replace("🔴 ", "").replace("🟢 ", "").trim();
+        if (cleanVal === "ว่าง" && (!currentStatus || cleanSt === "ว่าง" || cleanSt === "รอดำเนินการ" || currentStatus === "pending" || currentStatus === "confirmed" || currentStatus === "⚪ ว่าง")) {
+          return true;
+        }
         if (cleanSt === cleanVal) return true;
         if ((cleanSt === "ตรวจแล้ว" || cleanSt === "รอนวด") && cleanVal === "รอนวด") return true;
         return false;

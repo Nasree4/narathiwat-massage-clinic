@@ -6059,7 +6059,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.5.11";
+    const APP_VERSION = "v5.5.12";
     const APP_BUILD_DATE = "29 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
@@ -14895,6 +14895,9 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           const cleanAptStatus = (a.status || "").replace("🔵 ", "").replace("🟣 ", "").replace("🟡 ", "").replace("⚪ ", "").replace("🔴 ", "").replace("🟢 ", "").trim();
           if (statusFilter === "room") {
             if (!cleanAptStatus.startsWith("ห้อง")) return false;
+          } else if (statusFilter === "⚪ ว่าง" || statusFilter === "ว่าง") {
+            const isBlankStatus = !a.status || cleanAptStatus === "ว่าง" || cleanAptStatus === "รอดำเนินการ" || a.status === "pending" || a.status === "confirmed" || a.status === "⚪ ว่าง";
+            if (!isBlankStatus) return false;
           } else if (statusFilter === "🔵 รอนวด" || statusFilter === "รอนวด") {
             const isWaitingMassage = cleanAptStatus === "รอนวด" || cleanAptStatus === "ตรวจแล้ว" || cleanAptStatus.startsWith("รอห้อง");
             if (!isWaitingMassage) return false;
@@ -15264,7 +15267,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           borderCol: "border-slate-200 dark:border-slate-700",
           bgCol: "bg-slate-50/60 dark:bg-slate-900/40",
           badgeBg: "bg-slate-600 text-white",
-          filterFn: a => a.status === "⚪ ว่าง" || a.status === "ว่าง" || !a.status
+          filterFn: a => !a.status || a.status === "⚪ ว่าง" || a.status === "ว่าง" || (a.status || '').includes("รอดำเนินการ") || a.status === "pending" || a.status === "confirmed"
         },
         {
           id: "vitals",
@@ -16209,11 +16212,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
       const isOptionSelected = (opt) => {
         if (opt.value === currentStatus) return true;
-        const cleanSt = (currentStatus || "").replace("🔵 ", "").replace("🟣 ", "").trim();
+        const cleanSt = (currentStatus || "").replace("🔵 ", "").replace("🟣 ", "").replace("🟡 ", "").replace("⚪ ", "").replace("🔴 ", "").replace("🟢 ", "").trim();
         if (opt.matchRoom && (cleanSt === opt.matchRoom || cleanSt === "รอ" + opt.matchRoom || (opt.matchRoom === "ห้องนวดIMC" && (cleanSt.includes("IMC") || cleanSt.includes("ห้องนวดIMC"))))) {
           return true;
         }
-        const cleanVal = opt.value.replace("🔵 ", "").replace("🟣 ", "").trim();
+        const cleanVal = opt.value.replace("🔵 ", "").replace("🟣 ", "").replace("🟡 ", "").replace("⚪ ", "").replace("🔴 ", "").replace("🟢 ", "").trim();
+        if (cleanVal === "ว่าง" && (!currentStatus || cleanSt === "ว่าง" || cleanSt === "รอดำเนินการ" || currentStatus === "pending" || currentStatus === "confirmed" || currentStatus === "⚪ ว่าง")) {
+          return true;
+        }
         if (cleanSt === cleanVal) return true;
         if ((cleanSt === "ตรวจแล้ว" || cleanSt === "รอนวด") && cleanVal === "รอนวด") return true;
         return false;
@@ -20437,6 +20443,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       if (statusFilter && statusFilter !== "all") {
         if (statusFilter === "room") {
           apts = apts.filter(a => a.room && a.room !== "-" && a.room !== "");
+        } else if (statusFilter === "⚪ ว่าง" || statusFilter === "ว่าง") {
+          apts = apts.filter(a => !a.status || a.status === "⚪ ว่าง" || a.status === "ว่าง" || (a.status || '').includes("รอดำเนินการ") || a.status === "pending" || a.status === "confirmed");
         } else if (statusFilter.startsWith("ห้อง")) {
           apts = apts.filter(a => a.room === statusFilter);
         } else {

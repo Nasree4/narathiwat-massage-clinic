@@ -556,6 +556,8 @@
       if (statusFilter && statusFilter !== "all") {
         if (statusFilter === "room") {
           apts = apts.filter(a => a.room && a.room !== "-" && a.room !== "");
+        } else if (statusFilter === "⚪ ว่าง" || statusFilter === "ว่าง") {
+          apts = apts.filter(a => !a.status || a.status === "⚪ ว่าง" || a.status === "ว่าง" || (a.status || '').includes("รอดำเนินการ") || a.status === "pending" || a.status === "confirmed");
         } else if (statusFilter.startsWith("ห้อง")) {
           apts = apts.filter(a => a.room === statusFilter);
         } else {
