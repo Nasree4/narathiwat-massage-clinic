@@ -1133,9 +1133,97 @@
       if (countTimingEl) countTimingEl.textContent = `${analytics.count} เคส`;
 
       // 6. Admin Only: Medical Scheme & Treatment Breakdown Summary
-      renderAdminSchemeBreakdown(filtered);
+      renderAdminSchemeBreakdown();
 
       lucide.createIcons();
+    }
+
+    // ==================== SECTION 5: ADMIN SCHEME & TREATMENT SUMMARY LOGIC ====================
+    let schemeStatsStartDate = todayStr;
+    let schemeStatsEndDate = todayStr;
+    let schemeStatsActivePreset = 'today';
+
+    function jumpToSchemeStats() {
+      if (typeof switchTab === 'function') {
+        switchTab('stats');
+      }
+      setTimeout(() => {
+        const el = document.getElementById('stats-admin-scheme-section');
+        if (el) {
+          el.classList.remove('hidden');
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          el.classList.add('ring-4', 'ring-emerald-500', 'transition-all', 'duration-500');
+          setTimeout(() => el.classList.remove('ring-4', 'ring-emerald-500'), 1600);
+        }
+      }, 120);
+    }
+
+    function updateSchemePresetButtonsUI() {
+      const presets = ['today', 'yesterday', 'last7days', 'thismonth', 'lastmonth'];
+      presets.forEach(p => {
+        const btn = document.getElementById(`btn-scheme-preset-${p}`);
+        if (btn) {
+          if (schemeStatsActivePreset === p) {
+            btn.className = "px-2.5 py-1 rounded-lg font-bold bg-emerald-700 text-white shadow-2xs transition cursor-pointer";
+          } else {
+            btn.className = "px-2.5 py-1 rounded-lg font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 transition cursor-pointer";
+          }
+        }
+      });
+    }
+
+    function setSchemeStatsPreset(preset) {
+      schemeStatsActivePreset = preset;
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      const today = `${y}-${m}-${d}`;
+
+      if (preset === 'today') {
+        schemeStatsStartDate = today;
+        schemeStatsEndDate = today;
+      } else if (preset === 'yesterday') {
+        const yest = new Date(now);
+        yest.setDate(yest.getDate() - 1);
+        const yestStr = `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, '0')}-${String(yest.getDate()).padStart(2, '0')}`;
+        schemeStatsStartDate = yestStr;
+        schemeStatsEndDate = yestStr;
+      } else if (preset === 'last7days') {
+        const d7 = new Date(now);
+        d7.setDate(d7.getDate() - 6);
+        schemeStatsStartDate = `${d7.getFullYear()}-${String(d7.getMonth() + 1).padStart(2, '0')}-${String(d7.getDate()).padStart(2, '0')}`;
+        schemeStatsEndDate = today;
+      } else if (preset === 'thismonth') {
+        schemeStatsStartDate = `${y}-${m}-01`;
+        const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+        schemeStatsEndDate = `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
+      } else if (preset === 'lastmonth') {
+        const prevMonthDate = new Date(y, now.getMonth() - 1, 1);
+        const py = prevMonthDate.getFullYear();
+        const pm = String(prevMonthDate.getMonth() + 1).padStart(2, '0');
+        const pLastDay = new Date(py, prevMonthDate.getMonth() + 1, 0).getDate();
+        schemeStatsStartDate = `${py}-${pm}-01`;
+        schemeStatsEndDate = `${py}-${pm}-${String(pLastDay).padStart(2, '0')}`;
+      }
+
+      const startEl = document.getElementById("stats-scheme-start-date");
+      const endEl = document.getElementById("stats-scheme-end-date");
+      if (startEl) startEl.value = schemeStatsStartDate;
+      if (endEl) endEl.value = schemeStatsEndDate;
+
+      updateSchemePresetButtonsUI();
+      renderAdminSchemeBreakdown();
+    }
+
+    function onSchemeStatsDateChange() {
+      const startEl = document.getElementById("stats-scheme-start-date");
+      const endEl = document.getElementById("stats-scheme-end-date");
+      if (startEl && startEl.value) schemeStatsStartDate = startEl.value;
+      if (endEl && endEl.value) schemeStatsEndDate = endEl.value;
+      schemeStatsActivePreset = 'custom';
+      updateSchemePresetButtonsUI();
+      renderAdminSchemeBreakdown();
     }
 
     function formatSchemeDisplayName(scheme) {
@@ -1148,7 +1236,43 @@
       return s;
     }
 
-    function renderAdminSchemeBreakdown(filteredApts) {
+    function getSchemeTargetAppointments() {
+      const asstSelect = document.getElementById("stats-scheme-asst-filter");
+      const asstFilter = asstSelect ? asstSelect.value : "all";
+      const startD = schemeStatsStartDate || todayStr;
+      const endD = schemeStatsEndDate || startD;
+
+      return (appointments || []).filter(a => {
+        const bDate = a.bookDate || a.book_date || "";
+        if (startD && endD) {
+          if (bDate < startD || bDate > endD) return false;
+        } else if (startD && bDate !== startD) {
+          return false;
+        }
+
+        if (asstFilter !== "all") {
+          const asstObj = assistants.find(x => x.id === asstFilter);
+          let isMatch = false;
+          if (asstObj) {
+            const aId = a.assistantId;
+            const aNick = (a.assistantNick || "").trim();
+            const tId = asstObj.id;
+            const tNick = (asstObj.nickname || "").trim();
+            const tName = (asstObj.name || "").trim();
+            isMatch = (aId === tId) || (tNick && aNick === tNick) || (tName && aNick === tName);
+          } else {
+            isMatch = (a.assistantId === asstFilter);
+          }
+          if (!isMatch) return false;
+        }
+
+        const rawSt = String(a.status || "").trim();
+        const cleanSt = rawSt.replace(/[🔵🟣🟡⚪🔴🟢]/g, "").trim();
+        return cleanSt === "กลับบ้าน" || cleanSt === "ส่งต่อ" || rawSt.includes("กลับบ้าน") || rawSt.includes("ส่งต่อ");
+      });
+    }
+
+    function renderAdminSchemeBreakdown() {
       const container = document.getElementById("stats-admin-scheme-section");
       if (!container) return;
 
@@ -1160,16 +1284,32 @@
       }
       container.classList.remove("hidden");
 
+      // Sync Assistant Dropdown
+      const asstSelect = document.getElementById("stats-scheme-asst-filter");
+      if (asstSelect) {
+        const curVal = asstSelect.value || "all";
+        const needsRebuild = asstSelect.options.length !== (assistants.length + 1);
+        if (needsRebuild) {
+          let opts = `<option value="all">-- ทุกท่าน (ทั้งหมด) --</option>`;
+          assistants.forEach(a => {
+            opts += `<option value="${a.id}">👤 ${escapeHtml(a.nickname)} (${escapeHtml(a.name)})</option>`;
+          });
+          asstSelect.innerHTML = opts;
+          asstSelect.value = curVal;
+        }
+      }
+
+      // Sync Start & End Date Inputs if empty
+      const startEl = document.getElementById("stats-scheme-start-date");
+      const endEl = document.getElementById("stats-scheme-end-date");
+      if (startEl && !startEl.value) startEl.value = schemeStatsStartDate;
+      if (endEl && !endEl.value) endEl.value = schemeStatsEndDate;
+
       const overviewEl = document.getElementById("stats-admin-scheme-overview");
       const listEl = document.getElementById("stats-admin-scheme-list");
       if (!overviewEl || !listEl) return;
 
-      // Filter ONLY status "🟢 กลับบ้าน" or "🔴 ส่งต่อ"
-      const targetApts = (filteredApts || []).filter(a => {
-        const rawSt = String(a.status || "").trim();
-        const cleanSt = rawSt.replace(/[🔵🟣🟡⚪🔴🟢]/g, "").trim();
-        return cleanSt === "กลับบ้าน" || cleanSt === "ส่งต่อ" || rawSt.includes("กลับบ้าน") || rawSt.includes("ส่งต่อ");
-      });
+      const targetApts = getSchemeTargetAppointments();
 
       if (targetApts.length === 0) {
         overviewEl.innerHTML = "";
@@ -1186,7 +1326,9 @@
         const rawSt = String(a.status || "").trim();
         return rawSt.includes("ส่งต่อ") || rawSt.replace(/[🔵🟣🟡⚪🔴🟢]/g, "").trim() === "ส่งต่อ";
       }).length;
-      const uniqueHns = new Set(targetApts.map(a => (a.hn || a.citizenId || a.name || "").trim()).filter(Boolean)).size;
+      
+      // Comprehensive Patient Unique Identification (HN / Citizen ID / Name / Phone)
+      const uniqueHns = new Set(targetApts.map(a => (a.citizenOrHn || a.patientHn || a.hn || a.patientName || a.patient_name || a.name || a.phone || a.id || "").trim()).filter(Boolean)).size;
       const totalCases = targetApts.length;
 
       overviewEl.innerHTML = `
@@ -1240,7 +1382,7 @@
           group.completedCount++;
         }
 
-        const pId = (apt.hn || apt.citizenId || apt.name || "").trim();
+        const pId = (apt.citizenOrHn || apt.patientHn || apt.hn || apt.patientName || apt.patient_name || apt.name || apt.phone || apt.id || "").trim();
         if (pId) group.patients.add(pId);
 
         // Main Service
@@ -1395,49 +1537,10 @@
         return;
       }
 
-      const loggedInAsst = getLoggedInAssistant();
-      const asstSelect = document.getElementById("stats-assistant-filter");
-      let asstFilter = "all";
-      if (loggedInAsst) asstFilter = loggedInAsst.id;
-      else if (asstSelect) asstFilter = asstSelect.value || "all";
-
-      const mode = document.getElementById("stats-mode-filter")?.value || "daily";
-      const dateVal = document.getElementById("stats-date-input")?.value || todayStr;
-      const monthVal = document.getElementById("stats-month-input")?.value || todayStr.substring(0, 7);
-      const asstObj = assistants.find(a => a.id === asstFilter);
-
-      let filtered = (appointments || []).filter(a => {
-        if (asstFilter !== "all") {
-          const targetAsst = loggedInAsst || asstObj;
-          let isMatch = false;
-          if (targetAsst) {
-            const aId = a.assistantId;
-            const aNick = (a.assistantNick || "").trim();
-            const tId = targetAsst.id;
-            const tNick = (targetAsst.nickname || "").trim();
-            const tName = (targetAsst.name || "").trim();
-            isMatch = (aId === tId) || (tNick && aNick === tNick) || (tName && aNick === tName);
-          } else {
-            isMatch = (a.assistantId === asstFilter);
-          }
-          if (!isMatch) return false;
-        }
-        if (mode === "daily") {
-          if (dateVal && a.bookDate !== dateVal) return false;
-        } else {
-          if (monthVal && !a.bookDate.startsWith(monthVal)) return false;
-        }
-        return true;
-      });
-
-      const targetApts = filtered.filter(a => {
-        const rawSt = String(a.status || "").trim();
-        const cleanSt = rawSt.replace(/[🔵🟣🟡⚪🔴🟢]/g, "").trim();
-        return cleanSt === "กลับบ้าน" || cleanSt === "ส่งต่อ" || rawSt.includes("กลับบ้าน") || rawSt.includes("ส่งต่อ");
-      });
+      const targetApts = getSchemeTargetAppointments();
 
       if (targetApts.length === 0) {
-        alert("ไม่พบข้อมูลเคสที่สถานะเป็น 'กลับบ้าน' หรือ 'ส่งต่อ' ตามเงื่อนไขที่เลือก");
+        alert("ไม่พบข้อมูลเคสที่สถานะเป็น 'กลับบ้าน' หรือ 'ส่งต่อ' ตามช่วงเวลาที่เลือก");
         return;
       }
 
@@ -1468,7 +1571,7 @@
           group.completedCount++;
         }
 
-        const pId = (apt.hn || apt.citizenId || apt.name || "").trim();
+        const pId = (apt.citizenOrHn || apt.patientHn || apt.hn || apt.patientName || apt.patient_name || apt.name || apt.phone || apt.id || "").trim();
         if (pId) group.patients.add(pId);
 
         const ms = (apt.mainService || "ไม่ระบุหัตถการหลัก").trim();
@@ -1539,12 +1642,326 @@
         });
       });
 
-      const periodLabel = mode === "daily" ? dateVal : monthVal;
+      const startD = schemeStatsStartDate || todayStr;
+      const endD = schemeStatsEndDate || startD;
+      const periodLabel = startD === endD ? startD : `${startD}_ถึง_${endD}`;
+      
       if (typeof exportDataToExcel === "function") {
         exportDataToExcel(`สรุปยอดแยกสิทธิและหัตถการ_${periodLabel}`, "สรุปยอดแยกสิทธิ", headers, rows);
       } else {
         alert("ไม่พบฟังก์ชันส่งออก Excel");
       }
+    }
+
+    function exportSchemeSummaryToPdf() {
+      const isAdm = (typeof currentUser !== "undefined" && currentUser) && (currentUser.role === 'admin' || currentUser.isAdmin === true);
+      if (!isAdm) {
+        alert("เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถส่งออกรายงานนี้ได้");
+        return;
+      }
+
+      const targetApts = getSchemeTargetAppointments();
+      if (targetApts.length === 0) {
+        alert("ไม่พบข้อมูลเคสที่สถานะเป็น 'กลับบ้าน' หรือ 'ส่งต่อ' ตามช่วงเวลาที่เลือก");
+        return;
+      }
+
+      const asstSelect = document.getElementById("stats-scheme-asst-filter");
+      let asstName = "ทุกท่าน (ทั้งหมด)";
+      if (asstSelect && asstSelect.value !== "all") {
+        const asstObj = assistants.find(x => x.id === asstSelect.value);
+        if (asstObj) asstName = `${asstObj.nickname} (${asstObj.name})`;
+      }
+
+      const startD = schemeStatsStartDate || todayStr;
+      const endD = schemeStatsEndDate || startD;
+      const dateRangeText = startD === endD 
+        ? (typeof formatThaiDate === "function" ? formatThaiDate(startD) : startD)
+        : `${typeof formatThaiDate === "function" ? formatThaiDate(startD) : startD} ถึง ${typeof formatThaiDate === "function" ? formatThaiDate(endD) : endD}`;
+
+      // Calculate totals
+      const totalCompleted = targetApts.filter(a => {
+        const rawSt = String(a.status || "").trim();
+        return rawSt.includes("กลับบ้าน") || rawSt.replace(/[🔵🟣🟡⚪🔴🟢]/g, "").trim() === "กลับบ้าน";
+      }).length;
+      const totalTransferred = targetApts.filter(a => {
+        const rawSt = String(a.status || "").trim();
+        return rawSt.includes("ส่งต่อ") || rawSt.replace(/[🔵🟣🟡⚪🔴🟢]/g, "").trim() === "ส่งต่อ";
+      }).length;
+      const uniqueHns = new Set(targetApts.map(a => (a.citizenOrHn || a.patientHn || a.hn || a.patientName || a.patient_name || a.name || a.phone || a.id || "").trim()).filter(Boolean)).size;
+      const totalCases = targetApts.length;
+
+      // Group by Medical Scheme
+      const schemeGroups = {};
+      targetApts.forEach(apt => {
+        const rawScheme = (apt.medicalScheme || "บัตรทอง").trim() || "บัตรทอง";
+        const schemeLabel = formatSchemeDisplayName(rawScheme);
+
+        if (!schemeGroups[schemeLabel]) {
+          schemeGroups[schemeLabel] = {
+            name: schemeLabel,
+            apts: [],
+            completedCount: 0,
+            transferredCount: 0,
+            patients: new Set(),
+            allServicesMap: {},
+            mainServicesMap: {},
+            extraServicesMap: {}
+          };
+        }
+        const group = schemeGroups[schemeLabel];
+        group.apts.push(apt);
+
+        const rawSt = String(apt.status || "").trim();
+        if (rawSt.includes("ส่งต่อ") || rawSt.replace(/[🔵🟣🟡⚪🔴🟢]/g, "").trim() === "ส่งต่อ") {
+          group.transferredCount++;
+        } else {
+          group.completedCount++;
+        }
+
+        const pId = (apt.citizenOrHn || apt.patientHn || apt.hn || apt.patientName || apt.patient_name || apt.name || apt.phone || apt.id || "").trim();
+        if (pId) group.patients.add(pId);
+
+        const ms = (apt.mainService || "ไม่ระบุหัตถการหลัก").trim();
+        group.mainServicesMap[ms] = (group.mainServicesMap[ms] || 0) + 1;
+        group.allServicesMap[ms] = (group.allServicesMap[ms] || 0) + 1;
+
+        let extraList = [];
+        if (Array.isArray(apt.extraServices)) {
+          extraList = apt.extraServices;
+        } else if (typeof apt.extraServices === "string" && apt.extraServices.trim()) {
+          try {
+            const parsed = JSON.parse(apt.extraServices);
+            if (Array.isArray(parsed)) extraList = parsed;
+            else extraList = apt.extraServices.split(",").map(x => x.trim());
+          } catch (e) {
+            extraList = apt.extraServices.split(",").map(x => x.trim());
+          }
+        }
+
+        extraList.forEach(ex => {
+          const exTrim = String(ex || "").trim();
+          if (exTrim) {
+            group.extraServicesMap[exTrim] = (group.extraServicesMap[exTrim] || 0) + 1;
+            group.allServicesMap[exTrim] = (group.allServicesMap[exTrim] || 0) + 1;
+          }
+        });
+      });
+
+      const sortedSchemes = Object.values(schemeGroups).sort((a, b) => b.apts.length - a.apts.length);
+
+      // Build Schemes Table Rows for PDF
+      let tableRowsHtml = "";
+      sortedSchemes.forEach((sc, idx) => {
+        const scPct = totalCases > 0 ? ((sc.apts.length / totalCases) * 100).toFixed(1) : 0;
+        const sortedServices = Object.entries(sc.allServicesMap).sort((a, b) => b[1] - a[1]);
+        const totalSvcActions = Object.values(sc.allServicesMap).reduce((acc, c) => acc + c, 0);
+
+        const servicesBadges = sortedServices.map(([sName, sCount]) => {
+          const svcPct = totalSvcActions > 0 ? ((sCount / totalSvcActions) * 100).toFixed(0) : 0;
+          return `<span style="display:inline-block; background:#f1f5f9; padding:2px 5px; border-radius:4px; margin:1px 2px; font-size:10.5px; border:1px solid #cbd5e1;">${escapeHtml(sName)}: <b>${sCount}</b> <small style="color:#64748b;">(${svcPct}%)</small></span>`;
+        }).join(" ");
+
+        tableRowsHtml += `
+          <tr style="background:${idx % 2 === 0 ? '#ffffff' : '#f8fafc'}; border-bottom:1px solid #e2e8f0;">
+            <td style="padding:6px 8px; font-weight:bold; color:#0f172a; font-size:11.5px;">${idx + 1}. ${escapeHtml(sc.name)}</td>
+            <td style="padding:6px 8px; text-align:center; font-weight:bold; color:#15803d; font-size:11.5px;">${sc.apts.length} <small style="color:#64748b;">(${scPct}%)</small></td>
+            <td style="padding:6px 8px; text-align:center; font-weight:bold; color:#0369a1; font-size:11.5px;">${sc.patients.size}</td>
+            <td style="padding:6px 8px; font-size:11px;">${servicesBadges}</td>
+            <td style="padding:6px 8px; text-align:center; font-size:10.5px; font-weight:bold;">
+              <span style="color:#15803d;">กลับ: ${sc.completedCount}</span>
+              ${sc.transferredCount > 0 ? `<br><span style="color:#b91c1c;">ส่งต่อ: ${sc.transferredCount}</span>` : ''}
+            </td>
+          </tr>
+        `;
+      });
+
+      // Remove existing print iframe
+      const existingIframe = document.getElementById("hidden-scheme-pdf-iframe");
+      if (existingIframe) existingIframe.remove();
+
+      const iframe = document.createElement("iframe");
+      iframe.id = "hidden-scheme-pdf-iframe";
+      iframe.style.position = "fixed";
+      iframe.style.right = "0";
+      iframe.style.bottom = "0";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "0";
+      iframe.style.visibility = "hidden";
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentWindow.document;
+      doc.open();
+
+      const printHtml = `
+        <!DOCTYPE html>
+        <html lang="th">
+        <head>
+          <meta charset="UTF-8">
+          <title>รายงานสรุปยอดผู้รับบริการแยกตามสิทธิการรักษาและหัตถการ</title>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 8mm 10mm;
+            }
+            * { box-sizing: border-box; }
+            body {
+              font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              color: #1e293b;
+              background: #ffffff;
+              margin: 0;
+              padding: 0;
+              font-size: 11px;
+              line-height: 1.35;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            .pdf-container {
+              width: 100%;
+              max-width: 780px;
+              margin: 0 auto;
+            }
+            .header-box {
+              border-bottom: 2px solid #15803d;
+              padding-bottom: 8px;
+              margin-bottom: 10px;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+            }
+            .kpi-grid {
+              display: grid;
+              grid-template-columns: repeat(4, 1fr);
+              gap: 8px;
+              margin-bottom: 12px;
+            }
+            .kpi-card {
+              border-radius: 8px;
+              padding: 8px 10px;
+              text-align: center;
+              border: 1px solid #cbd5e1;
+            }
+            .table-pdf {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 12px;
+            }
+            .table-pdf th {
+              background: #0f766e;
+              color: #ffffff;
+              font-weight: 700;
+              padding: 6px 8px;
+              font-size: 11px;
+              text-align: left;
+            }
+            .sign-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20px;
+              margin-top: 14px;
+              padding-top: 10px;
+              border-top: 1px dashed #cbd5e1;
+            }
+            @media print {
+              body { padding: 0; }
+              .no-print { display: none !important; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="pdf-container">
+            <!-- Header -->
+            <div class="header-box">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:42px; height:42px; border-radius:50%; background:#15803d; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:18px;">🌿</div>
+                <div>
+                  <h1 style="margin:0; font-size:15px; font-weight:800; color:#15803d;">คลินิกการแพทย์แผนไทย โรงพยาบาลนราธิวาสราชนครินทร์</h1>
+                  <h2 style="margin:2px 0 0 0; font-size:12.5px; font-weight:700; color:#334155;">รายงานสรุปยอดผู้รับบริการแยกตามสิทธิการรักษา & หัตถการ (One-Page Executive Summary)</h2>
+                </div>
+              </div>
+              <div style="text-align:right; font-size:10px; color:#64748b;">
+                <div><b>ช่วงข้อมูล:</b> ${dateRangeText}</div>
+                <div><b>ผู้ช่วยแพทย์:</b> ${escapeHtml(asstName)}</div>
+                <div><b>พิมพ์รายงาน:</b> ${new Date().toLocaleDateString('th-TH')} ${new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</div>
+              </div>
+            </div>
+
+            <!-- KPI Metric Summary Box -->
+            <div class="kpi-grid">
+              <div class="kpi-card" style="background:#ecfdf5; border-color:#86efac;">
+                <div style="font-size:10px; font-weight:700; color:#166534;">เคสสิ้นสุดบริการทั้งหมด</div>
+                <div style="font-size:17px; font-weight:800; color:#14532d; margin:2px 0;">${totalCases.toLocaleString()} <small style="font-size:10px; font-weight:normal;">เคส</small></div>
+                <div style="font-size:9.5px; color:#15803d;">กลับบ้าน ${totalCompleted} | ส่งต่อ ${totalTransferred}</div>
+              </div>
+              <div class="kpi-card" style="background:#f0f9ff; border-color:#7dd3fc;">
+                <div style="font-size:10px; font-weight:700; color:#075985;">ผู้รับบริการ (คน ไม่ซ้ำ)</div>
+                <div style="font-size:17px; font-weight:800; color:#0c4a6e; margin:2px 0;">${uniqueHns.toLocaleString()} <small style="font-size:10px; font-weight:normal;">คน</small></div>
+                <div style="font-size:9.5px; color:#0369a1;">นับตาม HN/ชื่อคนไข้</div>
+              </div>
+              <div class="kpi-card" style="background:#f0fdfa; border-color:#99f6e4;">
+                <div style="font-size:10px; font-weight:700; color:#115e59;">🟢 กลับบ้านสำเร็จ</div>
+                <div style="font-size:17px; font-weight:800; color:#134e4a; margin:2px 0;">${totalCompleted.toLocaleString()} <small style="font-size:10px; font-weight:normal;">เคส</small></div>
+                <div style="font-size:9.5px; color:#0f766e;">${totalCases > 0 ? ((totalCompleted / totalCases) * 100).toFixed(1) : 0}% ของเคสสิ้นสุด</div>
+              </div>
+              <div class="kpi-card" style="background:#fff1f2; border-color:#fecdd3;">
+                <div style="font-size:10px; font-weight:700; color:#9f1239;">🔴 ส่งต่อแพทย์</div>
+                <div style="font-size:17px; font-weight:800; color:#881337; margin:2px 0;">${totalTransferred.toLocaleString()} <small style="font-size:10px; font-weight:normal;">เคส</small></div>
+                <div style="font-size:9.5px; color:#be123c;">${totalCases > 0 ? ((totalTransferred / totalCases) * 100).toFixed(1) : 0}% ของเคสสิ้นสุด</div>
+              </div>
+            </div>
+
+            <!-- Detail Breakdown Table -->
+            <table class="table-pdf">
+              <thead>
+                <tr>
+                  <th style="width:24%;">สิทธิการรักษา</th>
+                  <th style="width:14%; text-align:center;">จำนวนเคส (%)</th>
+                  <th style="width:12%; text-align:center;">คนไข้ (คน)</th>
+                  <th style="width:38%;">หัตถการ / บริการที่ได้รับ</th>
+                  <th style="width:12%; text-align:center;">ผลการดูแล</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tableRowsHtml}
+              </tbody>
+            </table>
+
+            <!-- Sign-Off Section -->
+            <div class="sign-grid">
+              <div style="text-align:center; padding:5px;">
+                <div style="height:32px;"></div>
+                <div>ลงชื่อ ............................................................................</div>
+                <div style="font-size:10px; color:#475569; margin-top:3px;">( ${currentUser ? escapeHtml(currentUser.name) : '............................................................'} )</div>
+                <div style="font-size:9.5px; color:#64748b;">ผู้รายงาน / ผู้ดูแลระบบ</div>
+              </div>
+              <div style="text-align:center; padding:5px;">
+                <div style="height:32px;"></div>
+                <div>ลงชื่อ ............................................................................</div>
+                <div style="font-size:10px; color:#475569; margin-top:3px;">( ............................................................................ )</div>
+                <div style="font-size:9.5px; color:#64748b;">หัวหน้ากลุ่มงานการแพทย์แผนไทย</div>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      doc.write(printHtml);
+      doc.close();
+
+      setTimeout(() => {
+        try {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        } catch(e) {
+          console.warn("Print error:", e);
+          window.print();
+        }
+      }, 350);
     }
 
     function toggleStatsMode() {

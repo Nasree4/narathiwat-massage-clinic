@@ -1009,7 +1009,13 @@
         const role = currentUser.role;
         let roleBadgeHtml = "";
         if (role === "admin") {
-          roleBadgeHtml = `<span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-900/80 text-purple-200 border border-purple-400/40 flex items-center gap-1 shadow-2xs"><span>🛡️</span><span class="hidden sm:inline">Admin:</span> ${escapeHtml(currentUser.name.split(" ")[0])}</span>`;
+          roleBadgeHtml = `
+            <button type="button" onclick="jumpToSchemeStats()" class="h-8 sm:h-8.5 px-2.5 rounded-lg bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-slate-950 text-xs font-black flex items-center space-x-1 shadow-sm transition border border-amber-300 cursor-pointer" title="ปุ่มลัด: สรุปยอดแยกสิทธิและหัตถการ">
+              <i data-lucide="bar-chart-3" class="w-3.5 h-3.5"></i>
+              <span class="hidden sm:inline">สรุปสิทธิ</span>
+            </button>
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-900/80 text-purple-200 border border-purple-400/40 flex items-center gap-1 shadow-2xs"><span>🛡️</span><span class="hidden sm:inline">Admin:</span> ${escapeHtml(currentUser.name.split(" ")[0])}</span>
+          `;
           staffTabs.forEach(t => t.classList.remove("hidden"));
           adminTabs.forEach(t => t.classList.remove("hidden"));
           if (tabLoginLabel) tabLoginLabel.textContent = `🛡️ บัญชี: ${currentUser.name.split(" ")[0]}`;
