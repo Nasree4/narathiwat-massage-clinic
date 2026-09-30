@@ -258,6 +258,10 @@
             if (reg.waiting) {
               reg.waiting.postMessage({ type: 'SKIP_WAITING' });
             }
+            // If interactive, unregister old worker so fresh one loads
+            if (interactive) {
+              await reg.unregister().catch(() => {});
+            }
           }
         } catch (e) {
           console.warn('SW update check error:', e);
@@ -285,10 +289,11 @@
       }
 
       if (interactive) {
-        showToast(`✅ รีโหลดเพื่อใช้งานเวอร์ชันล่าสุด (${APP_VERSION})...`, 'success');
+        showToast(`✅ กำลังรีเฟรชเข้าสู่เวอร์ชันล่าสุด...`, 'success');
         setTimeout(() => {
-          window.location.href = window.location.origin + window.location.pathname + '?reload=' + Date.now();
-        }, 400);
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.location.replace(cleanUrl + '?t=' + Date.now());
+        }, 350);
         return;
       }
     }

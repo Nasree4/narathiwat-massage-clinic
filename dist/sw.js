@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ttm-clinic-cache-v160';
+const CACHE_NAME = 'ttm-clinic-cache-v161';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -54,30 +54,22 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 1. Navigation / HTML Requests: Instant Cache delivery with background update
+  // 1. Navigation / HTML Requests: Network-First with Offline Cache Fallback
   if (event.request.mode === 'navigate' || (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html'))) {
     event.respondWith(
-      caches.match('/index.html').then(cachedHtml => {
-        const networkFetch = fetch(event.request)
-          .then(networkResponse => {
-            if (networkResponse && networkResponse.status === 200) {
-              const responseClone = networkResponse.clone();
-              caches.open(CACHE_NAME).then(cache => {
-                cache.put('/index.html', responseClone);
-              });
-            }
-            return networkResponse;
-          })
-          .catch(() => cachedHtml);
-
-        // If we have cached HTML, return immediately (<50ms) and refresh in background
-        if (cachedHtml) {
-          networkFetch.catch(() => {});
-          return cachedHtml;
-        }
-
-        return Promise.race([networkFetch, timeout(2500)]).catch(() => cachedHtml || networkFetch);
-      })
+      fetch(event.request)
+        .then(networkResponse => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put('/index.html', responseClone);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match('/index.html').then(cachedHtml => cachedHtml || caches.match('/'));
+        })
     );
     return;
   }
