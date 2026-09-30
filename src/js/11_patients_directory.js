@@ -1236,6 +1236,36 @@
       return s;
     }
 
+    function getAppointmentPatientIdentifier(apt) {
+      if (!apt) return "";
+      
+      // 1. Check HN / Citizen ID (ignore placeholder "-", "--", "ไม่ระบุ")
+      const rawHn = (apt.citizenOrHn || apt.patientHn || apt.hn || apt.citizenId || "").trim();
+      if (rawHn && rawHn !== "-" && rawHn !== "--" && rawHn !== "ไม่ระบุ") {
+        return `HN:${rawHn.toLowerCase()}`;
+      }
+      
+      // 2. Check Patient Name (ignore placeholder "-", "--", "ไม่ระบุ", "ว่าง")
+      const rawName = (apt.patientName || apt.patient_name || apt.name || "").trim();
+      if (rawName && rawName !== "-" && rawName !== "--" && rawName !== "ไม่ระบุ" && rawName !== "ว่าง") {
+        return `NAME:${rawName.toLowerCase()}`;
+      }
+      
+      // 3. Check Phone
+      const rawPhone = (apt.phone || apt.patientPhone || "").trim();
+      if (rawPhone && rawPhone !== "-" && rawPhone !== "--") {
+        return `PHONE:${rawPhone}`;
+      }
+      
+      // 4. Fallback to unique appointment ID
+      const aptId = (apt.id || apt._id || "").trim();
+      if (aptId) {
+        return `ID:${aptId}`;
+      }
+      
+      return "";
+    }
+
     function getSchemeTargetAppointments() {
       const asstSelect = document.getElementById("stats-scheme-asst-filter");
       const asstFilter = asstSelect ? asstSelect.value : "all";
@@ -1327,8 +1357,8 @@
         return rawSt.includes("ส่งต่อ") || rawSt.replace(/[🔵🟣🟡⚪🔴🟢]/g, "").trim() === "ส่งต่อ";
       }).length;
       
-      // Comprehensive Patient Unique Identification (HN / Citizen ID / Name / Phone)
-      const uniqueHns = new Set(targetApts.map(a => (a.citizenOrHn || a.patientHn || a.hn || a.patientName || a.patient_name || a.name || a.phone || a.id || "").trim()).filter(Boolean)).size;
+      // Comprehensive Patient Unique Identification (HN / Citizen ID / Name / Phone / Appointment ID)
+      const uniqueHns = new Set(targetApts.map(a => getAppointmentPatientIdentifier(a)).filter(Boolean)).size;
       const totalCases = targetApts.length;
 
       overviewEl.innerHTML = `
@@ -1382,7 +1412,7 @@
           group.completedCount++;
         }
 
-        const pId = (apt.citizenOrHn || apt.patientHn || apt.hn || apt.patientName || apt.patient_name || apt.name || apt.phone || apt.id || "").trim();
+        const pId = getAppointmentPatientIdentifier(apt);
         if (pId) group.patients.add(pId);
 
         // Main Service
@@ -1571,7 +1601,7 @@
           group.completedCount++;
         }
 
-        const pId = (apt.citizenOrHn || apt.patientHn || apt.hn || apt.patientName || apt.patient_name || apt.name || apt.phone || apt.id || "").trim();
+        const pId = getAppointmentPatientIdentifier(apt);
         if (pId) group.patients.add(pId);
 
         const ms = (apt.mainService || "ไม่ระบุหัตถการหลัก").trim();
@@ -1688,7 +1718,7 @@
         const rawSt = String(a.status || "").trim();
         return rawSt.includes("ส่งต่อ") || rawSt.replace(/[🔵🟣🟡⚪🔴🟢]/g, "").trim() === "ส่งต่อ";
       }).length;
-      const uniqueHns = new Set(targetApts.map(a => (a.citizenOrHn || a.patientHn || a.hn || a.patientName || a.patient_name || a.name || a.phone || a.id || "").trim()).filter(Boolean)).size;
+      const uniqueHns = new Set(targetApts.map(a => getAppointmentPatientIdentifier(a)).filter(Boolean)).size;
       const totalCases = targetApts.length;
 
       // Group by Medical Scheme
@@ -1719,7 +1749,7 @@
           group.completedCount++;
         }
 
-        const pId = (apt.citizenOrHn || apt.patientHn || apt.hn || apt.patientName || apt.patient_name || apt.name || apt.phone || apt.id || "").trim();
+        const pId = getAppointmentPatientIdentifier(apt);
         if (pId) group.patients.add(pId);
 
         const ms = (apt.mainService || "ไม่ระบุหัตถการหลัก").trim();

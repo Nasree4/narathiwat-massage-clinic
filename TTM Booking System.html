@@ -771,9 +771,9 @@
           <h1 class="text-sm sm:text-base md:text-lg font-bold leading-tight tracking-wide flex items-center gap-1 sm:gap-1.5 flex-wrap">
             <span data-i18n="app_title">คลินิกการแพทย์แผนไทย</span>
             <span class="text-[10px] sm:text-[11px] font-normal px-2 py-0.5 bg-herbal-800/80 text-herbal-200 rounded-full border border-herbal-600 hidden sm:inline-block" data-i18n="service_status">เปิดบริการปกติ</span>
-            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.14 (คลิกเพื่อตรวจสอบการอัปเดต)">
+            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.15 (คลิกเพื่อตรวจสอบการอัปเดต)">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span id="app-header-version-tag">v5.5.14</span>
+              <span id="app-header-version-tag">v5.5.15</span>
             </button>
           </h1>
           <p class="text-[11px] sm:text-xs text-herbal-200 font-light" data-i18n="app_hospital">
@@ -2731,7 +2731,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="font-medium text-slate-700 dark:text-slate-300">คลินิกการแพทย์แผนไทย รพ.นราธิวาสราชนครินทร์</span>
         <span class="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
-        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.14</span>
+        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.15</span>
         <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">ล่าสุด</span>
       </div>
       <div class="flex items-center gap-2">
@@ -2972,7 +2972,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                 <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">30 กันยายน 2569</span></p>
               </div>
             </div>
-            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.14</span>
+            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.15</span>
           </div>
 
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/70 text-xs">
@@ -2991,7 +2991,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       
       <!-- Modal Footer -->
       <div class="bg-slate-50 dark:bg-slate-800/80 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between flex-shrink-0">
-        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.14</span></span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.15</span></span>
         <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold transition" data-i18n="btn_close">
           ปิดหน้าต่าง
         </button>
@@ -6145,7 +6145,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.5.14";
+    const APP_VERSION = "v5.5.15";
     const APP_BUILD_DATE = "30 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
@@ -19465,6 +19465,36 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       return s;
     }
 
+    function getAppointmentPatientIdentifier(apt) {
+      if (!apt) return "";
+      
+      // 1. Check HN / Citizen ID (ignore placeholder "-", "--", "ไม่ระบุ")
+      const rawHn = (apt.citizenOrHn || apt.patientHn || apt.hn || apt.citizenId || "").trim();
+      if (rawHn && rawHn !== "-" && rawHn !== "--" && rawHn !== "ไม่ระบุ") {
+        return `HN:${rawHn.toLowerCase()}`;
+      }
+      
+      // 2. Check Patient Name (ignore placeholder "-", "--", "ไม่ระบุ", "ว่าง")
+      const rawName = (apt.patientName || apt.patient_name || apt.name || "").trim();
+      if (rawName && rawName !== "-" && rawName !== "--" && rawName !== "ไม่ระบุ" && rawName !== "ว่าง") {
+        return `NAME:${rawName.toLowerCase()}`;
+      }
+      
+      // 3. Check Phone
+      const rawPhone = (apt.phone || apt.patientPhone || "").trim();
+      if (rawPhone && rawPhone !== "-" && rawPhone !== "--") {
+        return `PHONE:${rawPhone}`;
+      }
+      
+      // 4. Fallback to unique appointment ID
+      const aptId = (apt.id || apt._id || "").trim();
+      if (aptId) {
+        return `ID:${aptId}`;
+      }
+      
+      return "";
+    }
+
     function getSchemeTargetAppointments() {
       const asstSelect = document.getElementById("stats-scheme-asst-filter");
       const asstFilter = asstSelect ? asstSelect.value : "all";
@@ -19556,8 +19586,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         return rawSt.includes("ส่งต่อ") || rawSt.replace(/[🔵🟣🟡⚪🔴🟢]/g, "").trim() === "ส่งต่อ";
       }).length;
       
-      // Comprehensive Patient Unique Identification (HN / Citizen ID / Name / Phone)
-      const uniqueHns = new Set(targetApts.map(a => (a.citizenOrHn || a.patientHn || a.hn || a.patientName || a.patient_name || a.name || a.phone || a.id || "").trim()).filter(Boolean)).size;
+      // Comprehensive Patient Unique Identification (HN / Citizen ID / Name / Phone / Appointment ID)
+      const uniqueHns = new Set(targetApts.map(a => getAppointmentPatientIdentifier(a)).filter(Boolean)).size;
       const totalCases = targetApts.length;
 
       overviewEl.innerHTML = `
@@ -19611,7 +19641,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           group.completedCount++;
         }
 
-        const pId = (apt.citizenOrHn || apt.patientHn || apt.hn || apt.patientName || apt.patient_name || apt.name || apt.phone || apt.id || "").trim();
+        const pId = getAppointmentPatientIdentifier(apt);
         if (pId) group.patients.add(pId);
 
         // Main Service
@@ -19800,7 +19830,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           group.completedCount++;
         }
 
-        const pId = (apt.citizenOrHn || apt.patientHn || apt.hn || apt.patientName || apt.patient_name || apt.name || apt.phone || apt.id || "").trim();
+        const pId = getAppointmentPatientIdentifier(apt);
         if (pId) group.patients.add(pId);
 
         const ms = (apt.mainService || "ไม่ระบุหัตถการหลัก").trim();
@@ -19917,7 +19947,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         const rawSt = String(a.status || "").trim();
         return rawSt.includes("ส่งต่อ") || rawSt.replace(/[🔵🟣🟡⚪🔴🟢]/g, "").trim() === "ส่งต่อ";
       }).length;
-      const uniqueHns = new Set(targetApts.map(a => (a.citizenOrHn || a.patientHn || a.hn || a.patientName || a.patient_name || a.name || a.phone || a.id || "").trim()).filter(Boolean)).size;
+      const uniqueHns = new Set(targetApts.map(a => getAppointmentPatientIdentifier(a)).filter(Boolean)).size;
       const totalCases = targetApts.length;
 
       // Group by Medical Scheme
@@ -19948,7 +19978,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           group.completedCount++;
         }
 
-        const pId = (apt.citizenOrHn || apt.patientHn || apt.hn || apt.patientName || apt.patient_name || apt.name || apt.phone || apt.id || "").trim();
+        const pId = getAppointmentPatientIdentifier(apt);
         if (pId) group.patients.add(pId);
 
         const ms = (apt.mainService || "ไม่ระบุหัตถการหลัก").trim();

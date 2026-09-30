@@ -7,7 +7,7 @@
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.5.14";
+    const APP_VERSION = "v5.5.15";
     const APP_BUILD_DATE = "30 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
