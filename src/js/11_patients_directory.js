@@ -1266,6 +1266,57 @@
       return "";
     }
 
+    function getServicePriceRate(svcName) {
+      if (!svcName) return 0;
+      const name = String(svcName).trim();
+      
+      // 1. Specific requested rates:
+      // - จำนวนจองฟื้นฟูหลังคลอด * 670
+      // - จำนวนนวดตัว * 300
+      // - จำนวนนวดเท้า * 200
+      // - จำนวนนวดอย่างเดียว * 200
+      // - จำนวนประคบอย่างเดียว * 150
+      // - จำนวนอบสมุนไพร * 120
+      // - จำนวนท้อง / นวดท้อง * 100
+      // - จำนวนจองนวด / นวดประคบ * 250
+      if (name.includes("ฟื้นฟูหลังคลอด") || name.includes("หลังคลอด")) {
+        return 670;
+      }
+      if (name === "นวดอย่างเดียว" || name.includes("นวดอย่างเดียว")) {
+        return 200;
+      }
+      if (name === "ประคบอย่างเดียว" || name.includes("ประคบอย่างเดียว")) {
+        return 150;
+      }
+      if (name === "นวดตัว" || name.includes("นวดตัว")) {
+        return 300;
+      }
+      if (name === "นวดเท้า" || name.includes("นวดเท้า")) {
+        return 200;
+      }
+      if (name === "อบสมุนไพร" || name.includes("อบสมุนไพร") || name.includes("อบ")) {
+        return 120;
+      }
+      if (name === "นวดท้อง" || name === "ท้อง" || name.includes("ท้อง")) {
+        return 100;
+      }
+      if (name === "จองนวด" || name.includes("จองนวด") || name.includes("นวดประคบ")) {
+        return 250;
+      }
+
+      // 2. Dynamic fallback to configured extra/main services
+      if (typeof extraServicesList !== "undefined" && Array.isArray(extraServicesList)) {
+        const foundExtra = extraServicesList.find(s => s.name === name || name.includes(s.name));
+        if (foundExtra && foundExtra.price !== undefined) return Number(foundExtra.price) || 0;
+      }
+      if (typeof mainServicesList !== "undefined" && Array.isArray(mainServicesList)) {
+        const foundMain = mainServicesList.find(s => s.name === name || name.includes(s.name));
+        if (foundMain && foundMain.price !== undefined) return Number(foundMain.price) || 0;
+      }
+
+      return 0;
+    }
+
     function getSchemeTargetAppointments() {
       const asstSelect = document.getElementById("stats-scheme-asst-filter");
       const asstFilter = asstSelect ? asstSelect.value : "all";
@@ -1361,6 +1412,30 @@
       const uniqueHns = new Set(targetApts.map(a => getAppointmentPatientIdentifier(a)).filter(Boolean)).size;
       const totalCases = targetApts.length;
 
+      // Calculate Grand Total Revenue across all appointments & procedure actions
+      let grandTotalMoney = 0;
+      targetApts.forEach(apt => {
+        const ms = (apt.mainService || "").trim();
+        if (ms) grandTotalMoney += getServicePriceRate(ms);
+
+        let extraList = [];
+        if (Array.isArray(apt.extraServices)) {
+          extraList = apt.extraServices;
+        } else if (typeof apt.extraServices === "string" && apt.extraServices.trim()) {
+          try {
+            const parsed = JSON.parse(apt.extraServices);
+            if (Array.isArray(parsed)) extraList = parsed;
+            else extraList = apt.extraServices.split(",").map(x => x.trim());
+          } catch (e) {
+            extraList = apt.extraServices.split(",").map(x => x.trim());
+          }
+        }
+        extraList.forEach(ex => {
+          const exTrim = String(ex || "").trim();
+          if (exTrim) grandTotalMoney += getServicePriceRate(exTrim);
+        });
+      });
+
       overviewEl.innerHTML = `
         <div class="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60">
           <div class="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">เคสสิ้นสุดบริการทั้งหมด</div>
@@ -1371,6 +1446,11 @@
           <div class="text-[11px] font-bold text-blue-800 dark:text-blue-300">ผู้รับบริการ (คน ไม่ซ้ำ)</div>
           <div class="text-xl font-black text-blue-950 dark:text-blue-100 mt-0.5">${uniqueHns.toLocaleString()} <span class="text-xs font-normal">คน</span></div>
           <div class="text-[10px] text-blue-700 dark:text-blue-400 mt-0.5">นับตาม HN / ชื่อคนไข้</div>
+        </div>
+        <div class="p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60">
+          <div class="text-[11px] font-bold text-amber-800 dark:text-amber-300">💰 ยอดคำนวณเงินรวม</div>
+          <div class="text-xl font-black text-amber-950 dark:text-amber-100 mt-0.5">${grandTotalMoney.toLocaleString()} <span class="text-xs font-normal">บาท</span></div>
+          <div class="text-[10px] text-amber-700 dark:text-amber-400 mt-0.5">คำนวณตามอัตราค่าบริการ</div>
         </div>
         <div class="p-3 rounded-xl bg-teal-50/70 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/60">
           <div class="text-[11px] font-bold text-teal-800 dark:text-teal-300">🟢 กลับบ้านสำเร็จ</div>
@@ -1468,6 +1548,12 @@
         const sortedServices = Object.entries(sc.allServicesMap).sort((a, b) => b[1] - a[1]);
         const totalServiceActions = Object.values(sc.allServicesMap).reduce((acc, c) => acc + c, 0);
 
+        let schemeTotalMoney = 0;
+        sortedServices.forEach(([svcName, count]) => {
+          const unitPrice = getServicePriceRate(svcName);
+          schemeTotalMoney += (count * unitPrice);
+        });
+
         html += `
           <div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900/90 shadow-2xs hover:border-emerald-300 dark:hover:border-emerald-700 transition">
             <!-- Scheme Header Bar -->
@@ -1480,6 +1566,9 @@
                 </span>
                 <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">
                   | ผู้รับบริการ ${sc.patients.size} คน
+                </span>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-700 text-white shadow-2xs">
+                  💰 รวม ${schemeTotalMoney.toLocaleString()} บาท
                 </span>
               </div>
               <div class="flex items-center space-x-2 text-xs font-semibold">
@@ -1495,19 +1584,20 @@
 
             <!-- Scheme Breakdown Table / Details -->
             <div class="p-3.5 space-y-3">
-              <div class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                <span>🩺 รายการหัตถการที่ให้บริการในสิทธินี้ (${sortedServices.length} รายการ):</span>
-                <span class="text-[11px] text-slate-400 font-normal">รวม ${totalServiceActions.toLocaleString()} ครั้งการทำหัตถการ</span>
+              <div class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between flex-wrap gap-2">
+                <span>🩺 รายการหัตถการและคำนวณเงินในสิทธินี้ (${sortedServices.length} รายการ):</span>
+                <span class="text-[11px] text-slate-400 font-normal">รวม ${totalServiceActions.toLocaleString()} ครั้งการทำหัตถการ | ยอดคำนวณเงิน <strong class="text-emerald-700 dark:text-emerald-400 font-black">${schemeTotalMoney.toLocaleString()} บาท</strong></span>
               </div>
 
               <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr class="border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 text-slate-600 dark:text-slate-400 font-semibold">
-                      <th class="py-2 px-3">ชื่อหัตถการ / บริการ</th>
-                      <th class="py-2 px-3 text-center w-28">ประเภท</th>
-                      <th class="py-2 px-3 text-right w-28">จำนวนครั้ง</th>
-                      <th class="py-2 px-3 text-right w-28">สัดส่วนในสิทธิ</th>
+                      <th class="py-2.5 px-3">ชื่อหัตถการ / บริการ</th>
+                      <th class="py-2.5 px-3 text-center w-24">ประเภท</th>
+                      <th class="py-2.5 px-3 text-right w-24">อัตรา/ครั้ง</th>
+                      <th class="py-2.5 px-3 text-right w-28">จำนวนครั้ง</th>
+                      <th class="py-2.5 px-3 text-right w-32">คำนวณเงิน (บาท)</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1526,23 +1616,28 @@
             typeClass = "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300";
           }
 
+          const unitPrice = getServicePriceRate(svcName);
+          const subTotalMoney = count * unitPrice;
           const svcPct = totalServiceActions > 0 ? ((count / totalServiceActions) * 100).toFixed(1) : 0;
 
           html += `
             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
-              <td class="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200">
+              <td class="py-2.5 px-3 font-bold text-slate-800 dark:text-slate-200">
                 ${escapeHtml(svcName)}
               </td>
-              <td class="py-2 px-3 text-center">
+              <td class="py-2.5 px-3 text-center">
                 <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold ${typeClass}">
                   ${typeLabel}
                 </span>
               </td>
-              <td class="py-2 px-3 text-right font-black text-slate-900 dark:text-slate-100">
-                ${count.toLocaleString()} <span class="text-[10px] font-normal text-slate-400">ครั้ง</span>
+              <td class="py-2.5 px-3 text-right text-slate-600 dark:text-slate-300 font-semibold">
+                ${unitPrice > 0 ? `${unitPrice.toLocaleString()} ฿` : '-'}
               </td>
-              <td class="py-2 px-3 text-right font-bold text-emerald-700 dark:text-emerald-400">
-                ${svcPct}%
+              <td class="py-2.5 px-3 text-right font-black text-slate-900 dark:text-slate-100">
+                ${count.toLocaleString()} <span class="text-[10px] font-normal text-slate-400">ครั้ง (${svcPct}%)</span>
+              </td>
+              <td class="py-2.5 px-3 text-right font-black text-emerald-700 dark:text-emerald-400">
+                ${subTotalMoney.toLocaleString()} <span class="text-[10px] font-normal text-slate-400">บาท</span>
               </td>
             </tr>
           `;
@@ -1550,6 +1645,19 @@
 
         html += `
                   </tbody>
+                  <tfoot>
+                    <tr class="border-t-2 border-slate-200 dark:border-slate-700 bg-emerald-50/50 dark:bg-emerald-950/20 font-black text-slate-900 dark:text-slate-100">
+                      <td colspan="3" class="py-2.5 px-3 text-right text-emerald-900 dark:text-emerald-300 font-extrabold">
+                        รวมทั้งสิ้นของสิทธินี้:
+                      </td>
+                      <td class="py-2.5 px-3 text-right text-slate-900 dark:text-slate-100 font-black">
+                        ${totalServiceActions.toLocaleString()} ครั้ง
+                      </td>
+                      <td class="py-2.5 px-3 text-right text-emerald-800 dark:text-emerald-300 text-sm font-black">
+                        ${schemeTotalMoney.toLocaleString()} บาท
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
@@ -1634,7 +1742,9 @@
         "สิทธิการรักษา",
         "รายการหัตถการ / บริการ",
         "ประเภทหัตถการ",
+        "อัตราค่าบริการ (บาท)",
         "จำนวนครั้งที่ทำ",
+        "ยอดคำนวณเงิน (บาท)",
         "สัดส่วนในสิทธิ (%)",
         "จำนวนเคสในสิทธิทั้งหมด",
         "ผู้รับบริการไม่ซ้ำ (คน)",
@@ -1656,13 +1766,17 @@
           if (isMain && isExtra) typeLabel = "หลัก + เสริม";
           else if (isExtra && !isMain) typeLabel = "หัตถการเสริม";
 
+          const unitPrice = getServicePriceRate(svcName);
+          const subTotalMoney = count * unitPrice;
           const svcPct = totalServiceActions > 0 ? ((count / totalServiceActions) * 100).toFixed(1) + "%" : "0%";
 
           rows.push([
             sc.name,
             svcName,
             typeLabel,
+            unitPrice,
             count,
+            subTotalMoney,
             svcPct,
             sc.apts.length,
             sc.patients.size,
@@ -1720,6 +1834,29 @@
       }).length;
       const uniqueHns = new Set(targetApts.map(a => getAppointmentPatientIdentifier(a)).filter(Boolean)).size;
       const totalCases = targetApts.length;
+
+      // Grand Total Money
+      let grandTotalMoney = 0;
+      targetApts.forEach(apt => {
+        const ms = (apt.mainService || "").trim();
+        if (ms) grandTotalMoney += getServicePriceRate(ms);
+        let extraList = [];
+        if (Array.isArray(apt.extraServices)) {
+          extraList = apt.extraServices;
+        } else if (typeof apt.extraServices === "string" && apt.extraServices.trim()) {
+          try {
+            const parsed = JSON.parse(apt.extraServices);
+            if (Array.isArray(parsed)) extraList = parsed;
+            else extraList = apt.extraServices.split(",").map(x => x.trim());
+          } catch (e) {
+            extraList = apt.extraServices.split(",").map(x => x.trim());
+          }
+        }
+        extraList.forEach(ex => {
+          const exTrim = String(ex || "").trim();
+          if (exTrim) grandTotalMoney += getServicePriceRate(exTrim);
+        });
+      });
 
       // Group by Medical Scheme
       const schemeGroups = {};
@@ -1787,9 +1924,12 @@
         const sortedServices = Object.entries(sc.allServicesMap).sort((a, b) => b[1] - a[1]);
         const totalSvcActions = Object.values(sc.allServicesMap).reduce((acc, c) => acc + c, 0);
 
+        let schemeMoney = 0;
         const servicesBadges = sortedServices.map(([sName, sCount]) => {
-          const svcPct = totalSvcActions > 0 ? ((sCount / totalSvcActions) * 100).toFixed(0) : 0;
-          return `<span style="display:inline-block; background:#f1f5f9; padding:2px 5px; border-radius:4px; margin:1px 2px; font-size:10.5px; border:1px solid #cbd5e1;">${escapeHtml(sName)}: <b>${sCount}</b> <small style="color:#64748b;">(${svcPct}%)</small></span>`;
+          const uPrice = getServicePriceRate(sName);
+          const sMoney = sCount * uPrice;
+          schemeMoney += sMoney;
+          return `<span style="display:inline-block; background:#f1f5f9; padding:2px 5px; border-radius:4px; margin:1px 2px; font-size:10px; border:1px solid #cbd5e1;">${escapeHtml(sName)} (${uPrice ? uPrice + '฿' : '-'}): <b>${sCount}</b> = <b style="color:#047857;">${sMoney.toLocaleString()}฿</b></span>`;
         }).join(" ");
 
         tableRowsHtml += `
@@ -1797,8 +1937,9 @@
             <td style="padding:6px 8px; font-weight:bold; color:#0f172a; font-size:11.5px;">${idx + 1}. ${escapeHtml(sc.name)}</td>
             <td style="padding:6px 8px; text-align:center; font-weight:bold; color:#15803d; font-size:11.5px;">${sc.apts.length} <small style="color:#64748b;">(${scPct}%)</small></td>
             <td style="padding:6px 8px; text-align:center; font-weight:bold; color:#0369a1; font-size:11.5px;">${sc.patients.size}</td>
-            <td style="padding:6px 8px; font-size:11px;">${servicesBadges}</td>
-            <td style="padding:6px 8px; text-align:center; font-size:10.5px; font-weight:bold;">
+            <td style="padding:6px 8px; font-size:10.5px;">${servicesBadges}</td>
+            <td style="padding:6px 8px; text-align:right; font-weight:800; color:#15803d; font-size:11.5px;">${schemeMoney.toLocaleString()} ฿</td>
+            <td style="padding:6px 8px; text-align:center; font-size:10px; font-weight:bold;">
               <span style="color:#15803d;">กลับ: ${sc.completedCount}</span>
               ${sc.transferredCount > 0 ? `<br><span style="color:#b91c1c;">ส่งต่อ: ${sc.transferredCount}</span>` : ''}
             </td>
@@ -1865,13 +2006,13 @@
             }
             .kpi-grid {
               display: grid;
-              grid-template-columns: repeat(4, 1fr);
-              gap: 8px;
+              grid-template-columns: repeat(5, 1fr);
+              gap: 6px;
               margin-bottom: 12px;
             }
             .kpi-card {
               border-radius: 8px;
-              padding: 8px 10px;
+              padding: 6px 8px;
               text-align: center;
               border: 1px solid #cbd5e1;
             }
@@ -1923,24 +2064,29 @@
             <!-- KPI Metric Summary Box -->
             <div class="kpi-grid">
               <div class="kpi-card" style="background:#ecfdf5; border-color:#86efac;">
-                <div style="font-size:10px; font-weight:700; color:#166534;">เคสสิ้นสุดบริการทั้งหมด</div>
-                <div style="font-size:17px; font-weight:800; color:#14532d; margin:2px 0;">${totalCases.toLocaleString()} <small style="font-size:10px; font-weight:normal;">เคส</small></div>
-                <div style="font-size:9.5px; color:#15803d;">กลับบ้าน ${totalCompleted} | ส่งต่อ ${totalTransferred}</div>
+                <div style="font-size:9.5px; font-weight:700; color:#166534;">เคสทั้งหมด</div>
+                <div style="font-size:16px; font-weight:800; color:#14532d; margin:1px 0;">${totalCases.toLocaleString()} <small style="font-size:9px; font-weight:normal;">เคส</small></div>
+                <div style="font-size:9px; color:#15803d;">สิ้นสุดบริการ</div>
               </div>
               <div class="kpi-card" style="background:#f0f9ff; border-color:#7dd3fc;">
-                <div style="font-size:10px; font-weight:700; color:#075985;">ผู้รับบริการ (คน ไม่ซ้ำ)</div>
-                <div style="font-size:17px; font-weight:800; color:#0c4a6e; margin:2px 0;">${uniqueHns.toLocaleString()} <small style="font-size:10px; font-weight:normal;">คน</small></div>
-                <div style="font-size:9.5px; color:#0369a1;">นับตาม HN/ชื่อคนไข้</div>
+                <div style="font-size:9.5px; font-weight:700; color:#075985;">คนไข้ (ไม่ซ้ำ)</div>
+                <div style="font-size:16px; font-weight:800; color:#0c4a6e; margin:1px 0;">${uniqueHns.toLocaleString()} <small style="font-size:9px; font-weight:normal;">คน</small></div>
+                <div style="font-size:9px; color:#0369a1;">นับตาม HN/ชื่อ</div>
+              </div>
+              <div class="kpi-card" style="background:#fef3c7; border-color:#fde047;">
+                <div style="font-size:9.5px; font-weight:700; color:#854d0e;">💰 ยอดเงินรวม</div>
+                <div style="font-size:16px; font-weight:800; color:#713f12; margin:1px 0;">${grandTotalMoney.toLocaleString()} <small style="font-size:9px; font-weight:normal;">บ.</small></div>
+                <div style="font-size:9px; color:#a16207;">ตามอัตราหัตถการ</div>
               </div>
               <div class="kpi-card" style="background:#f0fdfa; border-color:#99f6e4;">
-                <div style="font-size:10px; font-weight:700; color:#115e59;">🟢 กลับบ้านสำเร็จ</div>
-                <div style="font-size:17px; font-weight:800; color:#134e4a; margin:2px 0;">${totalCompleted.toLocaleString()} <small style="font-size:10px; font-weight:normal;">เคส</small></div>
-                <div style="font-size:9.5px; color:#0f766e;">${totalCases > 0 ? ((totalCompleted / totalCases) * 100).toFixed(1) : 0}% ของเคสสิ้นสุด</div>
+                <div style="font-size:9.5px; font-weight:700; color:#115e59;">🟢 กลับบ้าน</div>
+                <div style="font-size:16px; font-weight:800; color:#134e4a; margin:1px 0;">${totalCompleted.toLocaleString()} <small style="font-size:9px; font-weight:normal;">เคส</small></div>
+                <div style="font-size:9px; color:#0f766e;">${totalCases > 0 ? ((totalCompleted / totalCases) * 100).toFixed(0) : 0}%</div>
               </div>
               <div class="kpi-card" style="background:#fff1f2; border-color:#fecdd3;">
-                <div style="font-size:10px; font-weight:700; color:#9f1239;">🔴 ส่งต่อแพทย์</div>
-                <div style="font-size:17px; font-weight:800; color:#881337; margin:2px 0;">${totalTransferred.toLocaleString()} <small style="font-size:10px; font-weight:normal;">เคส</small></div>
-                <div style="font-size:9.5px; color:#be123c;">${totalCases > 0 ? ((totalTransferred / totalCases) * 100).toFixed(1) : 0}% ของเคสสิ้นสุด</div>
+                <div style="font-size:9.5px; font-weight:700; color:#9f1239;">🔴 ส่งต่อแพทย์</div>
+                <div style="font-size:16px; font-weight:800; color:#881337; margin:1px 0;">${totalTransferred.toLocaleString()} <small style="font-size:9px; font-weight:normal;">เคส</small></div>
+                <div style="font-size:9px; color:#be123c;">${totalCases > 0 ? ((totalTransferred / totalCases) * 100).toFixed(0) : 0}%</div>
               </div>
             </div>
 
@@ -1948,16 +2094,25 @@
             <table class="table-pdf">
               <thead>
                 <tr>
-                  <th style="width:24%;">สิทธิการรักษา</th>
-                  <th style="width:14%; text-align:center;">จำนวนเคส (%)</th>
-                  <th style="width:12%; text-align:center;">คนไข้ (คน)</th>
-                  <th style="width:38%;">หัตถการ / บริการที่ได้รับ</th>
-                  <th style="width:12%; text-align:center;">ผลการดูแล</th>
+                  <th style="width:20%;">สิทธิการรักษา</th>
+                  <th style="width:11%; text-align:center;">เคส (%)</th>
+                  <th style="width:10%; text-align:center;">คนไข้</th>
+                  <th style="width:37%;">หัตถการ / อัตรา / คำนวณเงิน</th>
+                  <th style="width:12%; text-align:right;">รวมเงิน</th>
+                  <th style="width:10%; text-align:center;">ผลการดูแล</th>
                 </tr>
               </thead>
               <tbody>
                 ${tableRowsHtml}
               </tbody>
+              <tfoot>
+                <tr style="background:#ecfdf5; font-weight:800; border-top:2px solid #0f766e;">
+                  <td colspan="3" style="padding:6px 8px; text-align:right; color:#065f46; font-size:11px;">รวมทั้งสิ้นทุกสิทธิ:</td>
+                  <td style="padding:6px 8px; font-size:10.5px; color:#065f46;">${totalCases} เคส (${uniqueHns} คน)</td>
+                  <td style="padding:6px 8px; text-align:right; color:#065f46; font-size:11.5px; font-weight:900;">${grandTotalMoney.toLocaleString()} ฿</td>
+                  <td style="padding:6px 8px; text-align:center; color:#065f46; font-size:10px;">กลับ ${totalCompleted} | ส่ง ${totalTransferred}</td>
+                </tr>
+              </tfoot>
             </table>
 
             <!-- Sign-Off Section -->

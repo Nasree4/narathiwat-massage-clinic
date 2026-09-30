@@ -573,8 +573,8 @@
         title: "จองนวด (ตรวจรักษา/นวดบำบัด/ประคบสมุนไพร)",
         icon: "💆‍♂️",
         desc: "ตรวจรักษา นวดบำบัดและประคบสมุนไพร บรรเทาอาการปวดกล้ามเนื้อและข้อต่อ",
-        price: 200,
-        priceLabel: "200 บาท",
+        price: 250,
+        priceLabel: "250 บาท",
         durationSlots: 1,
         durationMin: 60,
         target: "all",
@@ -587,8 +587,8 @@
         title: "จองฟื้นฟูหลังคลอด (บริบาลมารดาหลังคลอด/ทับหม้อเกลือ)",
         icon: "🤱",
         desc: "บริบาลมารดาหลังคลอด ทับหม้อเกลือ อบสมุนไพร ประคบ ขับน้ำคาวปลา ฟื้นฟูสุขภาพ",
-        price: 0,
-        priceLabel: "บริการเฉพาะทาง",
+        price: 670,
+        priceLabel: "670 บาท",
         durationSlots: 1,
         durationMin: 60,
         target: "all",
@@ -663,7 +663,7 @@
     let extraServicesList = [
       { id: "svc-body", name: "นวดตัว", tag: "[ตัว]", price: 300, asstPercent: 60, hospitalPercent: 40, share60: 180, target: "all", twoSlots: true, active: true, color: "bg-emerald-100 text-emerald-800 border border-emerald-200" },
       { id: "svc-foot", name: "นวดเท้า", tag: "[เท้า]", price: 200, asstPercent: 60, hospitalPercent: 40, share60: 120, target: "all", twoSlots: true, active: true, color: "bg-blue-100 text-blue-800 border border-blue-200" },
-      { id: "svc-herbal", name: "อบสมุนไพร", tag: "[อบ]", price: 150, asstPercent: 60, hospitalPercent: 40, share60: 90, target: "all", twoSlots: false, active: true, color: "bg-purple-100 text-purple-800 border border-purple-200" },
+      { id: "svc-herbal", name: "อบสมุนไพร", tag: "[อบ]", price: 120, asstPercent: 60, hospitalPercent: 40, share60: 72, target: "all", twoSlots: false, active: true, color: "bg-purple-100 text-purple-800 border border-purple-200" },
       { id: "svc-belly", name: "นวดท้อง", tag: "[ท้อง]", price: 100, asstPercent: 60, hospitalPercent: 40, share60: 60, target: "all", twoSlots: false, active: true, color: "bg-amber-100 text-amber-800 border border-amber-200" }
     ];
     try {
