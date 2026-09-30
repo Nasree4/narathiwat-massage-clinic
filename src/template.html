@@ -1649,6 +1649,42 @@
             </div>
           </div>
         </div>
+
+        <!-- ==================== SECTION 5: [ADMIN ONLY] Medical Scheme & Treatment Summary ==================== -->
+        <div id="stats-admin-scheme-section" class="hidden bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-emerald-200 dark:border-emerald-800 p-4 sm:p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div class="space-y-0.5">
+              <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center justify-center p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
+                  <i data-lucide="shield-check" class="w-4 h-4"></i>
+                </span>
+                <h3 class="font-bold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  สรุปยอดผู้รับบริการแยกตามสิทธิการรักษา & หัตถการ
+                  <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">🔒 เฉพาะ Admin</span>
+                </h3>
+              </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                นับเฉพาะเคสที่สิ้นสุดการรักษา (สถานะ <span class="font-bold text-emerald-600 dark:text-emerald-400">🟢 กลับบ้าน</span> หรือ <span class="font-bold text-rose-600 dark:text-rose-400">🔴 ส่งต่อ</span>) ตามช่วงเวลาและผู้ช่วยฯ ที่เลือก
+              </p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button type="button" onclick="exportSchemeSummaryToExcel()" class="btn-secondary py-1.5 px-3 text-xs flex items-center space-x-1.5 border border-emerald-300 text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded-lg font-bold shadow-2xs transition cursor-pointer">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span>ส่งออก Excel สรุปสิทธิ</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Highlight Summary Overview Cards -->
+          <div id="stats-admin-scheme-overview" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <!-- Rendered by JS -->
+          </div>
+
+          <!-- Scheme Breakdown Cards -->
+          <div id="stats-admin-scheme-list" class="space-y-3">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
       </div>
     </section>
 

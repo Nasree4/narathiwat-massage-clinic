@@ -1649,6 +1649,42 @@
             </div>
           </div>
         </div>
+
+        <!-- ==================== SECTION 5: [ADMIN ONLY] Medical Scheme & Treatment Summary ==================== -->
+        <div id="stats-admin-scheme-section" class="hidden bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-emerald-200 dark:border-emerald-800 p-4 sm:p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div class="space-y-0.5">
+              <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center justify-center p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
+                  <i data-lucide="shield-check" class="w-4 h-4"></i>
+                </span>
+                <h3 class="font-bold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  สรุปยอดผู้รับบริการแยกตามสิทธิการรักษา & หัตถการ
+                  <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">🔒 เฉพาะ Admin</span>
+                </h3>
+              </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                นับเฉพาะเคสที่สิ้นสุดการรักษา (สถานะ <span class="font-bold text-emerald-600 dark:text-emerald-400">🟢 กลับบ้าน</span> หรือ <span class="font-bold text-rose-600 dark:text-rose-400">🔴 ส่งต่อ</span>) ตามช่วงเวลาและผู้ช่วยฯ ที่เลือก
+              </p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button type="button" onclick="exportSchemeSummaryToExcel()" class="btn-secondary py-1.5 px-3 text-xs flex items-center space-x-1.5 border border-emerald-300 text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded-lg font-bold shadow-2xs transition cursor-pointer">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span>ส่งออก Excel สรุปสิทธิ</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Highlight Summary Overview Cards -->
+          <div id="stats-admin-scheme-overview" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <!-- Rendered by JS -->
+          </div>
+
+          <!-- Scheme Breakdown Cards -->
+          <div id="stats-admin-scheme-list" class="space-y-3">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
       </div>
     </section>
 
@@ -6059,8 +6095,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.5.12";
-    const APP_BUILD_DATE = "29 กันยายน 2569";
+    const APP_VERSION = "v5.5.13";
+    const APP_BUILD_DATE = "30 กันยายน 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
     const IN_HOURS_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
@@ -19269,7 +19305,419 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       if (avgStayEl) avgStayEl.textContent = formatElapsedDuration(analytics.avgTotalStayMin);
       if (countTimingEl) countTimingEl.textContent = `${analytics.count} เคส`;
 
+      // 6. Admin Only: Medical Scheme & Treatment Breakdown Summary
+      renderAdminSchemeBreakdown(filtered);
+
       lucide.createIcons();
+    }
+
+    function formatSchemeDisplayName(scheme) {
+      const s = String(scheme || "").trim();
+      if (!s || s === "บัตรทอง" || s === "บัตรทอง (UC)" || s === "UC") return "บัตรทอง (UC / 30 บาท)";
+      if (s === "ประกันสังคม" || s === "SSS") return "ประกันสังคม (SSS)";
+      if (s === "ข้าราชการ" || s === "เบิกตรง" || s === "ข้าราชการ / เบิกตรง") return "ข้าราชการ / เบิกตรง";
+      if (s === "รัฐวิสาหกิจ") return "รัฐวิสาหกิจ";
+      if (s === "จ่ายเงินเอง" || s === "ชำระเงินเอง" || s === "Self-Pay") return "จ่ายเงินเอง (Self-Pay)";
+      return s;
+    }
+
+    function renderAdminSchemeBreakdown(filteredApts) {
+      const container = document.getElementById("stats-admin-scheme-section");
+      if (!container) return;
+
+      // Access control: Admin only
+      const isAdm = (typeof currentUser !== "undefined" && currentUser) && (currentUser.role === 'admin' || currentUser.isAdmin === true);
+      if (!isAdm) {
+        container.classList.add("hidden");
+        return;
+      }
+      container.classList.remove("hidden");
+
+      const overviewEl = document.getElementById("stats-admin-scheme-overview");
+      const listEl = document.getElementById("stats-admin-scheme-list");
+      if (!overviewEl || !listEl) return;
+
+      // Filter ONLY status "🟢 กลับบ้าน" or "🔴 ส่งต่อ"
+      const targetApts = (filteredApts || []).filter(a => {
+        const rawSt = String(a.status || "").trim();
+        const cleanSt = rawSt.replace(/[🔵🟣🟡⚪🔴🟢]/g, "").trim();
+        return cleanSt === "กลับบ้าน" || cleanSt === "ส่งต่อ" || rawSt.includes("กลับบ้าน") || rawSt.includes("ส่งต่อ");
+      });
+
+      if (targetApts.length === 0) {
+        overviewEl.innerHTML = "";
+        listEl.innerHTML = `<div class="p-6 text-center text-slate-400 dark:text-slate-500 text-xs font-semibold bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">ไม่มีข้อมูลเคสสถานะ "กลับบ้าน" หรือ "ส่งต่อ" ในช่วงเวลาและเงื่อนไขที่เลือก</div>`;
+        return;
+      }
+
+      // Overall totals
+      const totalCompleted = targetApts.filter(a => {
+        const rawSt = String(a.status || "").trim();
+        return rawSt.includes("กลับบ้าน") || rawSt.replace(/[🔵🟣🟡⚪🔴🟢]/g, "").trim() === "กลับบ้าน";
+      }).length;
+      const totalTransferred = targetApts.filter(a => {
+        const rawSt = String(a.status || "").trim();
+        return rawSt.includes("ส่งต่อ") || rawSt.replace(/[🔵🟣🟡⚪🔴🟢]/g, "").trim() === "ส่งต่อ";
+      }).length;
+      const uniqueHns = new Set(targetApts.map(a => (a.hn || a.citizenId || a.name || "").trim()).filter(Boolean)).size;
+      const totalCases = targetApts.length;
+
+      overviewEl.innerHTML = `
+        <div class="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60">
+          <div class="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">เคสสิ้นสุดบริการทั้งหมด</div>
+          <div class="text-xl font-black text-emerald-950 dark:text-emerald-100 mt-0.5">${totalCases.toLocaleString()} <span class="text-xs font-normal">เคส</span></div>
+          <div class="text-[10px] text-emerald-700 dark:text-emerald-400 mt-0.5">กลับบ้าน ${totalCompleted} | ส่งต่อ ${totalTransferred}</div>
+        </div>
+        <div class="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60">
+          <div class="text-[11px] font-bold text-blue-800 dark:text-blue-300">ผู้รับบริการ (คน ไม่ซ้ำ)</div>
+          <div class="text-xl font-black text-blue-950 dark:text-blue-100 mt-0.5">${uniqueHns.toLocaleString()} <span class="text-xs font-normal">คน</span></div>
+          <div class="text-[10px] text-blue-700 dark:text-blue-400 mt-0.5">นับตาม HN / ชื่อคนไข้</div>
+        </div>
+        <div class="p-3 rounded-xl bg-teal-50/70 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/60">
+          <div class="text-[11px] font-bold text-teal-800 dark:text-teal-300">🟢 กลับบ้านสำเร็จ</div>
+          <div class="text-xl font-black text-teal-950 dark:text-teal-100 mt-0.5">${totalCompleted.toLocaleString()} <span class="text-xs font-normal">เคส</span></div>
+          <div class="text-[10px] text-teal-700 dark:text-teal-400 mt-0.5">${totalCases > 0 ? ((totalCompleted / totalCases) * 100).toFixed(1) : 0}% ของเคสสิ้นสุด</div>
+        </div>
+        <div class="p-3 rounded-xl bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60">
+          <div class="text-[11px] font-bold text-rose-800 dark:text-rose-300">🔴 ส่งต่อแพทย์</div>
+          <div class="text-xl font-black text-rose-950 dark:text-rose-100 mt-0.5">${totalTransferred.toLocaleString()} <span class="text-xs font-normal">เคส</span></div>
+          <div class="text-[10px] text-rose-700 dark:text-rose-400 mt-0.5">${totalCases > 0 ? ((totalTransferred / totalCases) * 100).toFixed(1) : 0}% ของเคสสิ้นสุด</div>
+        </div>
+      `;
+
+      // Group by Medical Scheme
+      const schemeGroups = {};
+      targetApts.forEach(apt => {
+        const rawScheme = (apt.medicalScheme || "บัตรทอง").trim() || "บัตรทอง";
+        const schemeLabel = formatSchemeDisplayName(rawScheme);
+
+        if (!schemeGroups[schemeLabel]) {
+          schemeGroups[schemeLabel] = {
+            name: schemeLabel,
+            apts: [],
+            completedCount: 0,
+            transferredCount: 0,
+            patients: new Set(),
+            mainServicesMap: {},
+            extraServicesMap: {},
+            allServicesMap: {}
+          };
+        }
+        const group = schemeGroups[schemeLabel];
+        group.apts.push(apt);
+
+        const rawSt = String(apt.status || "").trim();
+        if (rawSt.includes("ส่งต่อ") || rawSt.replace(/[🔵🟣🟡⚪🔴🟢]/g, "").trim() === "ส่งต่อ") {
+          group.transferredCount++;
+        } else {
+          group.completedCount++;
+        }
+
+        const pId = (apt.hn || apt.citizenId || apt.name || "").trim();
+        if (pId) group.patients.add(pId);
+
+        // Main Service
+        const ms = (apt.mainService || "ไม่ระบุหัตถการหลัก").trim();
+        group.mainServicesMap[ms] = (group.mainServicesMap[ms] || 0) + 1;
+        group.allServicesMap[ms] = (group.allServicesMap[ms] || 0) + 1;
+
+        // Extra Services
+        let extraList = [];
+        if (Array.isArray(apt.extraServices)) {
+          extraList = apt.extraServices;
+        } else if (typeof apt.extraServices === "string" && apt.extraServices.trim()) {
+          try {
+            const parsed = JSON.parse(apt.extraServices);
+            if (Array.isArray(parsed)) extraList = parsed;
+            else extraList = apt.extraServices.split(",").map(x => x.trim());
+          } catch (e) {
+            extraList = apt.extraServices.split(",").map(x => x.trim());
+          }
+        }
+
+        extraList.forEach(ex => {
+          const exTrim = String(ex || "").trim();
+          if (exTrim) {
+            group.extraServicesMap[exTrim] = (group.extraServicesMap[exTrim] || 0) + 1;
+            group.allServicesMap[exTrim] = (group.allServicesMap[exTrim] || 0) + 1;
+          }
+        });
+      });
+
+      // Sort schemes by total cases descending
+      const sortedSchemes = Object.values(schemeGroups).sort((a, b) => b.apts.length - a.apts.length);
+
+      function getSchemeBadgeInfo(name) {
+        if (name.includes("บัตรทอง") || name.includes("UC") || name.includes("30")) {
+          return { bg: "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800", icon: "💳" };
+        } else if (name.includes("ประกันสังคม") || name.includes("SSS")) {
+          return { bg: "bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-800", icon: "🛡️" };
+        } else if (name.includes("ข้าราชการ") || name.includes("เบิกตรง")) {
+          return { bg: "bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-800", icon: "🏛️" };
+        } else if (name.includes("รัฐวิสาหกิจ")) {
+          return { bg: "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800", icon: "🏢" };
+        } else if (name.includes("จ่ายเงินเอง") || name.includes("เงินสด") || name.includes("Self-Pay")) {
+          return { bg: "bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border-teal-300 dark:border-teal-800", icon: "💵" };
+        }
+        return { bg: "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700", icon: "📋" };
+      }
+
+      let html = "";
+      sortedSchemes.forEach(sc => {
+        const badge = getSchemeBadgeInfo(sc.name);
+        const pctOfAll = totalCases > 0 ? ((sc.apts.length / totalCases) * 100).toFixed(1) : 0;
+        const sortedServices = Object.entries(sc.allServicesMap).sort((a, b) => b[1] - a[1]);
+        const totalServiceActions = Object.values(sc.allServicesMap).reduce((acc, c) => acc + c, 0);
+
+        html += `
+          <div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900/90 shadow-2xs hover:border-emerald-300 dark:hover:border-emerald-700 transition">
+            <!-- Scheme Header Bar -->
+            <div class="p-3.5 bg-slate-50/80 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div class="flex items-center space-x-2.5 flex-wrap">
+                <span class="text-base">${badge.icon}</span>
+                <span class="font-extrabold text-slate-800 dark:text-slate-100 text-sm sm:text-base">${escapeHtml(sc.name)}</span>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold border ${badge.bg}">
+                  ${sc.apts.length} เคส (${pctOfAll}%)
+                </span>
+                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  | ผู้รับบริการ ${sc.patients.size} คน
+                </span>
+              </div>
+              <div class="flex items-center space-x-2 text-xs font-semibold">
+                <span class="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                  🟢 กลับบ้าน ${sc.completedCount}
+                </span>
+                ${sc.transferredCount > 0 ? `
+                <span class="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300">
+                  🔴 ส่งต่อ ${sc.transferredCount}
+                </span>` : ''}
+              </div>
+            </div>
+
+            <!-- Scheme Breakdown Table / Details -->
+            <div class="p-3.5 space-y-3">
+              <div class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span>🩺 รายการหัตถการที่ให้บริการในสิทธินี้ (${sortedServices.length} รายการ):</span>
+                <span class="text-[11px] text-slate-400 font-normal">รวม ${totalServiceActions.toLocaleString()} ครั้งการทำหัตถการ</span>
+              </div>
+
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr class="border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 text-slate-600 dark:text-slate-400 font-semibold">
+                      <th class="py-2 px-3">ชื่อหัตถการ / บริการ</th>
+                      <th class="py-2 px-3 text-center w-28">ประเภท</th>
+                      <th class="py-2 px-3 text-right w-28">จำนวนครั้ง</th>
+                      <th class="py-2 px-3 text-right w-28">สัดส่วนในสิทธิ</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+        `;
+
+        sortedServices.forEach(([svcName, count]) => {
+          const isMain = sc.mainServicesMap[svcName] > 0;
+          const isExtra = sc.extraServicesMap[svcName] > 0;
+          let typeLabel = "หัตถการหลัก";
+          let typeClass = "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300";
+          if (isMain && isExtra) {
+            typeLabel = "หลัก + เสริม";
+            typeClass = "bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300";
+          } else if (isExtra && !isMain) {
+            typeLabel = "หัตถการเสริม";
+            typeClass = "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300";
+          }
+
+          const svcPct = totalServiceActions > 0 ? ((count / totalServiceActions) * 100).toFixed(1) : 0;
+
+          html += `
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+              <td class="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200">
+                ${escapeHtml(svcName)}
+              </td>
+              <td class="py-2 px-3 text-center">
+                <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold ${typeClass}">
+                  ${typeLabel}
+                </span>
+              </td>
+              <td class="py-2 px-3 text-right font-black text-slate-900 dark:text-slate-100">
+                ${count.toLocaleString()} <span class="text-[10px] font-normal text-slate-400">ครั้ง</span>
+              </td>
+              <td class="py-2 px-3 text-right font-bold text-emerald-700 dark:text-emerald-400">
+                ${svcPct}%
+              </td>
+            </tr>
+          `;
+        });
+
+        html += `
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      listEl.innerHTML = html;
+    }
+
+    function exportSchemeSummaryToExcel() {
+      const isAdm = (typeof currentUser !== "undefined" && currentUser) && (currentUser.role === 'admin' || currentUser.isAdmin === true);
+      if (!isAdm) {
+        alert("เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถส่งออกรายงานนี้ได้");
+        return;
+      }
+
+      const loggedInAsst = getLoggedInAssistant();
+      const asstSelect = document.getElementById("stats-assistant-filter");
+      let asstFilter = "all";
+      if (loggedInAsst) asstFilter = loggedInAsst.id;
+      else if (asstSelect) asstFilter = asstSelect.value || "all";
+
+      const mode = document.getElementById("stats-mode-filter")?.value || "daily";
+      const dateVal = document.getElementById("stats-date-input")?.value || todayStr;
+      const monthVal = document.getElementById("stats-month-input")?.value || todayStr.substring(0, 7);
+      const asstObj = assistants.find(a => a.id === asstFilter);
+
+      let filtered = (appointments || []).filter(a => {
+        if (asstFilter !== "all") {
+          const targetAsst = loggedInAsst || asstObj;
+          let isMatch = false;
+          if (targetAsst) {
+            const aId = a.assistantId;
+            const aNick = (a.assistantNick || "").trim();
+            const tId = targetAsst.id;
+            const tNick = (targetAsst.nickname || "").trim();
+            const tName = (targetAsst.name || "").trim();
+            isMatch = (aId === tId) || (tNick && aNick === tNick) || (tName && aNick === tName);
+          } else {
+            isMatch = (a.assistantId === asstFilter);
+          }
+          if (!isMatch) return false;
+        }
+        if (mode === "daily") {
+          if (dateVal && a.bookDate !== dateVal) return false;
+        } else {
+          if (monthVal && !a.bookDate.startsWith(monthVal)) return false;
+        }
+        return true;
+      });
+
+      const targetApts = filtered.filter(a => {
+        const rawSt = String(a.status || "").trim();
+        const cleanSt = rawSt.replace(/[🔵🟣🟡⚪🔴🟢]/g, "").trim();
+        return cleanSt === "กลับบ้าน" || cleanSt === "ส่งต่อ" || rawSt.includes("กลับบ้าน") || rawSt.includes("ส่งต่อ");
+      });
+
+      if (targetApts.length === 0) {
+        alert("ไม่พบข้อมูลเคสที่สถานะเป็น 'กลับบ้าน' หรือ 'ส่งต่อ' ตามเงื่อนไขที่เลือก");
+        return;
+      }
+
+      const schemeGroups = {};
+      targetApts.forEach(apt => {
+        const rawScheme = (apt.medicalScheme || "บัตรทอง").trim() || "บัตรทอง";
+        const schemeLabel = formatSchemeDisplayName(rawScheme);
+
+        if (!schemeGroups[schemeLabel]) {
+          schemeGroups[schemeLabel] = {
+            name: schemeLabel,
+            apts: [],
+            completedCount: 0,
+            transferredCount: 0,
+            patients: new Set(),
+            allServicesMap: {},
+            mainServicesMap: {},
+            extraServicesMap: {}
+          };
+        }
+        const group = schemeGroups[schemeLabel];
+        group.apts.push(apt);
+
+        const rawSt = String(apt.status || "").trim();
+        if (rawSt.includes("ส่งต่อ") || rawSt.replace(/[🔵🟣🟡⚪🔴🟢]/g, "").trim() === "ส่งต่อ") {
+          group.transferredCount++;
+        } else {
+          group.completedCount++;
+        }
+
+        const pId = (apt.hn || apt.citizenId || apt.name || "").trim();
+        if (pId) group.patients.add(pId);
+
+        const ms = (apt.mainService || "ไม่ระบุหัตถการหลัก").trim();
+        group.mainServicesMap[ms] = (group.mainServicesMap[ms] || 0) + 1;
+        group.allServicesMap[ms] = (group.allServicesMap[ms] || 0) + 1;
+
+        let extraList = [];
+        if (Array.isArray(apt.extraServices)) {
+          extraList = apt.extraServices;
+        } else if (typeof apt.extraServices === "string" && apt.extraServices.trim()) {
+          try {
+            const parsed = JSON.parse(apt.extraServices);
+            if (Array.isArray(parsed)) extraList = parsed;
+            else extraList = apt.extraServices.split(",").map(x => x.trim());
+          } catch (e) {
+            extraList = apt.extraServices.split(",").map(x => x.trim());
+          }
+        }
+
+        extraList.forEach(ex => {
+          const exTrim = String(ex || "").trim();
+          if (exTrim) {
+            group.extraServicesMap[exTrim] = (group.extraServicesMap[exTrim] || 0) + 1;
+            group.allServicesMap[exTrim] = (group.allServicesMap[exTrim] || 0) + 1;
+          }
+        });
+      });
+
+      const headers = [
+        "สิทธิการรักษา",
+        "รายการหัตถการ / บริการ",
+        "ประเภทหัตถการ",
+        "จำนวนครั้งที่ทำ",
+        "สัดส่วนในสิทธิ (%)",
+        "จำนวนเคสในสิทธิทั้งหมด",
+        "ผู้รับบริการไม่ซ้ำ (คน)",
+        "สถานะ: กลับบ้าน (เคส)",
+        "สถานะ: ส่งต่อ (เคส)"
+      ];
+
+      const rows = [];
+      const sortedSchemes = Object.values(schemeGroups).sort((a, b) => b.apts.length - a.apts.length);
+
+      sortedSchemes.forEach(sc => {
+        const totalServiceActions = Object.values(sc.allServicesMap).reduce((acc, c) => acc + c, 0);
+        const sortedServices = Object.entries(sc.allServicesMap).sort((a, b) => b[1] - a[1]);
+
+        sortedServices.forEach(([svcName, count]) => {
+          const isMain = sc.mainServicesMap[svcName] > 0;
+          const isExtra = sc.extraServicesMap[svcName] > 0;
+          let typeLabel = "หัตถการหลัก";
+          if (isMain && isExtra) typeLabel = "หลัก + เสริม";
+          else if (isExtra && !isMain) typeLabel = "หัตถการเสริม";
+
+          const svcPct = totalServiceActions > 0 ? ((count / totalServiceActions) * 100).toFixed(1) + "%" : "0%";
+
+          rows.push([
+            sc.name,
+            svcName,
+            typeLabel,
+            count,
+            svcPct,
+            sc.apts.length,
+            sc.patients.size,
+            sc.completedCount,
+            sc.transferredCount
+          ]);
+        });
+      });
+
+      const periodLabel = mode === "daily" ? dateVal : monthVal;
+      if (typeof exportDataToExcel === "function") {
+        exportDataToExcel(`สรุปยอดแยกสิทธิและหัตถการ_${periodLabel}`, "สรุปยอดแยกสิทธิ", headers, rows);
+      } else {
+        alert("ไม่พบฟังก์ชันส่งออก Excel");
+      }
     }
 
     function toggleStatsMode() {
