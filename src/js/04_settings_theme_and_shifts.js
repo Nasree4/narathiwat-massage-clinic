@@ -740,24 +740,24 @@
 
     function getDefaultSlotConfig(slot, dateStr) {
       if (SATURDAY_SLOTS.includes(slot)) {
-        return { max: 10, enabled: true };
+        return { max: 16, enabled: true };
       }
       if (dateStr) {
         const d = new Date(dateStr + "T00:00:00");
         if (d.getDay() === 6) {
-          return { max: 10, enabled: true };
+          return { max: 16, enabled: true };
         }
       }
 
       if (slot === "12:00") {
-        return { max: 5, enabled: true };
+        return { max: 10, enabled: true };
       }
 
       if (["16:00", "17:00", "18:00", "19:00"].includes(slot)) {
-        return { max: 6, enabled: true };
+        return { max: 16, enabled: true };
       }
 
-      return { max: 20, enabled: true };
+      return { max: 25, enabled: true };
     }
 
     function getSlotConfigForDate(dateStr, slot) {

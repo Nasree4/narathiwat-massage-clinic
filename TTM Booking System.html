@@ -771,9 +771,9 @@
           <h1 class="text-sm sm:text-base md:text-lg font-bold leading-tight tracking-wide flex items-center gap-1 sm:gap-1.5 flex-wrap">
             <span data-i18n="app_title">คลินิกการแพทย์แผนไทย</span>
             <span class="text-[10px] sm:text-[11px] font-normal px-2 py-0.5 bg-herbal-800/80 text-herbal-200 rounded-full border border-herbal-600 hidden sm:inline-block" data-i18n="service_status">เปิดบริการปกติ</span>
-            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.16 (คลิกเพื่อตรวจสอบการอัปเดต)">
+            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.17 (คลิกเพื่อตรวจสอบการอัปเดต)">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span id="app-header-version-tag">v5.5.16</span>
+              <span id="app-header-version-tag">v5.5.17</span>
             </button>
           </h1>
           <p class="text-[11px] sm:text-xs text-herbal-200 font-light" data-i18n="app_hospital">
@@ -1798,10 +1798,10 @@
               </div>
               <div class="flex flex-wrap items-center gap-1.5 pt-4 md:pt-0">
                 <span class="text-slate-600 text-xs font-semibold">เกณฑ์มาตรฐาน:</span>
-                <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold border border-emerald-200 text-[11px]">08-15 น.: 20 คิว</span>
-                <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold border border-blue-200 text-[11px]">12.00 น.: 5 คิว</span>
-                <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold border border-amber-200 text-[11px]">16-19 น.: 6 คิว</span>
-                <span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-bold border border-purple-200 text-[11px]">เสาร์: 10 คิว</span>
+                <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold border border-emerald-200 text-[11px]">08-15 น.: 25 คิว</span>
+                <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold border border-blue-200 text-[11px]">12.00 น.: 10 คิว</span>
+                <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold border border-amber-200 text-[11px]">16-19 น.: 16 คิว</span>
+                <span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-bold border border-purple-200 text-[11px]">เสาร์: 16 คิว</span>
               </div>
             </div>
             
@@ -2731,7 +2731,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="font-medium text-slate-700 dark:text-slate-300">คลินิกการแพทย์แผนไทย รพ.นราธิวาสราชนครินทร์</span>
         <span class="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
-        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.16</span>
+        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.17</span>
         <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">ล่าสุด</span>
       </div>
       <div class="flex items-center gap-2">
@@ -2969,10 +2969,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                   <span>เวอร์ชันระบบ (System Version)</span>
                   <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">Official</span>
                 </div>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">30 กันยายน 2569</span></p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">3 ตุลาคม 2569</span></p>
               </div>
             </div>
-            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.16</span>
+            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.17</span>
           </div>
 
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/70 text-xs">
@@ -2991,7 +2991,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       
       <!-- Modal Footer -->
       <div class="bg-slate-50 dark:bg-slate-800/80 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between flex-shrink-0">
-        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.16</span></span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.17</span></span>
         <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold transition" data-i18n="btn_close">
           ปิดหน้าต่าง
         </button>
@@ -6145,8 +6145,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.5.16";
-    const APP_BUILD_DATE = "30 กันยายน 2569";
+    const APP_VERSION = "v5.5.17";
+    const APP_BUILD_DATE = "3 ตุลาคม 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
     const IN_HOURS_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
@@ -8492,24 +8492,24 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
     function getDefaultSlotConfig(slot, dateStr) {
       if (SATURDAY_SLOTS.includes(slot)) {
-        return { max: 10, enabled: true };
+        return { max: 16, enabled: true };
       }
       if (dateStr) {
         const d = new Date(dateStr + "T00:00:00");
         if (d.getDay() === 6) {
-          return { max: 10, enabled: true };
+          return { max: 16, enabled: true };
         }
       }
 
       if (slot === "12:00") {
-        return { max: 5, enabled: true };
+        return { max: 10, enabled: true };
       }
 
       if (["16:00", "17:00", "18:00", "19:00"].includes(slot)) {
-        return { max: 6, enabled: true };
+        return { max: 16, enabled: true };
       }
 
-      return { max: 20, enabled: true };
+      return { max: 25, enabled: true };
     }
 
     function getSlotConfigForDate(dateStr, slot) {
@@ -20434,7 +20434,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         if (toggleEl) toggleEl.checked = true;
       });
 
-      showToast("รีเซ็ตค่าเริ่มต้น: 08-15 น. (20) / 12 น. (5) / 16-19 น. (6) / เสาร์ (10) แล้ว", "info");
+      showToast("รีเซ็ตค่าเริ่มต้น: 08-15 น. (25) / 12 น. (10) / 16-19 น. (16) / เสาร์ (16) แล้ว", "info");
     }
 
     function renderManageSlots(dateStr) {
@@ -20464,16 +20464,16 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         let cardBorderClass = 'border-slate-200 bg-slate-50';
 
         if (SATURDAY_SLOTS.includes(slot)) {
-          badgeHtml = '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-300">วันเสาร์ (10 คิว)</span>';
+          badgeHtml = '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-300">วันเสาร์ (16 คิว)</span>';
           cardBorderClass = 'border-purple-200 bg-purple-50/40';
         } else if (slot === "12:00") {
-          badgeHtml = '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300">รอบเที่ยง (5 คิว)</span>';
+          badgeHtml = '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300">รอบเที่ยง (10 คิว)</span>';
           cardBorderClass = 'border-blue-200 bg-blue-50/40';
         } else if (["16:00", "17:00", "18:00", "19:00"].includes(slot)) {
-          badgeHtml = '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">รอบเย็น/นอกเวลา (6 คิว)</span>';
+          badgeHtml = '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">รอบเย็น/นอกเวลา (16 คิว)</span>';
           cardBorderClass = 'border-amber-200 bg-amber-50/40';
         } else {
-          badgeHtml = '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">รอบปกติ (20 คิว)</span>';
+          badgeHtml = '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">รอบปกติ (25 คิว)</span>';
         }
 
         const card = document.createElement("div");

@@ -2205,7 +2205,7 @@
         if (toggleEl) toggleEl.checked = true;
       });
 
-      showToast("รีเซ็ตค่าเริ่มต้น: 08-15 น. (20) / 12 น. (5) / 16-19 น. (6) / เสาร์ (10) แล้ว", "info");
+      showToast("รีเซ็ตค่าเริ่มต้น: 08-15 น. (25) / 12 น. (10) / 16-19 น. (16) / เสาร์ (16) แล้ว", "info");
     }
 
     function renderManageSlots(dateStr) {
@@ -2235,16 +2235,16 @@
         let cardBorderClass = 'border-slate-200 bg-slate-50';
 
         if (SATURDAY_SLOTS.includes(slot)) {
-          badgeHtml = '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-300">วันเสาร์ (10 คิว)</span>';
+          badgeHtml = '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-300">วันเสาร์ (16 คิว)</span>';
           cardBorderClass = 'border-purple-200 bg-purple-50/40';
         } else if (slot === "12:00") {
-          badgeHtml = '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300">รอบเที่ยง (5 คิว)</span>';
+          badgeHtml = '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300">รอบเที่ยง (10 คิว)</span>';
           cardBorderClass = 'border-blue-200 bg-blue-50/40';
         } else if (["16:00", "17:00", "18:00", "19:00"].includes(slot)) {
-          badgeHtml = '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">รอบเย็น/นอกเวลา (6 คิว)</span>';
+          badgeHtml = '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">รอบเย็น/นอกเวลา (16 คิว)</span>';
           cardBorderClass = 'border-amber-200 bg-amber-50/40';
         } else {
-          badgeHtml = '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">รอบปกติ (20 คิว)</span>';
+          badgeHtml = '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">รอบปกติ (25 คิว)</span>';
         }
 
         const card = document.createElement("div");
