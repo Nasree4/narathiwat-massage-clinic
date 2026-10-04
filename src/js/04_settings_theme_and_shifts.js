@@ -466,19 +466,19 @@
       if (shiftType === 'official') {
         return {
           type: 'official',
-          label: '☀️ ในเวลา (08:00 - 16:00)',
+          label: '☀️ ในเวลา (08:00 - 15:00)',
           shortLabel: '☀️ ในเวลา',
           badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800',
-          slotsText: '9 รอบ (08:00 - 16:00)'
+          slotsText: '8 รอบ (08:00 - 15:00)'
         };
       }
       if (shiftType === 'ot') {
         return {
           type: 'ot',
-          label: '🌙 นอกเวลา / OT (17:00 - 19:00)',
+          label: '🌙 นอกเวลา / OT (16:00 - 19:00)',
           shortLabel: '🌙 นอกเวลา (OT)',
           badgeClass: 'bg-purple-50 text-purple-800 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800',
-          slotsText: '3 รอบ (17:00 - 19:00)'
+          slotsText: '4 รอบ (16:00 - 19:00)'
         };
       }
       if (shiftType === 'custom') {

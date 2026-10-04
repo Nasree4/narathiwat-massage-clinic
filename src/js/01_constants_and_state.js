@@ -7,12 +7,12 @@
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.5.18";
+    const APP_VERSION = "v5.5.19";
     const APP_BUILD_DATE = "4 ตุลาคม 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
-    const IN_HOURS_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
-    const OUT_OF_HOURS_SLOTS = ["17:00", "18:00", "19:00"];
+    const IN_HOURS_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00"];
+    const OUT_OF_HOURS_SLOTS = ["16:00", "17:00", "18:00", "19:00"];
     const ALL_WORKING_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"];
 
     const DEFAULT_USERS = [

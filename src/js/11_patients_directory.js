@@ -1317,38 +1317,62 @@
       return 0;
     }
 
+    function isSaturdayAppointment(apt) {
+      if (!apt) return false;
+      const bDate = apt.bookDate || apt.book_date || "";
+      if (bDate) {
+        const d = new Date(bDate + "T00:00:00");
+        if (!isNaN(d.getTime()) && d.getDay() === 6) return true;
+      }
+      const slot = String(apt.timeSlot || apt.time_slot || apt.slot || "").trim();
+      if (typeof SATURDAY_SLOTS !== "undefined" && Array.isArray(SATURDAY_SLOTS) && SATURDAY_SLOTS.includes(slot) && !["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"].includes(slot)) {
+        return true;
+      }
+      return false;
+    }
+
     function isAppointmentInHours(apt) {
       if (!apt) return false;
-      if (apt.shiftType === 'official' || apt.shift === 'official') return true;
+      if (isSaturdayAppointment(apt)) return false; // วันเสาร์จัดเป็นนอกเวลา
       if (apt.isOt === true || apt.shiftType === 'ot' || apt.shift === 'ot') return false;
+      if (apt.shiftType === 'official' || apt.shift === 'official') return true;
       const slot = String(apt.timeSlot || apt.time_slot || apt.slot || "").trim();
       if (!slot) return true; // Default fallback to regular daytime hours
+      
+      // In-Hours: 08:00 - 15:00
       if (typeof IN_HOURS_SLOTS !== "undefined" && IN_HOURS_SLOTS.includes(slot)) return true;
-      if (typeof SATURDAY_SLOTS !== "undefined" && SATURDAY_SLOTS.includes(slot)) return true;
+      if (["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00"].includes(slot)) return true;
       if (typeof OUT_OF_HOURS_SLOTS !== "undefined" && OUT_OF_HOURS_SLOTS.includes(slot)) return false;
+      if (["16:00", "17:00", "18:00", "19:00"].includes(slot)) return false;
+
       const parts = slot.split(":");
       if (parts.length >= 2) {
         const h = parseInt(parts[0], 10);
-        const m = parseInt(parts[1], 10);
-        if (h < 17 && !(h === 16 && m >= 30)) return true;
+        if (h >= 16) return false;
+        if (h >= 8 && h < 16) return true;
       }
       return true;
     }
 
     function isAppointmentOutOfHours(apt) {
       if (!apt) return false;
+      if (isSaturdayAppointment(apt)) return true; // วันเสาร์จัดเป็นนอกเวลา
       if (apt.isOt === true || apt.shiftType === 'ot' || apt.shift === 'ot') return true;
       if (apt.shiftType === 'official' || apt.shift === 'official') return false;
       const slot = String(apt.timeSlot || apt.time_slot || apt.slot || "").trim();
       if (!slot) return false;
+
+      // Out-of-Hours: 16:00 - 19:00
       if (typeof OUT_OF_HOURS_SLOTS !== "undefined" && OUT_OF_HOURS_SLOTS.includes(slot)) return true;
+      if (["16:00", "17:00", "18:00", "19:00"].includes(slot)) return true;
       if (typeof IN_HOURS_SLOTS !== "undefined" && IN_HOURS_SLOTS.includes(slot)) return false;
-      if (typeof SATURDAY_SLOTS !== "undefined" && SATURDAY_SLOTS.includes(slot)) return false;
+      if (["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00"].includes(slot)) return false;
+
       const parts = slot.split(":");
       if (parts.length >= 2) {
         const h = parseInt(parts[0], 10);
-        const m = parseInt(parts[1], 10);
-        if (h >= 17 || (h === 16 && m >= 30)) return true;
+        if (h >= 16) return true;
+        if (h >= 8 && h < 16) return false;
       }
       return false;
     }
@@ -1837,8 +1861,8 @@
       const shiftSelect = document.getElementById("stats-scheme-shift-filter");
       let shiftSuffix = "";
       if (shiftSelect) {
-        if (shiftSelect.value === "in_hours") shiftSuffix = "_ในเวลาราชการ";
-        else if (shiftSelect.value === "out_of_hours") shiftSuffix = "_นอกเวลาราชการOT";
+        if (shiftSelect.value === "in_hours") shiftSuffix = "_ในเวลา_08-15";
+        else if (shiftSelect.value === "out_of_hours") shiftSuffix = "_นอกเวลาOT_และเสาร์";
       }
 
       if (typeof exportDataToExcel === "function") {
@@ -1869,10 +1893,10 @@
       }
 
       const shiftSelect = document.getElementById("stats-scheme-shift-filter");
-      let shiftName = "ทุกช่วงเวลา (ในเวลา + OT)";
+      let shiftName = "ทุกช่วงเวลา (ในเวลา + OT & เสาร์)";
       if (shiftSelect) {
-        if (shiftSelect.value === "in_hours") shiftName = "ในเวลาราชการ (08:00 - 16:00 น.)";
-        else if (shiftSelect.value === "out_of_hours") shiftName = "นอกเวลาราชการ / OT (17:00 - 19:00 น.)";
+        if (shiftSelect.value === "in_hours") shiftName = "ในเวลาราชการ (08:00 - 15:00 น.)";
+        else if (shiftSelect.value === "out_of_hours") shiftName = "นอกเวลาราชการ / OT (16:00 - 19:00 น. & วันเสาร์)";
       }
 
       const startD = schemeStatsStartDate || todayStr;

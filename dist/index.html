@@ -771,9 +771,9 @@
           <h1 class="text-sm sm:text-base md:text-lg font-bold leading-tight tracking-wide flex items-center gap-1 sm:gap-1.5 flex-wrap">
             <span data-i18n="app_title">คลินิกการแพทย์แผนไทย</span>
             <span class="text-[10px] sm:text-[11px] font-normal px-2 py-0.5 bg-herbal-800/80 text-herbal-200 rounded-full border border-herbal-600 hidden sm:inline-block" data-i18n="service_status">เปิดบริการปกติ</span>
-            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.18 (คลิกเพื่อตรวจสอบการอัปเดต)">
+            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.19 (คลิกเพื่อตรวจสอบการอัปเดต)">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span id="app-header-version-tag">v5.5.18</span>
+              <span id="app-header-version-tag">v5.5.19</span>
             </button>
           </h1>
           <p class="text-[11px] sm:text-xs text-herbal-200 font-light" data-i18n="app_hospital">
@@ -1720,8 +1720,8 @@
                 <span class="text-slate-500 font-medium">ช่วงเวลา/เวร:</span>
                 <select id="stats-scheme-shift-filter" onchange="renderAdminSchemeBreakdown()" class="px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg outline-none font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 shadow-2xs cursor-pointer">
                   <option value="all">🕒 ทุกช่วงเวลา (ทั้งหมด)</option>
-                  <option value="in_hours">☀️ ในเวลาราชการ (08:00 - 16:00)</option>
-                  <option value="out_of_hours">🌙 นอกเวลาราชการ / OT (17:00 - 19:00)</option>
+                  <option value="in_hours">☀️ ในเวลาราชการ (08:00 - 15:00)</option>
+                  <option value="out_of_hours">🌙 นอกเวลาราชการ / OT (16:00 - 19:00 & เสาร์)</option>
                 </select>
               </div>
               <div class="flex items-center gap-1.5 sm:ml-auto">
@@ -1918,8 +1918,8 @@
                 <select id="asst-filter-status" onchange="renderManageShifts()" class="px-2.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-herbal-500 transition cursor-pointer">
                   <option value="all">ช่วงเวลา/สถานะเวร: ทั้งหมด</option>
                   <option value="active">🟢 เข้าเวรทั้งหมด (On Duty)</option>
-                  <option value="official">☀️ เวรในเวลา (08:00 - 16:00)</option>
-                  <option value="ot">🌙 เวรนอกเวลา / OT (17:00 - 19:00)</option>
+                  <option value="official">☀️ เวรในเวลา (08:00 - 15:00)</option>
+                  <option value="ot">🌙 เวรนอกเวลา / OT (16:00 - 19:00)</option>
                   <option value="full">⭐ เวรทั้งวัน (08:00 - 19:00)</option>
                   <option value="inactive">⚪ ลาเวร / พัก (Off Duty)</option>
                 </select>
@@ -1927,7 +1927,7 @@
                 <!-- Specific Slot Filter -->
                 <select id="asst-filter-slot" onchange="renderManageShifts()" class="px-2.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-herbal-500 transition cursor-pointer">
                   <option value="all">รอบเวลา: ทุกรอบ</option>
-                  <optgroup label="☀️ ในเวลาราชการ (08:00 - 16:00)">
+                  <optgroup label="☀️ ในเวลาราชการ (08:00 - 15:00)">
                     <option value="08:00">รอบ 08:00 น.</option>
                     <option value="09:00">รอบ 09:00 น.</option>
                     <option value="10:00">รอบ 10:00 น.</option>
@@ -1936,9 +1936,9 @@
                     <option value="13:00">รอบ 13:00 น.</option>
                     <option value="14:00">รอบ 14:00 น.</option>
                     <option value="15:00">รอบ 15:00 น.</option>
-                    <option value="16:00">รอบ 16:00 น.</option>
                   </optgroup>
-                  <optgroup label="🌙 นอกเวลาราชการ / OT (17:00 - 20:00)">
+                  <optgroup label="🌙 นอกเวลาราชการ / OT (16:00 - 19:00)">
+                    <option value="16:00">รอบ 16:00 น. (OT)</option>
                     <option value="17:00">รอบ 17:00 น. (OT)</option>
                     <option value="18:00">รอบ 18:00 น. (OT)</option>
                     <option value="19:00">รอบ 19:00 น. (OT)</option>
@@ -1992,10 +1992,10 @@
 
               <!-- Quick Bulk Action Buttons (In-Hours vs OT vs Full) -->
               <div class="flex flex-wrap items-center gap-1.5 text-xs">
-                <button type="button" onclick="bulkSetAssistantShiftPreset('official')" class="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 rounded-xl font-bold transition flex items-center space-x-1 shadow-2xs cursor-pointer" title="ตั้งค่าทุกคนเป็นเวรในเวลา (08:00 - 16:00 น.)">
+                <button type="button" onclick="bulkSetAssistantShiftPreset('official')" class="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 rounded-xl font-bold transition flex items-center space-x-1 shadow-2xs cursor-pointer" title="ตั้งค่าทุกคนเป็นเวรในเวลา (08:00 - 15:00 น.)">
                   <span>☀️ ในเวลาทุกคน</span>
                 </button>
-                <button type="button" onclick="bulkSetAssistantShiftPreset('ot')" class="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-800 rounded-xl font-bold transition flex items-center space-x-1 shadow-2xs cursor-pointer" title="ตั้งค่าทุกคนเป็นเวรนอกเวลา/OT (17:00 - 19:00 น.)">
+                <button type="button" onclick="bulkSetAssistantShiftPreset('ot')" class="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-800 rounded-xl font-bold transition flex items-center space-x-1 shadow-2xs cursor-pointer" title="ตั้งค่าทุกคนเป็นเวรนอกเวลา/OT (16:00 - 19:00 น.)">
                   <span>🌙 นอกเวลาทุกคน</span>
                 </button>
                 <button type="button" onclick="bulkSetAssistantShiftPreset('full')" class="px-2.5 py-1.5 bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-800 rounded-xl font-bold transition flex items-center space-x-1 shadow-2xs cursor-pointer" title="ตั้งค่าทุกคนเข้าเวรทั้งวัน (08:00 - 19:00 น.)">
@@ -2739,7 +2739,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="font-medium text-slate-700 dark:text-slate-300">คลินิกการแพทย์แผนไทย รพ.นราธิวาสราชนครินทร์</span>
         <span class="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
-        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.18</span>
+        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.19</span>
         <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">ล่าสุด</span>
       </div>
       <div class="flex items-center gap-2">
@@ -2980,7 +2980,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                 <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">4 ตุลาคม 2569</span></p>
               </div>
             </div>
-            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.18</span>
+            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.19</span>
           </div>
 
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/70 text-xs">
@@ -2999,7 +2999,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       
       <!-- Modal Footer -->
       <div class="bg-slate-50 dark:bg-slate-800/80 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between flex-shrink-0">
-        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.18</span></span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.19</span></span>
         <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold transition" data-i18n="btn_close">
           ปิดหน้าต่าง
         </button>
@@ -3710,8 +3710,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         <div>
           <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">ช่วงเวลาปฏิบัติงาน / เวรเริ่มต้น</label>
           <select id="new-asst-shift-type" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-2 focus:ring-herbal-500 font-medium">
-            <option value="official">☀️ ในเวลาราชการ (08:00 - 16:00 น.)</option>
-            <option value="ot">🌙 นอกเวลาราชการ / OT (17:00 - 19:00 น.)</option>
+            <option value="official">☀️ ในเวลาราชการ (08:00 - 15:00 น.)</option>
+            <option value="ot">🌙 นอกเวลาราชการ / OT (16:00 - 19:00 น.)</option>
             <option value="full" selected>⭐ เข้าเวรทั้งวัน (08:00 - 19:00 น.)</option>
             <option value="off">⚪ ลาเวร / พัก (ไม่เข้าเวร)</option>
           </select>
@@ -3775,10 +3775,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">⚡ เลือกตามรูปแบบเวรด่วน:</div>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
           <button type="button" onclick="applySlotPickerPreset('official')" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-bold hover:bg-emerald-100 transition shadow-2xs">
-            ☀️ ในเวลา (08-16)
+            ☀️ ในเวลา (08-15)
           </button>
           <button type="button" onclick="applySlotPickerPreset('ot')" class="px-2.5 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-950 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-800 text-xs font-bold hover:bg-purple-100 transition shadow-2xs">
-            🌙 นอกเวลา (17-19)
+            🌙 นอกเวลา (16-19)
           </button>
           <button type="button" onclick="applySlotPickerPreset('full')" class="px-2.5 py-1.5 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-800 text-xs font-bold hover:bg-teal-100 transition shadow-2xs">
             ⭐ ทั้งวัน (12 รอบ)
@@ -3796,7 +3796,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-black text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
               <span>☀️</span>
-              <span>รอบในเวลาราชการ (08:00 - 16:00 น.)</span>
+              <span>รอบในเวลาราชการ (08:00 - 15:00 น.)</span>
             </span>
             <button type="button" onclick="toggleAllInHoursSlotsInPicker()" class="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:underline">
               สลับเลือกทั้งหมด
@@ -3812,7 +3812,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-black text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
               <span>🌙</span>
-              <span>รอบนอกเวลาราชการ / OT (17:00 - 20:00 น.)</span>
+              <span>รอบนอกเวลาราชการ / OT (16:00 - 19:00 น.)</span>
             </span>
             <button type="button" onclick="toggleAllOtSlotsInPicker()" class="text-[11px] font-bold text-purple-700 dark:text-purple-400 hover:underline">
               สลับเลือกทั้งหมด
@@ -4042,8 +4042,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">เลือกรูปแบบเวร:</label>
                 <select id="modal-asst-shift-type" onchange="onModalAssistantShiftChange(this.value)" class="w-full px-3 py-2 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-herbal-500 cursor-pointer">
                   <option value="full">⭐ เข้าเวรทั้งวัน (08:00 - 19:00 น.)</option>
-                  <option value="official">☀️ ในเวลาราชการ (08:00 - 16:00 น.)</option>
-                  <option value="ot">🌙 นอกเวลาราชการ / OT (17:00 - 19:00 น.)</option>
+                  <option value="official">☀️ ในเวลาราชการ (08:00 - 15:00 น.)</option>
+                  <option value="ot">🌙 นอกเวลาราชการ / OT (16:00 - 19:00 น.)</option>
                   <option value="custom">⚙️ กำหนดรอบเวลาเฉพาะ (Custom)</option>
                   <option value="off">⚪ ลาเวร / พัก (ไม่เข้าเวร)</option>
                 </select>
@@ -4270,8 +4270,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           <div>
             <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">ช่วงเวลาเวร</label>
             <select id="edit-asst-shift-type" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-2 focus:ring-herbal-500 font-medium">
-              <option value="official">☀️ ในเวลาราชการ (08:00 - 16:00 น.)</option>
-              <option value="ot">🌙 นอกเวลาราชการ / OT (17:00 - 19:00 น.)</option>
+              <option value="official">☀️ ในเวลาราชการ (08:00 - 15:00 น.)</option>
+              <option value="ot">🌙 นอกเวลาราชการ / OT (16:00 - 19:00 น.)</option>
               <option value="full">⭐ เข้าเวรทั้งวัน (08:00 - 19:00 น.)</option>
               <option value="custom">⚙️ กำหนดรอบเวลาเฉพาะ (Custom)</option>
               <option value="off">⚪ ลาเวร / พัก (ไม่เข้าเวร)</option>
@@ -5944,12 +5944,12 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
               </div>
             </div>
 
-            <!-- 2. Out-of-Hours / OT Queue (17:00 - 19:00 น.) -->
+            <!-- 2. Out-of-Hours / OT Queue (16:00 - 19:00 น.) -->
             <div class="bg-gradient-to-br from-purple-50/50 via-white to-indigo-50/40 dark:from-slate-900/80 dark:via-slate-850 dark:to-purple-950/20 p-4 rounded-2xl border border-purple-200/80 dark:border-purple-900/40 space-y-3">
               <div class="flex items-center justify-between border-b border-purple-100 dark:border-purple-950/60 pb-2">
                 <div class="flex items-center space-x-2">
                   <span class="text-base">🌙</span>
-                  <h5 class="font-bold text-xs sm:text-sm text-purple-900 dark:text-purple-200">2. ลำดับคิวนอกเวลา / OT (17:00 - 19:00 น.)</h5>
+                  <h5 class="font-bold text-xs sm:text-sm text-purple-900 dark:text-purple-200">2. ลำดับคิวนอกเวลา / OT (16:00 - 19:00 น.)</h5>
                 </div>
                 <span class="text-[10.5px] font-bold text-purple-800 dark:text-purple-300 bg-purple-100/80 dark:bg-purple-950 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
                   คิดจากยอดบ่าย 13:00 - 15:00 น. (เฉพาะคนอยู่เวร)
@@ -6153,12 +6153,12 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.5.18";
+    const APP_VERSION = "v5.5.19";
     const APP_BUILD_DATE = "4 ตุลาคม 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
-    const IN_HOURS_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
-    const OUT_OF_HOURS_SLOTS = ["17:00", "18:00", "19:00"];
+    const IN_HOURS_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00"];
+    const OUT_OF_HOURS_SLOTS = ["16:00", "17:00", "18:00", "19:00"];
     const ALL_WORKING_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"];
 
     const DEFAULT_USERS = [
@@ -8226,19 +8226,19 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       if (shiftType === 'official') {
         return {
           type: 'official',
-          label: '☀️ ในเวลา (08:00 - 16:00)',
+          label: '☀️ ในเวลา (08:00 - 15:00)',
           shortLabel: '☀️ ในเวลา',
           badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800',
-          slotsText: '9 รอบ (08:00 - 16:00)'
+          slotsText: '8 รอบ (08:00 - 15:00)'
         };
       }
       if (shiftType === 'ot') {
         return {
           type: 'ot',
-          label: '🌙 นอกเวลา / OT (17:00 - 19:00)',
+          label: '🌙 นอกเวลา / OT (16:00 - 19:00)',
           shortLabel: '🌙 นอกเวลา (OT)',
           badgeClass: 'bg-purple-50 text-purple-800 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800',
-          slotsText: '3 รอบ (17:00 - 19:00)'
+          slotsText: '4 รอบ (16:00 - 19:00)'
         };
       }
       if (shiftType === 'custom') {
@@ -19554,38 +19554,62 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       return 0;
     }
 
+    function isSaturdayAppointment(apt) {
+      if (!apt) return false;
+      const bDate = apt.bookDate || apt.book_date || "";
+      if (bDate) {
+        const d = new Date(bDate + "T00:00:00");
+        if (!isNaN(d.getTime()) && d.getDay() === 6) return true;
+      }
+      const slot = String(apt.timeSlot || apt.time_slot || apt.slot || "").trim();
+      if (typeof SATURDAY_SLOTS !== "undefined" && Array.isArray(SATURDAY_SLOTS) && SATURDAY_SLOTS.includes(slot) && !["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"].includes(slot)) {
+        return true;
+      }
+      return false;
+    }
+
     function isAppointmentInHours(apt) {
       if (!apt) return false;
-      if (apt.shiftType === 'official' || apt.shift === 'official') return true;
+      if (isSaturdayAppointment(apt)) return false; // วันเสาร์จัดเป็นนอกเวลา
       if (apt.isOt === true || apt.shiftType === 'ot' || apt.shift === 'ot') return false;
+      if (apt.shiftType === 'official' || apt.shift === 'official') return true;
       const slot = String(apt.timeSlot || apt.time_slot || apt.slot || "").trim();
       if (!slot) return true; // Default fallback to regular daytime hours
+      
+      // In-Hours: 08:00 - 15:00
       if (typeof IN_HOURS_SLOTS !== "undefined" && IN_HOURS_SLOTS.includes(slot)) return true;
-      if (typeof SATURDAY_SLOTS !== "undefined" && SATURDAY_SLOTS.includes(slot)) return true;
+      if (["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00"].includes(slot)) return true;
       if (typeof OUT_OF_HOURS_SLOTS !== "undefined" && OUT_OF_HOURS_SLOTS.includes(slot)) return false;
+      if (["16:00", "17:00", "18:00", "19:00"].includes(slot)) return false;
+
       const parts = slot.split(":");
       if (parts.length >= 2) {
         const h = parseInt(parts[0], 10);
-        const m = parseInt(parts[1], 10);
-        if (h < 17 && !(h === 16 && m >= 30)) return true;
+        if (h >= 16) return false;
+        if (h >= 8 && h < 16) return true;
       }
       return true;
     }
 
     function isAppointmentOutOfHours(apt) {
       if (!apt) return false;
+      if (isSaturdayAppointment(apt)) return true; // วันเสาร์จัดเป็นนอกเวลา
       if (apt.isOt === true || apt.shiftType === 'ot' || apt.shift === 'ot') return true;
       if (apt.shiftType === 'official' || apt.shift === 'official') return false;
       const slot = String(apt.timeSlot || apt.time_slot || apt.slot || "").trim();
       if (!slot) return false;
+
+      // Out-of-Hours: 16:00 - 19:00
       if (typeof OUT_OF_HOURS_SLOTS !== "undefined" && OUT_OF_HOURS_SLOTS.includes(slot)) return true;
+      if (["16:00", "17:00", "18:00", "19:00"].includes(slot)) return true;
       if (typeof IN_HOURS_SLOTS !== "undefined" && IN_HOURS_SLOTS.includes(slot)) return false;
-      if (typeof SATURDAY_SLOTS !== "undefined" && SATURDAY_SLOTS.includes(slot)) return false;
+      if (["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00"].includes(slot)) return false;
+
       const parts = slot.split(":");
       if (parts.length >= 2) {
         const h = parseInt(parts[0], 10);
-        const m = parseInt(parts[1], 10);
-        if (h >= 17 || (h === 16 && m >= 30)) return true;
+        if (h >= 16) return true;
+        if (h >= 8 && h < 16) return false;
       }
       return false;
     }
@@ -20074,8 +20098,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       const shiftSelect = document.getElementById("stats-scheme-shift-filter");
       let shiftSuffix = "";
       if (shiftSelect) {
-        if (shiftSelect.value === "in_hours") shiftSuffix = "_ในเวลาราชการ";
-        else if (shiftSelect.value === "out_of_hours") shiftSuffix = "_นอกเวลาราชการOT";
+        if (shiftSelect.value === "in_hours") shiftSuffix = "_ในเวลา_08-15";
+        else if (shiftSelect.value === "out_of_hours") shiftSuffix = "_นอกเวลาOT_และเสาร์";
       }
 
       if (typeof exportDataToExcel === "function") {
@@ -20106,10 +20130,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       }
 
       const shiftSelect = document.getElementById("stats-scheme-shift-filter");
-      let shiftName = "ทุกช่วงเวลา (ในเวลา + OT)";
+      let shiftName = "ทุกช่วงเวลา (ในเวลา + OT & เสาร์)";
       if (shiftSelect) {
-        if (shiftSelect.value === "in_hours") shiftName = "ในเวลาราชการ (08:00 - 16:00 น.)";
-        else if (shiftSelect.value === "out_of_hours") shiftName = "นอกเวลาราชการ / OT (17:00 - 19:00 น.)";
+        if (shiftSelect.value === "in_hours") shiftName = "ในเวลาราชการ (08:00 - 15:00 น.)";
+        else if (shiftSelect.value === "out_of_hours") shiftName = "นอกเวลาราชการ / OT (16:00 - 19:00 น. & วันเสาร์)";
       }
 
       const startD = schemeStatsStartDate || todayStr;
@@ -21151,11 +21175,11 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       let isLeave = false;
 
       if (preset === 'official') {
-        presetName = "☀️ ในเวลาราชการ (08:00 - 16:00 น.)";
+        presetName = "☀️ ในเวลาราชการ (08:00 - 15:00 น.)";
         shiftType = "official";
         slots = [...IN_HOURS_SLOTS];
       } else if (preset === 'ot') {
-        presetName = "🌙 นอกเวลาราชการ / OT (17:00 - 19:00 น.)";
+        presetName = "🌙 นอกเวลาราชการ / OT (16:00 - 19:00 น.)";
         shiftType = "ot";
         slots = [...OUT_OF_HOURS_SLOTS];
       } else if (preset === 'full') {
@@ -21798,7 +21822,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           return {
             isOff: false,
             type: 'official',
-            label: '☀️ เวรในเวลา (08:00 - 16:00)',
+            label: '☀️ เวรในเวลา (08:00 - 15:00)',
             shortLabel: '☀️ ในเวลา',
             badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800',
             slots: rEntry.slots,
@@ -21809,7 +21833,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           return {
             isOff: false,
             type: 'ot',
-            label: '🌙 เวรนอกเวลา / OT (17:00 - 19:00)',
+            label: '🌙 เวรนอกเวลา / OT (16:00 - 19:00)',
             shortLabel: '🌙 นอกเวลา (OT)',
             badgeClass: 'bg-purple-50 text-purple-800 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800',
             slots: rEntry.slots,
@@ -22539,8 +22563,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       }
 
       let shiftLabel = "⭐ เข้าเวรทั้งวัน (08:00 - 19:00 น.)";
-      if (shiftType === "official") shiftLabel = "☀️ เวรในเวลา (08:00 - 16:00 น.)";
-      else if (shiftType === "ot") shiftLabel = "🌙 เวรนอกเวลา / OT (17:00 - 19:00 น.)";
+      if (shiftType === "official") shiftLabel = "☀️ เวรในเวลา (08:00 - 15:00 น.)";
+      else if (shiftType === "ot") shiftLabel = "🌙 เวรนอกเวลา / OT (16:00 - 19:00 น.)";
       else if (shiftType === "custom") shiftLabel = `⚙️ กำหนดรอบเอง (${asst.slots.length} รอบเวลา)`;
       else if (shiftType === "off") shiftLabel = "⚪ ลาเวร / พัก (Off Duty)";
 
@@ -23026,10 +23050,10 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
             <div class="flex items-center justify-between border-b border-emerald-100 dark:border-emerald-800/60 pb-2.5 flex-wrap gap-2">
               <div class="flex items-center space-x-2">
                 <span class="text-base">☀️</span>
-                <h5 class="font-bold text-sm text-emerald-950 dark:text-emerald-300">เวรในเวลาราชการ (08:00 - 16:00 น.)</h5>
+                <h5 class="font-bold text-sm text-emerald-950 dark:text-emerald-300">เวรในเวลาราชการ (08:00 - 15:00 น.)</h5>
                 <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800">${inHoursList.length} คน</span>
               </div>
-              <p class="text-xs text-emerald-700 dark:text-emerald-400">9 รอบเวลา (เปิดรับคิว 08:00 ถึง 16:00 น.)</p>
+              <p class="text-xs text-emerald-700 dark:text-emerald-400">8 รอบเวลา (เปิดรับคิว 08:00 ถึง 15:00 น.)</p>
             </div>
             ${inHoursList.length > 0 ? `
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -23043,14 +23067,14 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           </div>
 
           <!-- Section 2: Out-of-Hours / OT -->
-          <div class="bg-white dark:bg-slate-850 rounded-2xl border border-purple-200 dark:border-purple-800/80 p-4 shadow-2xs space-y-3">
+          <div class="bg-white dark:bg-slate-855 rounded-2xl border border-purple-200 dark:border-purple-800/80 p-4 shadow-2xs space-y-3">
             <div class="flex items-center justify-between border-b border-purple-100 dark:border-purple-800/60 pb-2.5 flex-wrap gap-2">
               <div class="flex items-center space-x-2">
                 <span class="text-base">🌙</span>
-                <h5 class="font-bold text-sm text-purple-950 dark:text-purple-300">เวรนอกเวลาราชการ / คลินิกพิเศษ OT (17:00 - 20:00 น.)</h5>
+                <h5 class="font-bold text-sm text-purple-950 dark:text-purple-300">เวรนอกเวลาราชการ / คลินิกพิเศษ OT (16:00 - 19:00 น.)</h5>
                 <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800">${otList.length} คน</span>
               </div>
-              <p class="text-xs text-purple-700 dark:text-purple-400">3 รอบเวลา (เปิดรับคิว 17:00, 18:00, 19:00 น.)</p>
+              <p class="text-xs text-purple-700 dark:text-purple-400">4 รอบเวลา (เปิดรับคิว 16:00 ถึง 19:00 น.)</p>
             </div>
             ${otList.length > 0 ? `
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

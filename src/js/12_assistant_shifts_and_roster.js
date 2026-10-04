@@ -91,11 +91,11 @@
       let isLeave = false;
 
       if (preset === 'official') {
-        presetName = "☀️ ในเวลาราชการ (08:00 - 16:00 น.)";
+        presetName = "☀️ ในเวลาราชการ (08:00 - 15:00 น.)";
         shiftType = "official";
         slots = [...IN_HOURS_SLOTS];
       } else if (preset === 'ot') {
-        presetName = "🌙 นอกเวลาราชการ / OT (17:00 - 19:00 น.)";
+        presetName = "🌙 นอกเวลาราชการ / OT (16:00 - 19:00 น.)";
         shiftType = "ot";
         slots = [...OUT_OF_HOURS_SLOTS];
       } else if (preset === 'full') {
@@ -738,7 +738,7 @@
           return {
             isOff: false,
             type: 'official',
-            label: '☀️ เวรในเวลา (08:00 - 16:00)',
+            label: '☀️ เวรในเวลา (08:00 - 15:00)',
             shortLabel: '☀️ ในเวลา',
             badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800',
             slots: rEntry.slots,
@@ -749,7 +749,7 @@
           return {
             isOff: false,
             type: 'ot',
-            label: '🌙 เวรนอกเวลา / OT (17:00 - 19:00)',
+            label: '🌙 เวรนอกเวลา / OT (16:00 - 19:00)',
             shortLabel: '🌙 นอกเวลา (OT)',
             badgeClass: 'bg-purple-50 text-purple-800 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800',
             slots: rEntry.slots,
@@ -1479,8 +1479,8 @@
       }
 
       let shiftLabel = "⭐ เข้าเวรทั้งวัน (08:00 - 19:00 น.)";
-      if (shiftType === "official") shiftLabel = "☀️ เวรในเวลา (08:00 - 16:00 น.)";
-      else if (shiftType === "ot") shiftLabel = "🌙 เวรนอกเวลา / OT (17:00 - 19:00 น.)";
+      if (shiftType === "official") shiftLabel = "☀️ เวรในเวลา (08:00 - 15:00 น.)";
+      else if (shiftType === "ot") shiftLabel = "🌙 เวรนอกเวลา / OT (16:00 - 19:00 น.)";
       else if (shiftType === "custom") shiftLabel = `⚙️ กำหนดรอบเอง (${asst.slots.length} รอบเวลา)`;
       else if (shiftType === "off") shiftLabel = "⚪ ลาเวร / พัก (Off Duty)";
 
@@ -1966,10 +1966,10 @@
             <div class="flex items-center justify-between border-b border-emerald-100 dark:border-emerald-800/60 pb-2.5 flex-wrap gap-2">
               <div class="flex items-center space-x-2">
                 <span class="text-base">☀️</span>
-                <h5 class="font-bold text-sm text-emerald-950 dark:text-emerald-300">เวรในเวลาราชการ (08:00 - 16:00 น.)</h5>
+                <h5 class="font-bold text-sm text-emerald-950 dark:text-emerald-300">เวรในเวลาราชการ (08:00 - 15:00 น.)</h5>
                 <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800">${inHoursList.length} คน</span>
               </div>
-              <p class="text-xs text-emerald-700 dark:text-emerald-400">9 รอบเวลา (เปิดรับคิว 08:00 ถึง 16:00 น.)</p>
+              <p class="text-xs text-emerald-700 dark:text-emerald-400">8 รอบเวลา (เปิดรับคิว 08:00 ถึง 15:00 น.)</p>
             </div>
             ${inHoursList.length > 0 ? `
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1983,14 +1983,14 @@
           </div>
 
           <!-- Section 2: Out-of-Hours / OT -->
-          <div class="bg-white dark:bg-slate-850 rounded-2xl border border-purple-200 dark:border-purple-800/80 p-4 shadow-2xs space-y-3">
+          <div class="bg-white dark:bg-slate-855 rounded-2xl border border-purple-200 dark:border-purple-800/80 p-4 shadow-2xs space-y-3">
             <div class="flex items-center justify-between border-b border-purple-100 dark:border-purple-800/60 pb-2.5 flex-wrap gap-2">
               <div class="flex items-center space-x-2">
                 <span class="text-base">🌙</span>
-                <h5 class="font-bold text-sm text-purple-950 dark:text-purple-300">เวรนอกเวลาราชการ / คลินิกพิเศษ OT (17:00 - 20:00 น.)</h5>
+                <h5 class="font-bold text-sm text-purple-950 dark:text-purple-300">เวรนอกเวลาราชการ / คลินิกพิเศษ OT (16:00 - 19:00 น.)</h5>
                 <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800">${otList.length} คน</span>
               </div>
-              <p class="text-xs text-purple-700 dark:text-purple-400">3 รอบเวลา (เปิดรับคิว 17:00, 18:00, 19:00 น.)</p>
+              <p class="text-xs text-purple-700 dark:text-purple-400">4 รอบเวลา (เปิดรับคิว 16:00 ถึง 19:00 น.)</p>
             </div>
             ${otList.length > 0 ? `
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
