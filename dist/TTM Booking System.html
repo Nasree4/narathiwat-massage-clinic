@@ -8958,6 +8958,15 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           refreshActiveTabUI(typeof silent !== 'undefined' ? silent : false);
           showToast("🔄 ผู้ดูแลระบบได้ล้างข้อมูลคิวและประวัติทั้งหมดแล้ว", "info");
         })
+        .on("broadcast", { event: "system_app_update" }, payload => {
+          console.log("[Realtime] Received system_app_update broadcast:", payload);
+          if (payload?.payload?.version && payload.payload.version !== APP_VERSION) {
+            console.log(`[Realtime] Cloud version ${payload.payload.version} != Local ${APP_VERSION}. Triggering instant update...`);
+            if (typeof checkSystemUpdate === 'function') {
+              checkSystemUpdate(true);
+            }
+          }
+        })
         .subscribe(status => {
           console.log("Supabase Realtime Status:", status);
           if (status === 'SUBSCRIBED') {
@@ -8985,7 +8994,15 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       if (eventType === "INSERT" || eventType === "UPDATE") {
         if (!newRec) return;
 
-        if (newRec.scope === "system" && newRec.config_key === "wiped_at") {
+        if (newRec.scope === "system" && newRec.config_key === "app_version") {
+          const cloudVer = newRec.slots_json?.version;
+          if (cloudVer && cloudVer !== APP_VERSION) {
+            console.log(`[Realtime] Cloud version changed to ${cloudVer} (local: ${APP_VERSION}). Updating...`);
+            if (typeof checkSystemUpdate === 'function') {
+              checkSystemUpdate(true);
+            }
+          }
+        } else if (newRec.scope === "system" && newRec.config_key === "wiped_at") {
           const wipedAt = newRec.slots_json?.wiped_at;
           const lastLocalWipe = localStorage.getItem("ttm_last_system_wipe");
           if (wipedAt && (!lastLocalWipe || new Date(wipedAt) > new Date(lastLocalWipe))) {
@@ -9959,7 +9976,16 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           const { data: confData } = await supabaseClient.from("slot_configs").select("*");
           if (confData) {
             confData.forEach(c => {
-              if (c.scope === "daily") customDailySlotConfig[c.config_key] = c.slots_json;
+              if (c.scope === "system" && c.config_key === "app_version") {
+                const cloudVer = c.slots_json?.version;
+                if (cloudVer && cloudVer !== APP_VERSION) {
+                  console.log(`[Cloud-Sync] Version mismatch! App is running ${APP_VERSION}, Cloud is on ${cloudVer}. Triggering auto-update...`);
+                  if (typeof checkSystemUpdate === 'function') {
+                    setTimeout(() => checkSystemUpdate(true), 500);
+                  }
+                }
+              }
+              else if (c.scope === "daily") customDailySlotConfig[c.config_key] = c.slots_json;
               else if (c.scope === "monthly") customMonthlySlotConfig[c.config_key] = c.slots_json;
               else if (c.scope === "roster") assistantDutyRosters[c.config_key] = c.slots_json;
               else if (c.scope === "assistants" && c.config_key === "master_list" && Array.isArray(c.slots_json) && c.slots_json.length > 0) {
