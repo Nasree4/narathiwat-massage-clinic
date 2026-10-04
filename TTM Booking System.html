@@ -18902,25 +18902,20 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
             nameInp.value = match.patientName;
           }
 
-          // 5. Render interactive match badge feedback
+          // 5. Render interactive match badge feedback (Only show latest visit date)
           if (badgeEl) {
-            const schemeName = match.medicalScheme || 'บัตรทอง';
-            const visitDate = match.bookDate ? ` (รับบริการล่าสุด ${formatThaiDateShort(match.bookDate)})` : '';
-            badgeEl.innerHTML = `
-              <div class="flex items-center gap-2 w-full">
-                <span class="text-emerald-600 dark:text-emerald-400 font-bold text-sm">✨</span>
-                <div class="flex-1 text-[11px] leading-tight text-emerald-900 dark:text-emerald-200">
-                  พบประวัติเดิม: <strong class="font-bold underline decoration-emerald-500">${escapeHtml(match.patientName || nameVal)}</strong> 
-                  ➔ ดึงสิทธิ์ <span class="px-1.5 py-0.5 bg-emerald-200/60 dark:bg-emerald-800/60 text-emerald-950 dark:text-emerald-100 font-extrabold rounded-md">${escapeHtml(schemeName)}</span>${visitDate}
+            if (match.bookDate) {
+              badgeEl.innerHTML = `
+                <div class="flex items-center gap-1.5 w-full text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                  <span class="text-sm">📅</span>
+                  <span>รับบริการล่าสุด ${formatThaiDateShort(match.bookDate)}</span>
                 </div>
-              </div>
-            `;
-            badgeEl.classList.remove("hidden");
-          }
-
-          if (matchKey !== lastAutofilledPatientKey && nameVal.length >= 3) {
-            lastAutofilledPatientKey = matchKey;
-            showToast(`✨ ดึงสิทธิ์การรักษาล่าสุด (${match.medicalScheme || 'บัตรทอง'}) ของคุณ ${match.patientName} อัตโนมัติ`, 'info', 2500);
+              `;
+              badgeEl.classList.remove("hidden");
+            } else {
+              badgeEl.classList.add("hidden");
+              badgeEl.innerHTML = "";
+            }
           }
         } else {
           if (badgeEl) {
