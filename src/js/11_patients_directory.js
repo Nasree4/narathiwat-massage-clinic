@@ -94,6 +94,7 @@
     }
 
     function renderPatientsList() {
+      if (typeof populatePatientNamesDatalist === "function") populatePatientNamesDatalist();
       const allPatients = getUniquePatients();
       const searchQuery = (document.getElementById("patients-search-input")?.value || "").toLowerCase().trim();
       const serviceFilter = document.getElementById("patients-service-filter")?.value || "all";
@@ -495,6 +496,178 @@
         }
         openPatientHistory(newKey);
       }
+    }
+
+    function normalizeThaiPatientName(str) {
+      if (!str) return "";
+      return String(str)
+        .trim()
+        .toLowerCase()
+        .replace(/^(นาย|นางสาว|นาง|น\.ส\.|ด\.ช\.|ด\.ญ\.|คุณ)\s*/i, "")
+        .replace(/\s+/g, " ");
+    }
+
+    function findLatestPatientData(name, hn, phone) {
+      if (!Array.isArray(appointments) || appointments.length === 0) return null;
+
+      const targetNameNorm = normalizeThaiPatientName(name);
+      const targetHn = (hn || "").trim().toLowerCase();
+      const targetPhone = (phone || "").replace(/[^0-9]/g, "");
+
+      // Sort by bookDate desc, timeSlot desc, created_at desc
+      const sortedApts = [...appointments].sort((a, b) => {
+        const dateA = a.bookDate || "";
+        const dateB = b.bookDate || "";
+        if (dateA !== dateB) return dateB.localeCompare(dateA);
+        const slotA = a.timeSlot || "";
+        const slotB = b.timeSlot || "";
+        if (slotA !== slotB) return slotB.localeCompare(slotA);
+        const timeA = a.created_at || a.createdAt || "";
+        const timeB = b.created_at || b.createdAt || "";
+        return timeB.localeCompare(timeA);
+      });
+
+      // 1. Exact or normalized name match
+      if (targetNameNorm && targetNameNorm.length >= 2) {
+        const exact = sortedApts.find(a => {
+          const aNameNorm = normalizeThaiPatientName(a.patientName || a.name || "");
+          return aNameNorm === targetNameNorm;
+        });
+        if (exact) return exact;
+
+        const starts = sortedApts.find(a => {
+          const aNameNorm = normalizeThaiPatientName(a.patientName || a.name || "");
+          return (aNameNorm.length >= 3 && targetNameNorm.length >= 3) &&
+                 (aNameNorm.startsWith(targetNameNorm) || targetNameNorm.startsWith(aNameNorm));
+        });
+        if (starts) return starts;
+      }
+
+      // 2. HN match
+      if (targetHn && targetHn !== "-") {
+        const matchHn = sortedApts.find(a => {
+          const aHn = (a.citizenOrHn || a.hn || "").trim().toLowerCase();
+          return aHn && aHn !== "-" && aHn === targetHn;
+        });
+        if (matchHn) return matchHn;
+      }
+
+      // 3. Phone match
+      if (targetPhone && targetPhone.length >= 9) {
+        const matchPhone = sortedApts.find(a => {
+          const aPhone = (a.phone || "").replace(/[^0-9]/g, "");
+          return aPhone && aPhone === targetPhone;
+        });
+        if (matchPhone) return matchPhone;
+      }
+
+      return null;
+    }
+
+    let lastAutofilledPatientKey = "";
+    let patientAutoFillDebounceTimer = null;
+
+    function handlePatientAutoFill(context = "wizard") {
+      clearTimeout(patientAutoFillDebounceTimer);
+      patientAutoFillDebounceTimer = setTimeout(() => {
+        let nameInputId = "wizard-patientName";
+        let hnInputId = "wizard-citizenOrHn";
+        let phoneInputId = "wizard-phone";
+        let badgeContainerId = "wizard-patient-match-badge";
+
+        if (context === "new") {
+          nameInputId = "new-patientName";
+          hnInputId = "new-citizenOrHn";
+          phoneInputId = "new-phone";
+          badgeContainerId = "new-patient-match-badge";
+        }
+
+        const nameInp = document.getElementById(nameInputId);
+        const hnInp = document.getElementById(hnInputId);
+        const phoneInp = document.getElementById(phoneInputId);
+        const badgeEl = document.getElementById(badgeContainerId);
+
+        const nameVal = nameInp ? nameInp.value.trim() : "";
+        const hnVal = hnInp ? hnInp.value.trim() : "";
+        const phoneVal = phoneInp ? phoneInp.value.trim() : "";
+
+        if (!nameVal && !hnVal && !phoneVal) {
+          if (badgeEl) {
+            badgeEl.classList.add("hidden");
+            badgeEl.innerHTML = "";
+          }
+          return;
+        }
+
+        const match = findLatestPatientData(nameVal, hnVal, phoneVal);
+        if (match) {
+          const matchKey = (match.patientName || "") + "_" + (match.medicalScheme || "");
+
+          // 1. Auto fill latest medical scheme
+          if (match.medicalScheme && typeof setMedicalSchemeInUi === "function") {
+            setMedicalSchemeInUi(context, match.medicalScheme);
+          }
+
+          // 2. Auto fill HN if empty
+          if (hnInp && (!hnInp.value || hnInp.value.trim() === "-") && match.citizenOrHn && match.citizenOrHn !== "-") {
+            hnInp.value = match.citizenOrHn;
+          }
+
+          // 3. Auto fill Phone if empty
+          if (phoneInp && !phoneInp.value && match.phone && match.phone !== "-") {
+            phoneInp.value = match.phone;
+          }
+
+          // 4. Auto fill Name if empty and matched by HN/Phone
+          if (nameInp && !nameInp.value && match.patientName) {
+            nameInp.value = match.patientName;
+          }
+
+          // 5. Render interactive match badge feedback
+          if (badgeEl) {
+            const schemeName = match.medicalScheme || 'บัตรทอง';
+            const visitDate = match.bookDate ? ` (รับบริการล่าสุด ${formatThaiDateShort(match.bookDate)})` : '';
+            badgeEl.innerHTML = `
+              <div class="flex items-center gap-2 w-full">
+                <span class="text-emerald-600 dark:text-emerald-400 font-bold text-sm">✨</span>
+                <div class="flex-1 text-[11px] leading-tight text-emerald-900 dark:text-emerald-200">
+                  พบประวัติเดิม: <strong class="font-bold underline decoration-emerald-500">${escapeHtml(match.patientName || nameVal)}</strong> 
+                  ➔ ดึงสิทธิ์ <span class="px-1.5 py-0.5 bg-emerald-200/60 dark:bg-emerald-800/60 text-emerald-950 dark:text-emerald-100 font-extrabold rounded-md">${escapeHtml(schemeName)}</span>${visitDate}
+                </div>
+              </div>
+            `;
+            badgeEl.classList.remove("hidden");
+          }
+
+          if (matchKey !== lastAutofilledPatientKey && nameVal.length >= 3) {
+            lastAutofilledPatientKey = matchKey;
+            showToast(`✨ ดึงสิทธิ์การรักษาล่าสุด (${match.medicalScheme || 'บัตรทอง'}) ของคุณ ${match.patientName} อัตโนมัติ`, 'info', 2500);
+          }
+        } else {
+          if (badgeEl) {
+            badgeEl.classList.add("hidden");
+            badgeEl.innerHTML = "";
+          }
+        }
+      }, 150);
+    }
+
+    function populatePatientNamesDatalist() {
+      const datalist = document.getElementById("patient-names-datalist");
+      if (!datalist || !Array.isArray(appointments)) return;
+
+      const uniqueNames = new Set();
+      appointments.forEach(a => {
+        const n = (a.patientName || a.name || "").trim();
+        if (n && n.length >= 2 && n !== "-" && n !== "ไม่ระบุ") {
+          uniqueNames.add(n);
+        }
+      });
+
+      datalist.innerHTML = Array.from(uniqueNames)
+        .sort((a, b) => a.localeCompare(b, 'th'))
+        .map(name => `<option value="${escapeHtml(name)}"></option>`)
+        .join("");
     }
 
     function bookAgainForPatient(name, hn, phone, scheme) {

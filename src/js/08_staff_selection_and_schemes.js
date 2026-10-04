@@ -1478,7 +1478,11 @@
       let containerId = "new-medicalScheme-other-container";
       let inputId = "new-medicalScheme-other";
 
-      if (context === "patient") {
+      if (context === "wizard") {
+        selectId = "wizard-medicalScheme";
+        containerId = "wizard-medicalScheme-other-container";
+        inputId = "wizard-medicalScheme-other";
+      } else if (context === "patient") {
         selectId = "edit-patient-scheme";
         containerId = "edit-patient-scheme-other-container";
         inputId = "edit-patient-scheme-other";
@@ -1510,7 +1514,11 @@
       let containerId = "new-medicalScheme-other-container";
       let inputId = "new-medicalScheme-other";
 
-      if (context === "patient") {
+      if (context === "wizard") {
+        selectId = "wizard-medicalScheme";
+        containerId = "wizard-medicalScheme-other-container";
+        inputId = "wizard-medicalScheme-other";
+      } else if (context === "patient") {
         selectId = "edit-patient-scheme";
         containerId = "edit-patient-scheme-other-container";
         inputId = "edit-patient-scheme-other";
@@ -1549,7 +1557,10 @@
       let selectId = "new-medicalScheme";
       let inputId = "new-medicalScheme-other";
 
-      if (context === "patient") {
+      if (context === "wizard") {
+        selectId = "wizard-medicalScheme";
+        inputId = "wizard-medicalScheme-other";
+      } else if (context === "patient") {
         selectId = "edit-patient-scheme";
         inputId = "edit-patient-scheme-other";
       } else if (context === "services") {

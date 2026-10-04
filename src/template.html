@@ -771,9 +771,9 @@
           <h1 class="text-sm sm:text-base md:text-lg font-bold leading-tight tracking-wide flex items-center gap-1 sm:gap-1.5 flex-wrap">
             <span data-i18n="app_title">คลินิกการแพทย์แผนไทย</span>
             <span class="text-[10px] sm:text-[11px] font-normal px-2 py-0.5 bg-herbal-800/80 text-herbal-200 rounded-full border border-herbal-600 hidden sm:inline-block" data-i18n="service_status">เปิดบริการปกติ</span>
-            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.19 (คลิกเพื่อตรวจสอบการอัปเดต)">
+            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.20 (คลิกเพื่อตรวจสอบการอัปเดต)">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span id="app-header-version-tag">v5.5.19</span>
+              <span id="app-header-version-tag">v5.5.20</span>
             </button>
           </h1>
           <p class="text-[11px] sm:text-xs text-herbal-200 font-light" data-i18n="app_hospital">
@@ -954,18 +954,19 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1"><span data-i18n="lbl_patient_name">ชื่อ-นามสกุล</span> <span class="text-rose-500">*</span></label>
-              <input type="text" id="new-patientName" name="patientName" required placeholder="นาย/นาง/น.ส. สมชาย ใจดี" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-herbal-500 outline-none text-sm bg-slate-50/40">
+              <input type="text" id="new-patientName" name="patientName" list="patient-names-datalist" oninput="handlePatientAutoFill('new')" onchange="handlePatientAutoFill('new')" required placeholder="นาย/นาง/น.ส. สมชาย ใจดี" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-herbal-500 outline-none text-sm bg-slate-50/40">
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1" data-i18n="lbl_citizen_hn">เลขบัตรประชาชน / เลข HN</label>
-              <input type="text" id="new-citizenOrHn" name="citizenOrHn" placeholder="เลขบัตร 13 หลัก หรือ HN (ถ้ามี)" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-herbal-500 outline-none text-sm bg-slate-50/40">
+              <input type="text" id="new-citizenOrHn" name="citizenOrHn" oninput="handlePatientAutoFill('new')" onchange="handlePatientAutoFill('new')" placeholder="เลขบัตร 13 หลัก หรือ HN (ถ้ามี)" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-herbal-500 outline-none text-sm bg-slate-50/40">
             </div>
           </div>
+          <div id="new-patient-match-badge" class="hidden p-2.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700/80 rounded-xl text-xs text-emerald-800 dark:text-emerald-200 flex items-center gap-1.5 shadow-2xs"></div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1" data-i18n="lbl_phone">เบอร์โทรศัพท์ติดต่อ</label>
-              <input type="tel" id="new-phone" name="phone" placeholder="08x-xxx-xxxx (ถ้ามี)" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-herbal-500 outline-none text-sm bg-slate-50/40">
+              <input type="tel" id="new-phone" name="phone" oninput="handlePatientAutoFill('new')" onchange="handlePatientAutoFill('new')" placeholder="08x-xxx-xxxx (ถ้ามี)" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-herbal-500 outline-none text-sm bg-slate-50/40">
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1">
@@ -2739,7 +2740,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="font-medium text-slate-700 dark:text-slate-300">คลินิกการแพทย์แผนไทย รพ.นราธิวาสราชนครินทร์</span>
         <span class="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
-        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.19</span>
+        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.20</span>
         <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">ล่าสุด</span>
       </div>
       <div class="flex items-center gap-2">
@@ -2980,7 +2981,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                 <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">4 ตุลาคม 2569</span></p>
               </div>
             </div>
-            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.19</span>
+            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.20</span>
           </div>
 
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/70 text-xs">
@@ -2999,7 +3000,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       
       <!-- Modal Footer -->
       <div class="bg-slate-50 dark:bg-slate-800/80 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between flex-shrink-0">
-        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.19</span></span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.20</span></span>
         <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold transition" data-i18n="btn_close">
           ปิดหน้าต่าง
         </button>
@@ -3528,23 +3529,25 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                 <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   ชื่อ-นามสกุล ผู้รับบริการ <span class="text-rose-500">*</span>
                 </label>
-                <input type="text" id="wizard-patientName" required placeholder="นาย/นาง/น.ส. สมชาย ใจดี" class="w-full px-3.5 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-slate-50/40 dark:bg-slate-900 font-medium">
+                <input type="text" id="wizard-patientName" list="patient-names-datalist" oninput="handlePatientAutoFill('wizard')" onchange="handlePatientAutoFill('wizard')" required placeholder="นาย/นาง/น.ส. สมชาย ใจดี" class="w-full px-3.5 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-slate-50/40 dark:bg-slate-900 font-medium">
               </div>
 
               <div>
                 <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   เลขบัตรประชาชน / เลข HN
                 </label>
-                <input type="text" id="wizard-citizenOrHn" placeholder="เลข 13 หลัก หรือ HN (ถ้ามี)" class="w-full px-3.5 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-slate-50/40 dark:bg-slate-900 font-medium font-mono">
+                <input type="text" id="wizard-citizenOrHn" oninput="handlePatientAutoFill('wizard')" onchange="handlePatientAutoFill('wizard')" placeholder="เลข 13 หลัก หรือ HN (ถ้ามี)" class="w-full px-3.5 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-slate-50/40 dark:bg-slate-900 font-medium font-mono">
               </div>
             </div>
+
+            <div id="wizard-patient-match-badge" class="hidden p-2.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700/80 rounded-xl text-xs text-emerald-800 dark:text-emerald-200 flex items-center gap-1.5 shadow-2xs"></div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   เบอร์โทรศัพท์ติดต่อ
                 </label>
-                <input type="tel" id="wizard-phone" placeholder="08x-xxx-xxxx (ถ้ามี)" class="w-full px-3.5 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-slate-50/40 dark:bg-slate-900 font-medium font-mono">
+                <input type="tel" id="wizard-phone" oninput="handlePatientAutoFill('wizard')" onchange="handlePatientAutoFill('wizard')" placeholder="08x-xxx-xxxx (ถ้ามี)" class="w-full px-3.5 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-slate-50/40 dark:bg-slate-900 font-medium font-mono">
               </div>
 
               <div>
@@ -6142,6 +6145,8 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     </div>
   </div>
 
+  <!-- Patient Names Autocomplete Datalist -->
+  <datalist id="patient-names-datalist"></datalist>
 
   <!-- [[APP_SCRIPTS]] -->
 
