@@ -3,7 +3,7 @@
   "trailingSlash": false,
   "headers": [
     {
-      "source": "/(sw.js|manifest.json|index.html|.*\\.html|$)",
+      "source": "/(sw.js|manifest.json|version.json|index.html|.*\\.html|$)",
       "headers": [
         {
           "key": "Cache-Control",

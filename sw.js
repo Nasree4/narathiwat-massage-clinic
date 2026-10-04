@@ -20,9 +20,8 @@ self.addEventListener('install', event => {
           console.warn('[SW] Precache skipped asset:', url, err);
         }))
       );
-    })
+    }).then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
@@ -36,9 +35,8 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('message', event => {
@@ -50,8 +48,8 @@ self.addEventListener('message', event => {
 self.addEventListener('fetch', event => {
   const url = event.request.url;
 
-  // Bypass Supabase API, realtime websockets, and non-GET requests
-  if (event.request.method !== 'GET' || url.includes('supabase.co') || url.includes('/rest/v1/') || url.includes('/auth/v1/')) {
+  // Bypass Supabase API, realtime websockets, version.json, and non-GET requests
+  if (event.request.method !== 'GET' || url.includes('supabase.co') || url.includes('/rest/v1/') || url.includes('/auth/v1/') || url.includes('version.json')) {
     return;
   }
 

@@ -5,8 +5,70 @@
  */
 
     /* =========================================================================
-       INSTANT SERVICE WORKER & MULTI-DEVICE AUTO-UPDATE ENGINE (v5.3.0)
+       INSTANT SERVICE WORKER & MULTI-DEVICE AUTO-UPDATE ENGINE (v5.5.19)
        ========================================================================= */
+    let isAutoUpdating = false;
+
+    async function performAutoUpdate(newVer) {
+      if (isAutoUpdating) return;
+      isAutoUpdating = true;
+      console.log(`[Auto-Update] Upgrading app to version ${newVer}...`);
+      
+      try {
+        if (typeof showToast === 'function') {
+          showToast(`⚡ ตรวจพบเวอร์ชันใหม่ (${newVer}) กำลังอัปเดตระบบอัตโนมัติ...`, 'info', 4000);
+        }
+      } catch(e) {}
+
+      // 1. Clear CacheStorage
+      if ('caches' in window) {
+        try {
+          const keys = await caches.keys();
+          for (const k of keys) {
+            await caches.delete(k);
+          }
+        } catch(e) {}
+      }
+
+      // 2. Unregister Service Workers
+      if ('serviceWorker' in navigator) {
+        try {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const r of regs) {
+            await r.unregister().catch(() => {});
+          }
+        } catch(e) {}
+      }
+
+      // 3. Reload cleanly with cache-buster
+      setTimeout(() => {
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.location.replace(cleanUrl + '?v=' + Date.now());
+      }, 600);
+    }
+
+    async function checkRemoteVersion() {
+      if (isAutoUpdating || !navigator.onLine) return;
+      try {
+        const res = await fetch('./version.json?_t=' + Date.now(), {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.version && data.version !== APP_VERSION) {
+            console.log(`[Auto-Update] Remote version ${data.version} detected (current: ${APP_VERSION})`);
+            performAutoUpdate(data.version);
+          }
+        }
+      } catch (e) {
+        // Silent catch for offline or network glitch
+      }
+    }
+
     function initServiceWorker() {
       if (!('serviceWorker' in navigator)) return;
 
@@ -15,11 +77,12 @@
         if (!refreshing) {
           refreshing = true;
           console.log('[PWA] New ServiceWorker activated! Reloading page with latest updates...');
-          window.location.reload();
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.location.replace(cleanUrl + '?v=' + Date.now());
         }
       });
 
-      navigator.serviceWorker.register('./sw.js')
+      navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
         .then(reg => {
           console.log('[PWA] TTM Clinic ServiceWorker registered successfully:', reg.scope);
           reg.update().catch(() => {});
@@ -44,6 +107,7 @@
           setInterval(() => {
             if (navigator.onLine && document.visibilityState === 'visible') {
               reg.update().catch(() => {});
+              checkRemoteVersion();
             }
           }, 15000);
 
@@ -51,6 +115,7 @@
           document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
               reg.update().catch(() => {});
+              checkRemoteVersion();
               if (typeof loadAllDataFromSupabase === 'function') {
                 loadAllDataFromSupabase(true);
               }
@@ -142,6 +207,9 @@
       initSupabase();
 
       updateNotificationBadgeUI();
+
+      // Check remote version on startup
+      setTimeout(checkRemoteVersion, 1200);
 
       // Background Sync Heartbeat (Every 30 seconds as fallback to Realtime WebSockets)
       setInterval(() => {

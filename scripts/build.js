@@ -105,11 +105,24 @@ function build() {
   fs.writeFileSync(path.join(distDir, 'TTM Booking System.html'), finalHtml, 'utf8');
   console.log('   ✅ Written to dist/TTM Booking System.html');
 
-  // 8. Copy static assets to dist/
+  // 8. Generate version.json
+  const versionMatch = combinedJs.match(/APP_VERSION\s*=\s*["']([^"']+)["']/);
+  const appVersion = versionMatch ? versionMatch[1] : 'v5.5.19';
+  const versionInfo = JSON.stringify({
+    version: appVersion,
+    buildTime: Date.now(),
+    buildDate: new Date().toISOString()
+  }, null, 2);
+
+  fs.writeFileSync(path.join(rootDir, 'version.json'), versionInfo, 'utf8');
+  fs.writeFileSync(path.join(distDir, 'version.json'), versionInfo, 'utf8');
+  console.log(`   ✅ Generated version.json (${appVersion})`);
+
+  // 9. Copy static assets to dist/
   const staticAssets = [
     'logo.png', 'favicon.png', 'icon-192.png', 'icon-512.png',
     'icon-maskable-192.png', 'icon-maskable-512.png', 'apple-touch-icon.png',
-    'manifest.json', 'sw.js', 'vercel.json'
+    'manifest.json', 'sw.js', 'vercel.json', 'version.json'
   ];
   let assetCount = 0;
   staticAssets.forEach(asset => {
