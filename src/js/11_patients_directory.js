@@ -1317,9 +1317,47 @@
       return 0;
     }
 
+    function isAppointmentInHours(apt) {
+      if (!apt) return false;
+      if (apt.shiftType === 'official' || apt.shift === 'official') return true;
+      if (apt.isOt === true || apt.shiftType === 'ot' || apt.shift === 'ot') return false;
+      const slot = String(apt.timeSlot || apt.time_slot || apt.slot || "").trim();
+      if (!slot) return true; // Default fallback to regular daytime hours
+      if (typeof IN_HOURS_SLOTS !== "undefined" && IN_HOURS_SLOTS.includes(slot)) return true;
+      if (typeof SATURDAY_SLOTS !== "undefined" && SATURDAY_SLOTS.includes(slot)) return true;
+      if (typeof OUT_OF_HOURS_SLOTS !== "undefined" && OUT_OF_HOURS_SLOTS.includes(slot)) return false;
+      const parts = slot.split(":");
+      if (parts.length >= 2) {
+        const h = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        if (h < 17 && !(h === 16 && m >= 30)) return true;
+      }
+      return true;
+    }
+
+    function isAppointmentOutOfHours(apt) {
+      if (!apt) return false;
+      if (apt.isOt === true || apt.shiftType === 'ot' || apt.shift === 'ot') return true;
+      if (apt.shiftType === 'official' || apt.shift === 'official') return false;
+      const slot = String(apt.timeSlot || apt.time_slot || apt.slot || "").trim();
+      if (!slot) return false;
+      if (typeof OUT_OF_HOURS_SLOTS !== "undefined" && OUT_OF_HOURS_SLOTS.includes(slot)) return true;
+      if (typeof IN_HOURS_SLOTS !== "undefined" && IN_HOURS_SLOTS.includes(slot)) return false;
+      if (typeof SATURDAY_SLOTS !== "undefined" && SATURDAY_SLOTS.includes(slot)) return false;
+      const parts = slot.split(":");
+      if (parts.length >= 2) {
+        const h = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        if (h >= 17 || (h === 16 && m >= 30)) return true;
+      }
+      return false;
+    }
+
     function getSchemeTargetAppointments() {
       const asstSelect = document.getElementById("stats-scheme-asst-filter");
       const asstFilter = asstSelect ? asstSelect.value : "all";
+      const shiftSelect = document.getElementById("stats-scheme-shift-filter");
+      const shiftFilter = shiftSelect ? shiftSelect.value : "all";
       const startD = schemeStatsStartDate || todayStr;
       const endD = schemeStatsEndDate || startD;
 
@@ -1329,6 +1367,12 @@
           if (bDate < startD || bDate > endD) return false;
         } else if (startD && bDate !== startD) {
           return false;
+        }
+
+        if (shiftFilter === "in_hours") {
+          if (!isAppointmentInHours(a)) return false;
+        } else if (shiftFilter === "out_of_hours") {
+          if (!isAppointmentOutOfHours(a)) return false;
         }
 
         if (asstFilter !== "all") {
@@ -1790,8 +1834,15 @@
       const endD = schemeStatsEndDate || startD;
       const periodLabel = startD === endD ? startD : `${startD}_ถึง_${endD}`;
       
+      const shiftSelect = document.getElementById("stats-scheme-shift-filter");
+      let shiftSuffix = "";
+      if (shiftSelect) {
+        if (shiftSelect.value === "in_hours") shiftSuffix = "_ในเวลาราชการ";
+        else if (shiftSelect.value === "out_of_hours") shiftSuffix = "_นอกเวลาราชการOT";
+      }
+
       if (typeof exportDataToExcel === "function") {
-        exportDataToExcel(`สรุปยอดแยกสิทธิและหัตถการ_${periodLabel}`, "สรุปยอดแยกสิทธิ", headers, rows);
+        exportDataToExcel(`สรุปยอดแยกสิทธิและหัตถการ${shiftSuffix}_${periodLabel}`, "สรุปยอดแยกสิทธิ", headers, rows);
       } else {
         alert("ไม่พบฟังก์ชันส่งออก Excel");
       }
@@ -1815,6 +1866,13 @@
       if (asstSelect && asstSelect.value !== "all") {
         const asstObj = assistants.find(x => x.id === asstSelect.value);
         if (asstObj) asstName = `${asstObj.nickname} (${asstObj.name})`;
+      }
+
+      const shiftSelect = document.getElementById("stats-scheme-shift-filter");
+      let shiftName = "ทุกช่วงเวลา (ในเวลา + OT)";
+      if (shiftSelect) {
+        if (shiftSelect.value === "in_hours") shiftName = "ในเวลาราชการ (08:00 - 16:00 น.)";
+        else if (shiftSelect.value === "out_of_hours") shiftName = "นอกเวลาราชการ / OT (17:00 - 19:00 น.)";
       }
 
       const startD = schemeStatsStartDate || todayStr;
@@ -2056,6 +2114,7 @@
               </div>
               <div style="text-align:right; font-size:10px; color:#64748b;">
                 <div><b>ช่วงข้อมูล:</b> ${dateRangeText}</div>
+                <div><b>ช่วงเวลา/เวร:</b> ${escapeHtml(shiftName)}</div>
                 <div><b>ผู้ช่วยแพทย์:</b> ${escapeHtml(asstName)}</div>
                 <div><b>พิมพ์รายงาน:</b> ${new Date().toLocaleDateString('th-TH')} ${new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</div>
               </div>
