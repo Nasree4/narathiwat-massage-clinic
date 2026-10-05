@@ -60,8 +60,12 @@
         if (res.ok) {
           const data = await res.json();
           if (data && data.version && data.version !== APP_VERSION) {
-            console.log(`[Auto-Update] Remote version ${data.version} detected (current: ${APP_VERSION})`);
-            performAutoUpdate(data.version);
+            if (data.version.localeCompare(APP_VERSION, undefined, { numeric: true, sensitivity: 'base' }) > 0) {
+              console.log(`[Auto-Update] Remote version ${data.version} detected (current: ${APP_VERSION})`);
+              performAutoUpdate(data.version);
+            } else {
+              console.log(`[Auto-Update] Remote version ${data.version} is older or equal to local ${APP_VERSION}. Skipping update.`);
+            }
           }
         }
       } catch (e) {

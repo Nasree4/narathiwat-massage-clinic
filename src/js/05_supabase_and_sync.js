@@ -300,9 +300,13 @@
         if (newRec.scope === "system" && newRec.config_key === "app_version") {
           const cloudVer = newRec.slots_json?.version;
           if (cloudVer && cloudVer !== APP_VERSION) {
-            console.log(`[Realtime] Cloud version changed to ${cloudVer} (local: ${APP_VERSION}). Updating...`);
-            if (typeof checkSystemUpdate === 'function') {
-              checkSystemUpdate(true);
+            if (cloudVer.localeCompare(APP_VERSION, undefined, { numeric: true, sensitivity: 'base' }) > 0) {
+              console.log(`[Realtime] Cloud version changed to ${cloudVer} (local: ${APP_VERSION}). Updating...`);
+              if (typeof checkSystemUpdate === 'function') {
+                checkSystemUpdate(true);
+              }
+            } else {
+              console.log(`[Realtime] Database version ${cloudVer} is older or equal to local ${APP_VERSION}. Skipping update.`);
             }
           }
         } else if (newRec.scope === "system" && newRec.config_key === "wiped_at") {
@@ -1282,9 +1286,15 @@
               if (c.scope === "system" && c.config_key === "app_version") {
                 const cloudVer = c.slots_json?.version;
                 if (cloudVer && cloudVer !== APP_VERSION) {
-                  console.log(`[Cloud-Sync] Version mismatch! App is running ${APP_VERSION}, Cloud is on ${cloudVer}. Triggering auto-update...`);
-                  if (typeof checkSystemUpdate === 'function') {
-                    setTimeout(() => checkSystemUpdate(true), 500);
+                  // Only force update if cloud version is newer, to prevent infinite reload loops
+                  // when the frontend is deployed but the database hasn't been updated yet.
+                  if (cloudVer.localeCompare(APP_VERSION, undefined, { numeric: true, sensitivity: 'base' }) > 0) {
+                    console.log(`[Cloud-Sync] Newer version detected! App is running ${APP_VERSION}, Cloud is on ${cloudVer}. Triggering auto-update...`);
+                    if (typeof checkSystemUpdate === 'function') {
+                      setTimeout(() => checkSystemUpdate(true), 500);
+                    }
+                  } else {
+                    console.log(`[Cloud-Sync] Database version ${cloudVer} is older or equal to local ${APP_VERSION}. Skipping update.`);
                   }
                 }
               }
