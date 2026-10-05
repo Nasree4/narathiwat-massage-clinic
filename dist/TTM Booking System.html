@@ -771,9 +771,9 @@
           <h1 class="text-sm sm:text-base md:text-lg font-bold leading-tight tracking-wide flex items-center gap-1 sm:gap-1.5 flex-wrap">
             <span data-i18n="app_title">คลินิกการแพทย์แผนไทย</span>
             <span class="text-[10px] sm:text-[11px] font-normal px-2 py-0.5 bg-herbal-800/80 text-herbal-200 rounded-full border border-herbal-600 hidden sm:inline-block" data-i18n="service_status">เปิดบริการปกติ</span>
-            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.20 (คลิกเพื่อตรวจสอบการอัปเดต)">
+            <button type="button" onclick="event.stopPropagation(); checkSystemUpdate(true);" class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-white/15 hover:bg-white/25 active:bg-white/35 text-emerald-200 hover:text-white rounded-full border border-white/25 shadow-2xs transition cursor-pointer" title="เวอร์ชันระบบ v5.5.21 (คลิกเพื่อตรวจสอบการอัปเดต)">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span id="app-header-version-tag">v5.5.20</span>
+              <span id="app-header-version-tag">v5.5.21</span>
             </button>
           </h1>
           <p class="text-[11px] sm:text-xs text-herbal-200 font-light" data-i18n="app_hospital">
@@ -2740,7 +2740,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="font-medium text-slate-700 dark:text-slate-300">คลินิกการแพทย์แผนไทย รพ.นราธิวาสราชนครินทร์</span>
         <span class="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
-        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.20</span>
+        <span class="font-mono font-bold text-herbal-700 dark:text-emerald-400" id="app-footer-version-tag">v5.5.21</span>
         <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">ล่าสุด</span>
       </div>
       <div class="flex items-center gap-2">
@@ -2981,7 +2981,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
                 <p class="text-[11px] text-slate-500 dark:text-slate-400">อัปเดตล่าสุด: <span id="app-settings-build-date">4 ตุลาคม 2569</span></p>
               </div>
             </div>
-            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.20</span>
+            <span class="font-mono font-black text-sm px-2.5 py-1 bg-white dark:bg-slate-900 text-herbal-700 dark:text-emerald-400 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs" id="app-settings-version-tag">v5.5.21</span>
           </div>
 
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-700/70 text-xs">
@@ -3000,7 +3000,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       
       <!-- Modal Footer -->
       <div class="bg-slate-50 dark:bg-slate-800/80 px-5 py-3.5 border-t border-slate-200 dark:border-slate-700/80 flex items-center justify-between flex-shrink-0">
-        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.20</span></span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400">TTM Booking System <span id="app-modal-footer-version">v5.5.21</span></span>
         <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold transition" data-i18n="btn_close">
           ปิดหน้าต่าง
         </button>
@@ -6158,7 +6158,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
     /* =========================================================================
        APPLICATION STATE & CONSTANTS
        ========================================================================= */
-    const APP_VERSION = "v5.5.20";
+    const APP_VERSION = "v5.5.21";
     const APP_BUILD_DATE = "4 ตุลาคม 2569";
 
     // Working Slots & Duty Hours Constants (Defined top-level to prevent TDZ)
@@ -19927,9 +19927,25 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
       const uniqueHns = new Set(targetApts.map(a => getAppointmentPatientIdentifier(a)).filter(Boolean)).size;
       const totalCases = targetApts.length;
 
-      // Calculate Grand Total Revenue across all appointments & procedure actions
+      // Calculate Grand Total Revenue
       let grandTotalMoney = 0;
+      let outOfHoursApts = [];
+      let inHoursApts = [];
+
       targetApts.forEach(apt => {
+        if (isAppointmentOutOfHours(apt)) {
+          outOfHoursApts.push(apt);
+        } else {
+          inHoursApts.push(apt);
+        }
+      });
+
+      // Out-of-hours revenue: Unique Patients x 50
+      const outOfHoursUniqueHns = new Set(outOfHoursApts.map(a => getAppointmentPatientIdentifier(a)).filter(Boolean)).size;
+      grandTotalMoney += outOfHoursUniqueHns * 50;
+
+      // In-hours revenue: Calculate by specific service rate
+      inHoursApts.forEach(apt => {
         const ms = (apt.mainService || "").trim();
         if (ms) grandTotalMoney += getServicePriceRate(ms);
 
@@ -20064,9 +20080,39 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         const totalServiceActions = Object.values(sc.allServicesMap).reduce((acc, c) => acc + c, 0);
 
         let schemeTotalMoney = 0;
-        sortedServices.forEach(([svcName, count]) => {
-          const unitPrice = getServicePriceRate(svcName);
-          schemeTotalMoney += (count * unitPrice);
+        let schemeOutOfHoursApts = [];
+        let schemeInHoursApts = [];
+
+        sc.apts.forEach(apt => {
+          if (isAppointmentOutOfHours(apt)) {
+            schemeOutOfHoursApts.push(apt);
+          } else {
+            schemeInHoursApts.push(apt);
+          }
+        });
+
+        const schemeOutOfHoursUniqueHns = new Set(schemeOutOfHoursApts.map(a => getAppointmentPatientIdentifier(a)).filter(Boolean)).size;
+        schemeTotalMoney += schemeOutOfHoursUniqueHns * 50;
+
+        schemeInHoursApts.forEach(apt => {
+          const ms = (apt.mainService || "").trim();
+          if (ms) schemeTotalMoney += getServicePriceRate(ms);
+          let extraList = [];
+          if (Array.isArray(apt.extraServices)) {
+            extraList = apt.extraServices;
+          } else if (typeof apt.extraServices === "string" && apt.extraServices.trim()) {
+            try {
+              const parsed = JSON.parse(apt.extraServices);
+              if (Array.isArray(parsed)) extraList = parsed;
+              else extraList = apt.extraServices.split(",").map(x => x.trim());
+            } catch (e) {
+              extraList = apt.extraServices.split(",").map(x => x.trim());
+            }
+          }
+          extraList.forEach(ex => {
+            const exTrim = String(ex || "").trim();
+            if (exTrim) schemeTotalMoney += getServicePriceRate(exTrim);
+          });
         });
 
         html += `
@@ -20366,7 +20412,21 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
 
       // Grand Total Money
       let grandTotalMoney = 0;
+      let pdfOutOfHoursApts = [];
+      let pdfInHoursApts = [];
+
       targetApts.forEach(apt => {
+        if (isAppointmentOutOfHours(apt)) {
+          pdfOutOfHoursApts.push(apt);
+        } else {
+          pdfInHoursApts.push(apt);
+        }
+      });
+
+      const pdfOutOfHoursUniqueHns = new Set(pdfOutOfHoursApts.map(a => getAppointmentPatientIdentifier(a)).filter(Boolean)).size;
+      grandTotalMoney += pdfOutOfHoursUniqueHns * 50;
+
+      pdfInHoursApts.forEach(apt => {
         const ms = (apt.mainService || "").trim();
         if (ms) grandTotalMoney += getServicePriceRate(ms);
         let extraList = [];
@@ -20386,6 +20446,7 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
           if (exTrim) grandTotalMoney += getServicePriceRate(exTrim);
         });
       });
+
 
       // Group by Medical Scheme
       const schemeGroups = {};
@@ -20454,11 +20515,41 @@ ALTER TABLE public.extra_services ADD COLUMN IF NOT EXISTS target_audience TEXT 
         const totalSvcActions = Object.values(sc.allServicesMap).reduce((acc, c) => acc + c, 0);
 
         let schemeMoney = 0;
+        let scOutOfHoursApts = [];
+        let scInHoursApts = [];
+
+        sc.apts.forEach(apt => {
+          if (isAppointmentOutOfHours(apt)) scOutOfHoursApts.push(apt);
+          else scInHoursApts.push(apt);
+        });
+
+        const scOutOfHoursHns = new Set(scOutOfHoursApts.map(a => getAppointmentPatientIdentifier(a)).filter(Boolean)).size;
+        schemeMoney += scOutOfHoursHns * 50;
+
+        scInHoursApts.forEach(apt => {
+          const ms = (apt.mainService || "").trim();
+          if (ms) schemeMoney += getServicePriceRate(ms);
+          let extraList = [];
+          if (Array.isArray(apt.extraServices)) {
+            extraList = apt.extraServices;
+          } else if (typeof apt.extraServices === "string" && apt.extraServices.trim()) {
+            try {
+              const parsed = JSON.parse(apt.extraServices);
+              if (Array.isArray(parsed)) extraList = parsed;
+              else extraList = apt.extraServices.split(",").map(x => x.trim());
+            } catch (e) {
+              extraList = apt.extraServices.split(",").map(x => x.trim());
+            }
+          }
+          extraList.forEach(ex => {
+            const exTrim = String(ex || "").trim();
+            if (exTrim) schemeMoney += getServicePriceRate(exTrim);
+          });
+        });
+
         const servicesBadges = sortedServices.map(([sName, sCount]) => {
           const uPrice = getServicePriceRate(sName);
-          const sMoney = sCount * uPrice;
-          schemeMoney += sMoney;
-          return `<span style="display:inline-block; background:#f1f5f9; padding:2px 5px; border-radius:4px; margin:1px 2px; font-size:10px; border:1px solid #cbd5e1;">${escapeHtml(sName)} (${uPrice ? uPrice + '฿' : '-'}): <b>${sCount}</b> = <b style="color:#047857;">${sMoney.toLocaleString()}฿</b></span>`;
+          return `<span style="display:inline-block; background:#f1f5f9; padding:2px 5px; border-radius:4px; margin:1px 2px; font-size:10px; border:1px solid #cbd5e1;">${escapeHtml(sName)}: <b>${sCount}</b></span>`;
         }).join(" ");
 
         tableRowsHtml += `

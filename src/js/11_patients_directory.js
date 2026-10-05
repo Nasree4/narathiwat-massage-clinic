@@ -1648,9 +1648,25 @@
       const uniqueHns = new Set(targetApts.map(a => getAppointmentPatientIdentifier(a)).filter(Boolean)).size;
       const totalCases = targetApts.length;
 
-      // Calculate Grand Total Revenue across all appointments & procedure actions
+      // Calculate Grand Total Revenue
       let grandTotalMoney = 0;
+      let outOfHoursApts = [];
+      let inHoursApts = [];
+
       targetApts.forEach(apt => {
+        if (isAppointmentOutOfHours(apt)) {
+          outOfHoursApts.push(apt);
+        } else {
+          inHoursApts.push(apt);
+        }
+      });
+
+      // Out-of-hours revenue: Unique Patients x 50
+      const outOfHoursUniqueHns = new Set(outOfHoursApts.map(a => getAppointmentPatientIdentifier(a)).filter(Boolean)).size;
+      grandTotalMoney += outOfHoursUniqueHns * 50;
+
+      // In-hours revenue: Calculate by specific service rate
+      inHoursApts.forEach(apt => {
         const ms = (apt.mainService || "").trim();
         if (ms) grandTotalMoney += getServicePriceRate(ms);
 
@@ -1785,9 +1801,39 @@
         const totalServiceActions = Object.values(sc.allServicesMap).reduce((acc, c) => acc + c, 0);
 
         let schemeTotalMoney = 0;
-        sortedServices.forEach(([svcName, count]) => {
-          const unitPrice = getServicePriceRate(svcName);
-          schemeTotalMoney += (count * unitPrice);
+        let schemeOutOfHoursApts = [];
+        let schemeInHoursApts = [];
+
+        sc.apts.forEach(apt => {
+          if (isAppointmentOutOfHours(apt)) {
+            schemeOutOfHoursApts.push(apt);
+          } else {
+            schemeInHoursApts.push(apt);
+          }
+        });
+
+        const schemeOutOfHoursUniqueHns = new Set(schemeOutOfHoursApts.map(a => getAppointmentPatientIdentifier(a)).filter(Boolean)).size;
+        schemeTotalMoney += schemeOutOfHoursUniqueHns * 50;
+
+        schemeInHoursApts.forEach(apt => {
+          const ms = (apt.mainService || "").trim();
+          if (ms) schemeTotalMoney += getServicePriceRate(ms);
+          let extraList = [];
+          if (Array.isArray(apt.extraServices)) {
+            extraList = apt.extraServices;
+          } else if (typeof apt.extraServices === "string" && apt.extraServices.trim()) {
+            try {
+              const parsed = JSON.parse(apt.extraServices);
+              if (Array.isArray(parsed)) extraList = parsed;
+              else extraList = apt.extraServices.split(",").map(x => x.trim());
+            } catch (e) {
+              extraList = apt.extraServices.split(",").map(x => x.trim());
+            }
+          }
+          extraList.forEach(ex => {
+            const exTrim = String(ex || "").trim();
+            if (exTrim) schemeTotalMoney += getServicePriceRate(exTrim);
+          });
         });
 
         html += `
@@ -2087,7 +2133,21 @@
 
       // Grand Total Money
       let grandTotalMoney = 0;
+      let pdfOutOfHoursApts = [];
+      let pdfInHoursApts = [];
+
       targetApts.forEach(apt => {
+        if (isAppointmentOutOfHours(apt)) {
+          pdfOutOfHoursApts.push(apt);
+        } else {
+          pdfInHoursApts.push(apt);
+        }
+      });
+
+      const pdfOutOfHoursUniqueHns = new Set(pdfOutOfHoursApts.map(a => getAppointmentPatientIdentifier(a)).filter(Boolean)).size;
+      grandTotalMoney += pdfOutOfHoursUniqueHns * 50;
+
+      pdfInHoursApts.forEach(apt => {
         const ms = (apt.mainService || "").trim();
         if (ms) grandTotalMoney += getServicePriceRate(ms);
         let extraList = [];
@@ -2107,6 +2167,7 @@
           if (exTrim) grandTotalMoney += getServicePriceRate(exTrim);
         });
       });
+
 
       // Group by Medical Scheme
       const schemeGroups = {};
@@ -2175,11 +2236,41 @@
         const totalSvcActions = Object.values(sc.allServicesMap).reduce((acc, c) => acc + c, 0);
 
         let schemeMoney = 0;
+        let scOutOfHoursApts = [];
+        let scInHoursApts = [];
+
+        sc.apts.forEach(apt => {
+          if (isAppointmentOutOfHours(apt)) scOutOfHoursApts.push(apt);
+          else scInHoursApts.push(apt);
+        });
+
+        const scOutOfHoursHns = new Set(scOutOfHoursApts.map(a => getAppointmentPatientIdentifier(a)).filter(Boolean)).size;
+        schemeMoney += scOutOfHoursHns * 50;
+
+        scInHoursApts.forEach(apt => {
+          const ms = (apt.mainService || "").trim();
+          if (ms) schemeMoney += getServicePriceRate(ms);
+          let extraList = [];
+          if (Array.isArray(apt.extraServices)) {
+            extraList = apt.extraServices;
+          } else if (typeof apt.extraServices === "string" && apt.extraServices.trim()) {
+            try {
+              const parsed = JSON.parse(apt.extraServices);
+              if (Array.isArray(parsed)) extraList = parsed;
+              else extraList = apt.extraServices.split(",").map(x => x.trim());
+            } catch (e) {
+              extraList = apt.extraServices.split(",").map(x => x.trim());
+            }
+          }
+          extraList.forEach(ex => {
+            const exTrim = String(ex || "").trim();
+            if (exTrim) schemeMoney += getServicePriceRate(exTrim);
+          });
+        });
+
         const servicesBadges = sortedServices.map(([sName, sCount]) => {
           const uPrice = getServicePriceRate(sName);
-          const sMoney = sCount * uPrice;
-          schemeMoney += sMoney;
-          return `<span style="display:inline-block; background:#f1f5f9; padding:2px 5px; border-radius:4px; margin:1px 2px; font-size:10px; border:1px solid #cbd5e1;">${escapeHtml(sName)} (${uPrice ? uPrice + '฿' : '-'}): <b>${sCount}</b> = <b style="color:#047857;">${sMoney.toLocaleString()}฿</b></span>`;
+          return `<span style="display:inline-block; background:#f1f5f9; padding:2px 5px; border-radius:4px; margin:1px 2px; font-size:10px; border:1px solid #cbd5e1;">${escapeHtml(sName)}: <b>${sCount}</b></span>`;
         }).join(" ");
 
         tableRowsHtml += `
